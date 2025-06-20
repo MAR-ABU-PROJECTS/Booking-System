@@ -30,6 +30,7 @@
     "@types/node": "^24.0.1",
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.15.4",
+    "@types/uuid": "^10.0.0",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
@@ -47,7 +48,9 @@
     "stripe": "^18.2.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
-    "winston": "^3.17.0"
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
