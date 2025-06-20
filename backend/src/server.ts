@@ -23,9 +23,9 @@ import notificationRoutes from './routes/notification.routes'
 import adminRoutes from './routes/admin.routes'
 
 // Import middleware
-import { errorHandler } from './middleware/error.middleware'
-import { notFoundHandler } from './middleware/notfound.middleware'
-import { requestLogger } from './middleware/logger.middleware'
+import { errorHandler } from './middlewares/error.middleware'
+import { notFoundHandler } from './middlewares/notfound.middleware'
+import { requestLogger } from './middlewares/logger.middleware'
 
 // Initialize Prisma
 export const prisma = new PrismaClient({

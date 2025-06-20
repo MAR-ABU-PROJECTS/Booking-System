@@ -2,9 +2,9 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import { authService, requireAuth } from '../services/authservice'
-import { asyncHandler } from '../middleware/error.middleware'
-import { AppError } from '../middleware/error.middleware'
-import { auditLog } from '../middleware/logger.middleware'
+import { asyncHandler } from '../middlewares/error.middleware'
+import { AppError } from '../middlewares/error.middleware'
+import { auditLog } from '../middlewares/logger.middleware'
 
 const router = Router()
 
@@ -105,19 +105,19 @@ router.post(
     const { refreshToken } = req.body
     
     try {
-      const payload = authService.verifyRefreshToken(refreshToken)
+      const payload = authService.verifyToken(refreshToken)
       const user = await authService.getUserById(payload.userId)
       
       if (!user) {
         throw new AppError('User not found', 401)
       }
 
-      const tokens = authService.generateTokens(user)
+      const result = await authService.refreshToken(refreshToken)
 
       res.json({
         success: true,
         message: 'Token refreshed successfully',
-        data: tokens,
+        data: result,
       })
     } catch (error) {
       throw new AppError('Invalid refresh token', 401)
