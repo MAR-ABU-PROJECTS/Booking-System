@@ -332,3 +332,21 @@ ALTER TABLE "notifications" ADD CONSTRAINT "notifications_userId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+-- CreateTable for password reset and profile fields
+-- File: migrations/YYYYMMDDHHMMSS_add_user_fields/migration.sql
+
+-- Add missing fields to User table
+ALTER TABLE "User" ADD COLUMN "resetToken" TEXT;
+ALTER TABLE "User" ADD COLUMN "resetTokenExpiry" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN "avatar" TEXT;
+ALTER TABLE "User" ADD COLUMN "lastLoginAt" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN "updatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+
+-- Create indexes for better performance
+CREATE INDEX "User_resetToken_idx" ON "User"("resetToken");
+CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- Update existing records to have updatedAt
+UPDATE "User" SET "updatedAt" = "createdAt" WHERE "updatedAt" IS NULL;
