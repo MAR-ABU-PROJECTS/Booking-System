@@ -1,16 +1,42 @@
 // MAR ABU PROJECTS SERVICES LLC - Booking Routes
 import { Router } from 'express'
-import { body, query, param, validationResult } from 'express-validator'
-import { BookingStatus, PaymentStatus, UserRole, PaymentMethod } from '@prisma/client'
+import { body, param, query, validationResult } from 'express-validator'
+import { BookingStatus, PaymentStatus, UserRole } from '@prisma/client'
 import { requireAuth } from '../services/authservice'
-import { asyncHandler } from '../middleware/error.middleware'
-import { AppError } from '../middleware/error.middleware'
+import { asyncHandler } from '../middlewares/error.middleware'
+import { AppError } from '../middlewares/error.middleware'
 import { prisma } from '../server'
-import { auditLog } from '../middleware/logger.middleware'
-import { createBookingSchema, updateBookingSchema, searchBookingsSchema } from '../services/bookingservice'
+import { auditLog } from '../middlewares/logger.middleware'
+import { emailService } from '../services/emailservice'
 import { z } from 'zod'
 
 const router = Router()
+
+// Validation schemas
+const createBookingSchema = z.object({
+  propertyId: z.string(),
+  checkIn: z.string().transform(str => new Date(str)),
+  checkOut: z.string().transform(str => new Date(str)),
+  adults: z.number().int().min(1),
+  children: z.number().int().min(0).optional().default(0),
+  infants: z.number().int().min(0).optional().default(0),
+  guestEmail: z.string().email(),
+  guestPhone: z.string().optional(),
+  specialRequests: z.string().optional(),
+})
+
+const searchBookingsSchema = z.object({
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(100).default(20),
+  status: z.enum(Object.values(BookingStatus) as [string, ...string[]]).optional(),
+  paymentStatus: z.enum(Object.values(PaymentStatus) as [string, ...string[]]).optional(),
+  propertyId: z.string().optional(),
+  customerId: z.string().optional(),
+  bookingNumber: z.string().optional(),
+  guestEmail: z.string().optional(),
+  checkInFrom: z.string().optional(),
+  checkInTo: z.string().optional(),
+})
 
 // Validation middleware
 const validate = (req: any, res: any, next: any) => {
@@ -25,46 +51,16 @@ const validate = (req: any, res: any, next: any) => {
   next()
 }
 
-// Generate booking number
-const generateBookingNumber = async (): Promise<string> => {
-  const prefix = process.env.BOOKING_PREFIX || 'MAR'
-  const date = new Date()
-  const year = date.getFullYear().toString().slice(-2)
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  
-  // Get today's booking count
-  const startOfDay = new Date(date.setHours(0, 0, 0, 0))
-  const endOfDay = new Date(date.setHours(23, 59, 59, 999))
-  
-  const count = await prisma.booking.count({
-    where: {
-      createdAt: {
-        gte: startOfDay,
-        lte: endOfDay,
-      },
-    },
-  })
-  
-  const sequence = (count + 1).toString().padStart(4, '0')
-  return `${prefix}-${year}${month}-${sequence}`
-}
-
-// Calculate booking pricing
-const calculatePricing = (
-  checkIn: Date,
-  checkOut: Date,
-  baseRate: number,
-  cleaningFee: number = 0,
-  serviceFeeRate: number = 0.05
-) => {
+// Helper function to calculate booking costs
+const calculateBookingCosts = (property: any, checkIn: Date, checkOut: Date) => {
   const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
-  const subtotal = baseRate * nights
-  const serviceFee = subtotal * serviceFeeRate
+  const subtotal = property.baseRate * nights
+  const cleaningFee = property.cleaningFee || 0
+  const serviceFee = Math.round(subtotal * 0.1) // 10% service fee
   const total = subtotal + cleaningFee + serviceFee
 
   return {
     nights,
-    baseRate,
     subtotal,
     cleaningFee,
     serviceFee,
@@ -140,12 +136,14 @@ router.get(
                 id: true,
                 name: true,
                 type: true,
-                address: true,
                 city: true,
-                images: {
-                  where: { isPrimary: true },
-                  select: { url: true },
-                  take: 1,
+                images: true,
+                host: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
                 },
               },
             },
@@ -161,6 +159,7 @@ router.get(
             receipts: {
               orderBy: { uploadedAt: 'desc' },
             },
+            reviews: true,
           },
         }),
         prisma.booking.count({ where: whereClause }),
@@ -193,7 +192,7 @@ router.get(
 
 /**
  * @route   GET /api/v1/bookings/:id
- * @desc    Get single booking
+ * @desc    Get booking details
  * @access  Protected (owner, property host, admin)
  */
 router.get(
@@ -212,11 +211,7 @@ router.get(
                 lastName: true,
                 email: true,
                 phone: true,
-              },
-            },
-            amenities: {
-              include: {
-                amenity: true,
+                avatar: true,
               },
             },
           },
@@ -274,6 +269,13 @@ router.post(
       const property = await prisma.property.findUnique({
         where: { id: data.propertyId },
         include: {
+          host: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
           bookings: {
             where: {
               status: {
@@ -282,10 +284,10 @@ router.post(
               OR: [
                 {
                   checkIn: {
-                    lte: new Date(data.checkOut),
+                    lte: data.checkOut,
                   },
                   checkOut: {
-                    gte: new Date(data.checkIn),
+                    gte: data.checkIn,
                   },
                 },
               ],
@@ -312,17 +314,11 @@ router.post(
         throw new AppError(`Property can accommodate maximum ${property.maxGuests} guests`, 400)
       }
 
-      // Calculate pricing
-      const pricing = calculatePricing(
-        new Date(data.checkIn),
-        new Date(data.checkOut),
-        property.baseRate,
-        property.cleaningFee || 0,
-        property.serviceFee || 0.05
-      )
+      // Calculate costs
+      const costs = calculateBookingCosts(property, data.checkIn, data.checkOut)
 
       // Generate booking number
-      const bookingNumber = await generateBookingNumber()
+      const bookingNumber = `MAR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
 
       // Create booking
       const booking = await prisma.booking.create({
@@ -330,19 +326,19 @@ router.post(
           bookingNumber,
           propertyId: data.propertyId,
           customerId: req.user.id,
-          checkIn: new Date(data.checkIn),
-          checkOut: new Date(data.checkOut),
+          checkIn: data.checkIn,
+          checkOut: data.checkOut,
           adults: data.adults,
-          children: data.children || 0,
-          totalGuests: totalGuests,
-          guestName: data.guestName,
+          children: data.children,
+          infants: data.infants,
           guestEmail: data.guestEmail,
           guestPhone: data.guestPhone,
-          guestAddress: data.guestAddress,
           specialRequests: data.specialRequests,
-          arrivalTime: data.arrivalTime,
-          ...pricing,
-          paymentMethod: data.paymentMethod as PaymentMethod,
+          nights: costs.nights,
+          subtotal: costs.subtotal,
+          cleaningFee: costs.cleaningFee,
+          serviceFee: costs.serviceFee,
+          total: costs.total,
           status: BookingStatus.PENDING,
           paymentStatus: PaymentStatus.PENDING,
         },
@@ -350,8 +346,13 @@ router.post(
           property: {
             select: {
               name: true,
-              address: true,
-              city: true,
+              host: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
             },
           },
         },
@@ -361,21 +362,26 @@ router.post(
       await prisma.notification.create({
         data: {
           userId: property.hostId,
-          type: 'BOOKING_CONFIRMATION',
+          type: 'BOOKING_REQUEST',
           title: 'New Booking Request',
-          message: `You have a new booking request for ${property.name} from ${data.guestName}`,
-          data: {
+          message: `${req.user.firstName} ${req.user.lastName} has requested to book ${property.name}`,
+          metadata: {
             bookingId: booking.id,
             bookingNumber: booking.bookingNumber,
           },
         },
       })
 
+      // Send email notifications
+      await Promise.all([
+        emailService.sendBookingConfirmation(data.guestEmail, booking),
+        emailService.sendNewBookingNotification(property.host.email, booking),
+      ])
+
       auditLog('BOOKING_CREATED', req.user.id, {
         bookingId: booking.id,
         bookingNumber: booking.bookingNumber,
-        propertyId: booking.propertyId,
-        total: booking.total,
+        propertyId: data.propertyId,
       }, req.ip)
 
       res.status(201).json({
@@ -423,6 +429,13 @@ router.patch(
             name: true,
           },
         },
+        customer: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
       },
     })
 
@@ -462,19 +475,28 @@ router.patch(
         type: status === BookingStatus.APPROVED ? 'BOOKING_APPROVED' : 'BOOKING_CANCELLED',
         title: notificationTitle,
         message: `Your booking for ${booking.property.name} has been ${status.toLowerCase()}.${reason ? ` Reason: ${reason}` : ''}`,
-        data: {
+        metadata: {
           bookingId: booking.id,
           bookingNumber: booking.bookingNumber,
-          status,
         },
       },
     })
 
+    // Send email notification
+    await emailService.sendBookingStatusUpdate(
+      booking.customer.email,
+      {
+        customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+        propertyName: booking.property.name,
+        bookingNumber: booking.bookingNumber,
+        status,
+        reason,
+      }
+    )
+
     auditLog('BOOKING_STATUS_UPDATED', req.user.id, {
-      bookingId: booking.id,
-      bookingNumber: booking.bookingNumber,
-      oldStatus: booking.status,
-      newStatus: status,
+      bookingId: req.params.id,
+      status,
       reason,
     }, req.ip)
 
@@ -489,7 +511,7 @@ router.patch(
 /**
  * @route   POST /api/v1/bookings/:id/cancel
  * @desc    Cancel booking
- * @access  Protected (owner, admin)
+ * @access  Protected (booking owner)
  */
 router.post(
   '/:id/cancel',
@@ -507,8 +529,113 @@ router.post(
       include: {
         property: {
           select: {
-            hostId: true,
             name: true,
+            hostId: true,
+            host: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    if (!booking) {
+      throw new AppError('Booking not found', 404)
+    }
+
+    // Only booking owner can cancel
+    if (booking.customerId !== req.user.id) {
+      throw new AppError('Not authorized to cancel this booking', 403)
+    }
+
+    // Can only cancel pending or approved bookings
+    if (![BookingStatus.PENDING, BookingStatus.APPROVED].includes(booking.status)) {
+      throw new AppError('Cannot cancel booking in current status', 400)
+    }
+
+    // Update booking status
+    const updated = await prisma.booking.update({
+      where: { id: req.params.id },
+      data: {
+        status: BookingStatus.CANCELLED,
+        cancellationReason: reason,
+        cancelledAt: new Date(),
+      },
+    })
+
+    // Create notification for property host
+    await prisma.notification.create({
+      data: {
+        userId: booking.property.hostId,
+        type: 'BOOKING_CANCELLED',
+        title: 'Booking Cancelled',
+        message: `${req.user.firstName} ${req.user.lastName} cancelled their booking for ${booking.property.name}.${reason ? ` Reason: ${reason}` : ''}`,
+        metadata: {
+          bookingId: booking.id,
+          bookingNumber: booking.bookingNumber,
+        },
+      },
+    })
+
+    // Send email notification to host
+    await emailService.sendBookingCancellation(
+      booking.property.host.email,
+      {
+        hostName: `${booking.property.host.firstName} ${booking.property.host.lastName}`,
+        customerName: `${req.user.firstName} ${req.user.lastName}`,
+        propertyName: booking.property.name,
+        bookingNumber: booking.bookingNumber,
+        reason,
+      }
+    )
+
+    auditLog('BOOKING_CANCELLED', req.user.id, {
+      bookingId: req.params.id,
+      reason,
+    }, req.ip)
+
+    res.json({
+      success: true,
+      message: 'Booking cancelled successfully',
+      data: updated,
+    })
+  })
+)
+
+/**
+ * @route   GET /api/v1/bookings/:id/invoice
+ * @desc    Get booking invoice
+ * @access  Protected (authorized users only)
+ */
+router.get(
+  '/:id/invoice',
+  requireAuth(),
+  asyncHandler(async (req: any, res: any) => {
+    const booking = await prisma.booking.findUnique({
+      where: { id: req.params.id },
+      include: {
+        property: {
+          select: {
+            name: true,
+            type: true,
+            address: true,
+            city: true,
+            state: true,
+            zipCode: true,
+            country: true,
+            hostId: true,
+          },
+        },
+        customer: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
           },
         },
       },
@@ -520,55 +647,46 @@ router.post(
 
     // Check authorization
     const isOwner = booking.customerId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN
+    const isHost = booking.property.hostId === req.user.id
+    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
 
-    if (!isOwner && !isAdmin) {
-      throw new AppError('Not authorized to cancel this booking', 403)
+    if (!isOwner && !isHost && !isAdmin) {
+      throw new AppError('Not authorized to view this invoice', 403)
     }
-
-    // Check if booking can be cancelled
-    if (booking.status === BookingStatus.CANCELLED) {
-      throw new AppError('Booking is already cancelled', 400)
-    }
-
-    if (booking.status === BookingStatus.COMPLETED) {
-      throw new AppError('Completed bookings cannot be cancelled', 400)
-    }
-
-    // Update booking
-    const updated = await prisma.booking.update({
-      where: { id: req.params.id },
-      data: {
-        status: BookingStatus.CANCELLED,
-        paymentStatus: PaymentStatus.REFUNDED,
-        adminNotes: reason,
-      },
-    })
-
-    // Notify property host
-    await prisma.notification.create({
-      data: {
-        userId: booking.property.hostId,
-        type: 'BOOKING_CANCELLED',
-        title: 'Booking Cancelled',
-        message: `Booking ${booking.bookingNumber} for ${booking.property.name} has been cancelled.`,
-        data: {
-          bookingId: booking.id,
-          bookingNumber: booking.bookingNumber,
-        },
-      },
-    })
-
-    auditLog('BOOKING_CANCELLED', req.user.id, {
-      bookingId: booking.id,
-      bookingNumber: booking.bookingNumber,
-      reason,
-    }, req.ip)
 
     res.json({
       success: true,
-      message: 'Booking cancelled successfully',
-      data: updated,
+      data: {
+        booking,
+        invoice: {
+          number: `INV-${booking.bookingNumber}`,
+          date: booking.createdAt,
+          dueDate: booking.checkIn,
+          items: [
+            {
+              description: `${booking.nights} night${booking.nights > 1 ? 's' : ''} at ${booking.property.name}`,
+              quantity: booking.nights,
+              rate: booking.subtotal / booking.nights,
+              amount: booking.subtotal,
+            },
+            ...(booking.cleaningFee > 0 ? [{
+              description: 'Cleaning fee',
+              quantity: 1,
+              rate: booking.cleaningFee,
+              amount: booking.cleaningFee,
+            }] : []),
+            ...(booking.serviceFee > 0 ? [{
+              description: 'Service fee',
+              quantity: 1,
+              rate: booking.serviceFee,
+              amount: booking.serviceFee,
+            }] : []),
+          ],
+          subtotal: booking.subtotal,
+          fees: booking.cleaningFee + booking.serviceFee,
+          total: booking.total,
+        },
+      },
     })
   })
 )

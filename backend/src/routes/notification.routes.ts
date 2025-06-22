@@ -3,10 +3,10 @@ import { Router } from 'express'
 import { body, param, query, validationResult } from 'express-validator'
 import { NotificationType, UserRole } from '@prisma/client'
 import { requireAuth } from '../services/authservice'
-import { asyncHandler } from '../middleware/error.middleware'
-import { AppError } from '../middleware/error.middleware'
+import { asyncHandler } from '../middlewares/error.middleware'
+import { AppError } from '../middlewares/error.middleware'
 import { prisma } from '../server'
-import { auditLog } from '../middleware/logger.middleware'
+import { auditLog } from '../middlewares/logger.middleware'
 
 const router = Router()
 
@@ -81,63 +81,72 @@ router.get(
 )
 
 /**
- * @route   GET /api/v1/notifications/unread-count
- * @desc    Get unread notification count
- * @access  Protected
+ * @route   GET /api/v1/notifications/:id
+ * @desc    Get notification details
+ * @access  Protected (notification owner only)
  */
 router.get(
-  '/unread-count',
+  '/:id',
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
-    const count = await prisma.notification.count({
-      where: {
-        userId: req.user.id,
-        read: false,
-      },
-    })
-
-    res.json({
-      success: true,
-      data: { count },
-    })
-  })
-)
-
-/**
- * @route   PATCH /api/v1/notifications/:id/read
- * @desc    Mark notification as read
- * @access  Protected (owner)
- */
-router.patch(
-  '/:id/read',
-  requireAuth(),
-  asyncHandler(async (req: any, res: any) => {
-    const { id } = req.params
-
     const notification = await prisma.notification.findUnique({
-      where: { id },
+      where: { id: req.params.id },
     })
 
     if (!notification) {
       throw new AppError('Notification not found', 404)
     }
 
+    // Check if notification belongs to user
+    if (notification.userId !== req.user.id) {
+      throw new AppError('Not authorized to view this notification', 403)
+    }
+
+    // Mark as read if not already read
+    if (!notification.read) {
+      await prisma.notification.update({
+        where: { id: req.params.id },
+        data: { 
+          read: true,
+          readAt: new Date(),
+        },
+      })
+      notification.read = true
+      notification.readAt = new Date()
+    }
+
+    res.json({
+      success: true,
+      data: notification,
+    })
+  })
+)
+
+/**
+ * @route   PUT /api/v1/notifications/:id/mark-read
+ * @desc    Mark notification as read
+ * @access  Protected (notification owner only)
+ */
+router.put(
+  '/:id/mark-read',
+  requireAuth(),
+  asyncHandler(async (req: any, res: any) => {
+    const notification = await prisma.notification.findUnique({
+      where: { id: req.params.id },
+    })
+
+    if (!notification) {
+      throw new AppError('Notification not found', 404)
+    }
+
+    // Check if notification belongs to user
     if (notification.userId !== req.user.id) {
       throw new AppError('Not authorized to update this notification', 403)
     }
 
-    if (notification.read) {
-      return res.json({
-        success: true,
-        message: 'Notification already marked as read',
-        data: notification,
-      })
-    }
-
-    // Update notification
     const updated = await prisma.notification.update({
-      where: { id },
-      data: {
+      where: { id: req.params.id },
+      data: { 
         read: true,
         readAt: new Date(),
       },
@@ -152,15 +161,15 @@ router.patch(
 )
 
 /**
- * @route   PATCH /api/v1/notifications/mark-all-read
+ * @route   PUT /api/v1/notifications/mark-all-read
  * @desc    Mark all notifications as read
  * @access  Protected
  */
-router.patch(
+router.put(
   '/mark-all-read',
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
-    const result = await prisma.notification.updateMany({
+    await prisma.notification.updateMany({
       where: {
         userId: req.user.id,
         read: false,
@@ -171,10 +180,13 @@ router.patch(
       },
     })
 
+    auditLog('NOTIFICATIONS_MARKED_READ', req.user.id, {
+      action: 'mark_all_read',
+    }, req.ip)
+
     res.json({
       success: true,
-      message: `${result.count} notifications marked as read`,
-      data: { count: result.count },
+      message: 'All notifications marked as read',
     })
   })
 )
@@ -182,29 +194,32 @@ router.patch(
 /**
  * @route   DELETE /api/v1/notifications/:id
  * @desc    Delete notification
- * @access  Protected (owner)
+ * @access  Protected (notification owner only)
  */
 router.delete(
   '/:id',
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
-    const { id } = req.params
-
     const notification = await prisma.notification.findUnique({
-      where: { id },
+      where: { id: req.params.id },
     })
 
     if (!notification) {
       throw new AppError('Notification not found', 404)
     }
 
+    // Check if notification belongs to user
     if (notification.userId !== req.user.id) {
       throw new AppError('Not authorized to delete this notification', 403)
     }
 
     await prisma.notification.delete({
-      where: { id },
+      where: { id: req.params.id },
     })
+
+    auditLog('NOTIFICATION_DELETED', req.user.id, {
+      notificationId: req.params.id,
+    }, req.ip)
 
     res.json({
       success: true,
@@ -215,26 +230,131 @@ router.delete(
 
 /**
  * @route   DELETE /api/v1/notifications/clear-all
- * @desc    Clear all notifications
+ * @desc    Clear all notifications for user
  * @access  Protected
  */
 router.delete(
   '/clear-all',
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
-    const result = await prisma.notification.deleteMany({
+    const deletedCount = await prisma.notification.deleteMany({
+      where: { userId: req.user.id },
+    })
+
+    auditLog('NOTIFICATIONS_CLEARED', req.user.id, {
+      deletedCount: deletedCount.count,
+    }, req.ip)
+
+    res.json({
+      success: true,
+      message: `${deletedCount.count} notifications cleared successfully`,
+    })
+  })
+)
+
+/**
+ * @route   GET /api/v1/notifications/unread-count
+ * @desc    Get unread notification count
+ * @access  Protected
+ */
+router.get(
+  '/unread-count',
+  requireAuth(),
+  asyncHandler(async (req: any, res: any) => {
+    const unreadCount = await prisma.notification.count({
       where: {
         userId: req.user.id,
+        read: false,
       },
     })
 
     res.json({
       success: true,
-      message: `${result.count} notifications deleted`,
-      data: { count: result.count },
+      data: { unreadCount },
     })
   })
 )
+
+/**
+ * @route   POST /api/v1/notifications/preferences
+ * @desc    Update notification preferences
+ * @access  Protected
+ */
+router.post(
+  '/preferences',
+  requireAuth(),
+  [
+    body('emailNotifications').isBoolean().withMessage('Email notifications setting required'),
+    body('pushNotifications').isBoolean().withMessage('Push notifications setting required'),
+    body('smsNotifications').isBoolean().withMessage('SMS notifications setting required'),
+    body('bookingUpdates').isBoolean().withMessage('Booking updates setting required'),
+    body('reviewNotifications').isBoolean().withMessage('Review notifications setting required'),
+    body('promotionalEmails').isBoolean().withMessage('Promotional emails setting required'),
+  ],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const preferences = req.body
+
+    // Update user notification preferences
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        notificationPreferences: preferences,
+      },
+      select: {
+        notificationPreferences: true,
+      },
+    })
+
+    auditLog('NOTIFICATION_PREFERENCES_UPDATED', req.user.id, {
+      preferences,
+    }, req.ip)
+
+    res.json({
+      success: true,
+      message: 'Notification preferences updated successfully',
+      data: updated.notificationPreferences,
+    })
+  })
+)
+
+/**
+ * @route   GET /api/v1/notifications/preferences
+ * @desc    Get notification preferences
+ * @access  Protected
+ */
+router.get(
+  '/preferences',
+  requireAuth(),
+  asyncHandler(async (req: any, res: any) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        notificationPreferences: true,
+      },
+    })
+
+    if (!user) {
+      throw new AppError('User not found', 404)
+    }
+
+    res.json({
+      success: true,
+      data: user.notificationPreferences || {
+        emailNotifications: true,
+        pushNotifications: true,
+        smsNotifications: false,
+        bookingUpdates: true,
+        reviewNotifications: true,
+        promotionalEmails: false,
+      },
+    })
+  })
+)
+
+// ===============================
+// ADMIN NOTIFICATION ROUTES
+// ===============================
 
 /**
  * @route   POST /api/v1/notifications/broadcast
@@ -245,163 +365,114 @@ router.post(
   '/broadcast',
   requireAuth(UserRole.ADMIN),
   [
-    body('title').trim().notEmpty().withMessage('Title is required'),
-    body('message').trim().notEmpty().withMessage('Message is required'),
-    body('type').optional().isIn(Object.values(NotificationType)),
-    body('targetRole').optional().isIn(Object.values(UserRole)),
+    body('title').trim().notEmpty().withMessage('Notification title required'),
+    body('message').trim().notEmpty().withMessage('Notification message required'),
+    body('type').isIn(Object.values(NotificationType)).withMessage('Invalid notification type'),
+    body('userRole').optional().isIn(Object.values(UserRole)),
+    body('urgent').optional().isBoolean(),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { title, message, type = NotificationType.SYSTEM_UPDATE, targetRole } = req.body
+    const { title, message, type, userRole, urgent } = req.body
 
     // Get target users
-    const where: any = { status: 'ACTIVE' }
-    if (targetRole) where.role = targetRole
+    const whereClause: any = { status: 'ACTIVE' }
+    if (userRole) whereClause.role = userRole
 
     const users = await prisma.user.findMany({
-      where,
+      where: whereClause,
       select: { id: true },
     })
 
-    // Create notifications for all users
-    const notifications = await prisma.notification.createMany({
-      data: users.map(user => ({
-        userId: user.id,
-        type,
-        title,
-        message,
-      })),
-    })
-
-    auditLog('BROADCAST_SENT', req.user.id, {
+    // Create notifications for all target users
+    const notifications = users.map(user => ({
+      userId: user.id,
+      type,
       title,
       message,
+      urgent: urgent || false,
+      metadata: {
+        broadcast: true,
+        sentBy: req.user.id,
+      },
+    }))
+
+    await prisma.notification.createMany({
+      data: notifications,
+    })
+
+    auditLog('BROADCAST_NOTIFICATION_SENT', req.user.id, {
+      title,
       type,
-      targetRole,
-      recipientCount: notifications.count,
+      userRole,
+      recipientCount: users.length,
     }, req.ip)
 
-    res.json({
+    res.status(201).json({
       success: true,
-      message: `Broadcast sent to ${notifications.count} users`,
+      message: `Broadcast notification sent to ${users.length} users`,
       data: {
-        recipientCount: notifications.count,
-      },
-    })
-  })
-)
-
-/**
- * @route   POST /api/v1/notifications/send
- * @desc    Send notification to specific user (admin only)
- * @access  Admin only
- */
-router.post(
-  '/send',
-  requireAuth(UserRole.ADMIN),
-  [
-    body('userId').isString().withMessage('User ID is required'),
-    body('title').trim().notEmpty().withMessage('Title is required'),
-    body('message').trim().notEmpty().withMessage('Message is required'),
-    body('type').optional().isIn(Object.values(NotificationType)),
-    body('data').optional().isObject(),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { userId, title, message, type = NotificationType.SYSTEM_UPDATE, data } = req.body
-
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true },
-    })
-
-    if (!user) {
-      throw new AppError('User not found', 404)
-    }
-
-    // Create notification
-    const notification = await prisma.notification.create({
-      data: {
-        userId,
-        type,
+        recipientCount: users.length,
         title,
         message,
-        data,
+        type,
       },
-    })
-
-    auditLog('NOTIFICATION_SENT', req.user.id, {
-      recipientId: userId,
-      notificationId: notification.id,
-      type,
-    }, req.ip)
-
-    res.json({
-      success: true,
-      message: 'Notification sent successfully',
-      data: notification,
     })
   })
 )
 
 /**
- * @route   GET /api/v1/notifications/preferences
- * @desc    Get notification preferences (future feature)
- * @access  Protected
+ * @route   GET /api/v1/notifications/admin/stats
+ * @desc    Get notification statistics
+ * @access  Admin only
  */
 router.get(
-  '/preferences',
-  requireAuth(),
+  '/admin/stats',
+  requireAuth(UserRole.ADMIN),
   asyncHandler(async (req: any, res: any) => {
-    // This is a placeholder for future notification preferences feature
-    // For now, return default preferences
-    const preferences = {
-      email: {
-        bookingConfirmation: true,
-        bookingApproved: true,
-        bookingCancelled: true,
-        paymentReceived: true,
-        reviewRequest: true,
-        systemUpdates: true,
-      },
-      push: {
-        bookingConfirmation: true,
-        bookingApproved: true,
-        bookingCancelled: true,
-        paymentReceived: true,
-        reviewRequest: true,
-        systemUpdates: false,
-      },
-    }
+    const [
+      totalNotifications,
+      unreadNotifications,
+      notificationsByType,
+      recentActivity,
+    ] = await Promise.all([
+      prisma.notification.count(),
+      prisma.notification.count({ where: { read: false } }),
+      prisma.notification.groupBy({
+        by: ['type'],
+        _count: { type: true },
+      }),
+      prisma.notification.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      }),
+    ])
+
+    const typeDistribution = notificationsByType.reduce((acc, item) => {
+      acc[item.type] = item._count.type
+      return acc
+    }, {} as Record<string, number>)
 
     res.json({
       success: true,
-      data: preferences,
-    })
-  })
-)
-
-/**
- * @route   PUT /api/v1/notifications/preferences
- * @desc    Update notification preferences (future feature)
- * @access  Protected
- */
-router.put(
-  '/preferences',
-  requireAuth(),
-  [
-    body('email').optional().isObject(),
-    body('push').optional().isObject(),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    // This is a placeholder for future notification preferences feature
-    // For now, just return success
-    res.json({
-      success: true,
-      message: 'Notification preferences updated successfully',
-      data: req.body,
+      data: {
+        totalNotifications,
+        unreadNotifications,
+        readRate: totalNotifications > 0 
+          ? ((totalNotifications - unreadNotifications) / totalNotifications * 100).toFixed(1)
+          : 0,
+        typeDistribution,
+        recentActivity,
+      },
     })
   })
 )

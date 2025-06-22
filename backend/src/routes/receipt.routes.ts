@@ -1,44 +1,15 @@
-// MAR ABU PROJECTS SERVICES LLC - Receipt Management Routes
+// MAR ABU PROJECTS SERVICES LLC - Property Routes
 import { Router } from 'express'
-import { body, param, validationResult } from 'express-validator'
-import { ReceiptStatus, PaymentStatus, UserRole } from '@prisma/client'
-import { requireAuth } from '../services/authservice'
-import { asyncHandler } from '../middleware/error.middleware'
-import { AppError } from '../middleware/error.middleware'
+import { body, param, query, validationResult } from 'express-validator'
+import { PropertyType, PropertyStatus, UserRole } from '@prisma/client'
+import { requireAuth, optionalAuth } from '../services/authservice'
+import { asyncHandler } from '../middlewares/error.middleware'
+import { AppError } from '../middlewares/error.middleware'
 import { prisma } from '../server'
-import { auditLog } from '../middleware/logger.middleware'
-import multer from 'multer'
-import path from 'path'
-import { v4 as uuidv4 } from 'crypto'
-import { emailService } from '../services/emailservice'
-import { APP_CONSTANTS } from '../utils/constants'
+import { auditLog } from '../middlewares/logger.middleware'
+import { validatePagination, calculatePagination } from '../utils/helpers'
 
 const router = Router()
-
-// Configure multer for receipt uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/receipts')
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `receipt-${uuidv4()}${path.extname(file.originalname)}`
-    cb(null, uniqueName)
-  },
-})
-
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: APP_CONSTANTS.UPLOAD.MAX_DOCUMENT_SIZE,
-  },
-  fileFilter: (req, file, cb) => {
-    if (APP_CONSTANTS.UPLOAD.ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
-      cb(null, true)
-    } else {
-      cb(new Error('Invalid file type. Only PDF and images are allowed.'))
-    }
-  },
-})
 
 // Validation middleware
 const validate = (req: any, res: any, next: any) => {
@@ -54,383 +25,599 @@ const validate = (req: any, res: any, next: any) => {
 }
 
 // ===============================
-// RECEIPT ROUTES
+// PUBLIC PROPERTY ROUTES
 // ===============================
 
 /**
- * @route   GET /api/v1/receipts
- * @desc    Get receipts (admin only)
- * @access  Admin
+ * @route   GET /api/v1/properties
+ * @desc    Get all properties (public)
+ * @access  Public
  */
 router.get(
   '/',
-  requireAuth(UserRole.ADMIN),
+  optionalAuth(),
+  asyncHandler(async (req: any, res: any) => {
+    const {
+      page = 1,
+      limit = 20,
+      city,
+      type,
+      minPrice,
+      maxPrice,
+      bedrooms,
+      bathrooms,
+      maxGuests,
+      amenities,
+      sortBy = 'createdAt',
+      order = 'desc',
+    } = req.query
+
+    const { page: validPage, limit: validLimit } = validatePagination(page, limit)
+
+    // Build where clause
+    const where: any = {
+      status: PropertyStatus.ACTIVE,
+    }
+
+    if (city) where.city = { contains: city, mode: 'insensitive' }
+    if (type) where.type = type
+    if (bedrooms) where.bedrooms = { gte: parseInt(bedrooms) }
+    if (bathrooms) where.bathrooms = { gte: parseInt(bathrooms) }
+    if (maxGuests) where.maxGuests = { gte: parseInt(maxGuests) }
+    if (minPrice || maxPrice) {
+      where.baseRate = {}
+      if (minPrice) where.baseRate.gte = parseFloat(minPrice)
+      if (maxPrice) where.baseRate.lte = parseFloat(maxPrice)
+    }
+
+    // Handle amenities filter
+    if (amenities) {
+      const amenityList = Array.isArray(amenities) ? amenities : [amenities]
+      where.amenities = {
+        hasEvery: amenityList,
+      }
+    }
+
+    // Build order by clause
+    const orderBy: any = {}
+    orderBy[sortBy] = order
+
+    const [properties, total] = await Promise.all([
+      prisma.property.findMany({
+        where,
+        orderBy,
+        skip: (validPage - 1) * validLimit,
+        take: validLimit,
+        include: {
+          host: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
+          },
+          reviews: {
+            where: { approved: true },
+            select: {
+              rating: true,
+            },
+          },
+          _count: {
+            select: {
+              reviews: true,
+              bookings: true,
+            },
+          },
+        },
+      }),
+      prisma.property.count({ where }),
+    ])
+
+    // Calculate average ratings
+    const propertiesWithRatings = properties.map(property => {
+      const ratings = property.reviews.map(r => r.rating)
+      const averageRating = ratings.length > 0 
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
+        : 0
+
+      return {
+        ...property,
+        averageRating: Math.round(averageRating * 10) / 10,
+        reviewCount: property._count.reviews,
+        bookingCount: property._count.bookings,
+        reviews: undefined, // Remove reviews array from response
+      }
+    })
+
+    const pagination = calculatePagination(validPage, validLimit, total)
+
+    res.json({
+      success: true,
+      data: {
+        properties: propertiesWithRatings,
+        pagination,
+      },
+    })
+  })
+)
+
+/**
+ * @route   GET /api/v1/properties/:id
+ * @desc    Get property details
+ * @access  Public
+ */
+router.get(
+  '/:id',
+  optionalAuth(),
+  asyncHandler(async (req: any, res: any) => {
+    const property = await prisma.property.findUnique({
+      where: { id: req.params.id },
+      include: {
+        host: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            createdAt: true,
+            _count: {
+              select: {
+                properties: true,
+              },
+            },
+          },
+        },
+        reviews: {
+          where: { approved: true },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            customer: {
+              select: {
+                firstName: true,
+                lastName: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+        bookings: {
+          where: {
+            status: {
+              in: ['APPROVED', 'PENDING'],
+            },
+          },
+          select: {
+            checkIn: true,
+            checkOut: true,
+          },
+        },
+      },
+    })
+
+    if (!property) {
+      throw new AppError('Property not found', 404)
+    }
+
+    // Calculate average rating
+    const ratings = property.reviews.map(r => r.rating)
+    const averageRating = ratings.length > 0 
+      ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
+      : 0
+
+    // Get unavailable dates
+    const unavailableDates = property.bookings.map(booking => ({
+      checkIn: booking.checkIn,
+      checkOut: booking.checkOut,
+    }))
+
+    const responseData = {
+      ...property,
+      averageRating: Math.round(averageRating * 10) / 10,
+      reviewCount: property.reviews.length,
+      unavailableDates,
+      hostPropertyCount: property.host._count.properties,
+    }
+
+    res.json({
+      success: true,
+      data: responseData,
+    })
+  })
+)
+
+/**
+ * @route   GET /api/v1/properties/:id/availability
+ * @desc    Check property availability for dates
+ * @access  Public
+ */
+router.get(
+  '/:id/availability',
+  [
+    param('id').isString(),
+    query('checkIn').isISO8601(),
+    query('checkOut').isISO8601(),
+  ],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const { checkIn, checkOut } = req.query
+
+    const property = await prisma.property.findUnique({
+      where: { id: req.params.id },
+    })
+
+    if (!property) {
+      throw new AppError('Property not found', 404)
+    }
+
+    // Check for overlapping bookings
+    const overlappingBookings = await prisma.booking.count({
+      where: {
+        propertyId: req.params.id,
+        status: {
+          in: ['PENDING', 'APPROVED'],
+        },
+        OR: [
+          {
+            checkIn: {
+              lte: new Date(checkOut),
+            },
+            checkOut: {
+              gte: new Date(checkIn),
+            },
+          },
+        ],
+      },
+    })
+
+    const isAvailable = overlappingBookings === 0
+
+    res.json({
+      success: true,
+      data: {
+        available: isAvailable,
+        checkIn,
+        checkOut,
+        propertyId: req.params.id,
+      },
+    })
+  })
+)
+
+// ===============================
+// PROPERTY HOST ROUTES
+// ===============================
+
+/**
+ * @route   GET /api/v1/properties/my-properties
+ * @desc    Get properties owned by current user
+ * @access  Property Host
+ */
+router.get(
+  '/my-properties',
+  requireAuth(UserRole.PROPERTY_HOST),
   asyncHandler(async (req: any, res: any) => {
     const {
       page = 1,
       limit = 20,
       status,
-      bookingId,
-      customerId,
+      sortBy = 'createdAt',
+      order = 'desc',
     } = req.query
 
-    const where: any = {}
-    if (status) where.status = status
-    if (bookingId) where.bookingId = bookingId
-    if (customerId) where.booking = { customerId }
+    const { page: validPage, limit: validLimit } = validatePagination(page, limit)
 
-    const [receipts, total] = await Promise.all([
-      prisma.receipt.findMany({
+    const where: any = { hostId: req.user.id }
+    if (status) where.status = status
+
+    const orderBy: any = {}
+    orderBy[sortBy] = order
+
+    const [properties, total] = await Promise.all([
+      prisma.property.findMany({
         where,
-        orderBy: { uploadedAt: 'desc' },
-        skip: (parseInt(page) - 1) * parseInt(limit),
-        take: parseInt(limit),
+        orderBy,
+        skip: (validPage - 1) * validLimit,
+        take: validLimit,
         include: {
-          booking: {
+          _count: {
             select: {
-              id: true,
-              bookingNumber: true,
-              total: true,
-              property: {
-                select: {
-                  name: true,
-                },
-              },
-              customer: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                  email: true,
-                },
-              },
+              bookings: true,
+              reviews: true,
             },
+          },
+          reviews: {
+            where: { approved: true },
+            select: { rating: true },
           },
         },
       }),
-      prisma.receipt.count({ where }),
+      prisma.property.count({ where }),
     ])
+
+    // Calculate average ratings and stats
+    const propertiesWithStats = properties.map(property => {
+      const ratings = property.reviews.map(r => r.rating)
+      const averageRating = ratings.length > 0 
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
+        : 0
+
+      return {
+        ...property,
+        averageRating: Math.round(averageRating * 10) / 10,
+        reviewCount: property._count.reviews,
+        bookingCount: property._count.bookings,
+        reviews: undefined,
+      }
+    })
+
+    const pagination = calculatePagination(validPage, validLimit, total)
 
     res.json({
       success: true,
       data: {
-        receipts,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit)),
-        },
+        properties: propertiesWithStats,
+        pagination,
       },
     })
   })
 )
 
 /**
- * @route   GET /api/v1/receipts/booking/:bookingId
- * @desc    Get receipts for a booking
- * @access  Protected (owner, property host, admin)
- */
-router.get(
-  '/booking/:bookingId',
-  requireAuth(),
-  asyncHandler(async (req: any, res: any) => {
-    const { bookingId } = req.params
-
-    // Check booking access
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-      include: {
-        property: {
-          select: { hostId: true },
-        },
-      },
-    })
-
-    if (!booking) {
-      throw new AppError('Booking not found', 404)
-    }
-
-    // Check authorization
-    const isOwner = booking.customerId === req.user.id
-    const isHost = booking.property.hostId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
-
-    if (!isOwner && !isHost && !isAdmin) {
-      throw new AppError('Not authorized to view these receipts', 403)
-    }
-
-    const receipts = await prisma.receipt.findMany({
-      where: { bookingId },
-      orderBy: { uploadedAt: 'desc' },
-    })
-
-    res.json({
-      success: true,
-      data: receipts,
-    })
-  })
-)
-
-/**
- * @route   POST /api/v1/receipts/booking/:bookingId
- * @desc    Upload receipt for booking
- * @access  Protected (booking owner)
+ * @route   POST /api/v1/properties
+ * @desc    Create new property
+ * @access  Property Host
  */
 router.post(
-  '/booking/:bookingId',
-  requireAuth(),
-  upload.single('receipt'),
+  '/',
+  requireAuth(UserRole.PROPERTY_HOST),
   [
-    param('bookingId').isString(),
-    body('amount').isFloat({ min: 0 }).withMessage('Valid amount required'),
-    body('transactionReference').optional().isString(),
-    body('paymentDate').optional().isISO8601(),
-    body('notes').optional().isString(),
+    body('name').trim().notEmpty().withMessage('Property name required'),
+    body('description').trim().notEmpty().withMessage('Description required'),
+    body('type').isIn(Object.values(PropertyType)).withMessage('Invalid property type'),
+    body('address').trim().notEmpty().withMessage('Address required'),
+    body('city').trim().notEmpty().withMessage('City required'),
+    body('state').trim().notEmpty().withMessage('State required'),
+    body('zipCode').trim().notEmpty().withMessage('Zip code required'),
+    body('country').trim().notEmpty().withMessage('Country required'),
+    body('latitude').isFloat().withMessage('Valid latitude required'),
+    body('longitude').isFloat().withMessage('Valid longitude required'),
+    body('bedrooms').isInt({ min: 0 }).withMessage('Valid bedroom count required'),
+    body('bathrooms').isInt({ min: 0 }).withMessage('Valid bathroom count required'),
+    body('maxGuests').isInt({ min: 1 }).withMessage('Valid guest count required'),
+    body('baseRate').isFloat({ min: 0 }).withMessage('Valid base rate required'),
+    body('cleaningFee').optional().isFloat({ min: 0 }),
+    body('amenities').isArray().withMessage('Amenities must be an array'),
+    body('houseRules').optional().isArray(),
+    body('images').isArray().withMessage('Images must be an array'),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { bookingId } = req.params
-    const { amount, transactionReference, paymentDate, notes } = req.body
-
-    if (!req.file) {
-      throw new AppError('Receipt file is required', 400)
+    const propertyData = {
+      ...req.body,
+      hostId: req.user.id,
+      status: PropertyStatus.PENDING, // Requires admin approval
     }
 
-    // Check booking ownership
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
+    const property = await prisma.property.create({
+      data: propertyData,
       include: {
-        property: {
+        host: {
           select: {
-            name: true,
-            hostId: true,
+            firstName: true,
+            lastName: true,
+            email: true,
           },
         },
       },
     })
 
-    if (!booking) {
-      throw new AppError('Booking not found', 404)
-    }
-
-    if (booking.customerId !== req.user.id) {
-      throw new AppError('Not authorized to upload receipt for this booking', 403)
-    }
-
-    // Check booking status
-    if (booking.status !== 'APPROVED') {
-      throw new AppError('Booking must be approved before uploading receipts', 400)
-    }
-
-    // Create receipt record
-    const receipt = await prisma.receipt.create({
-      data: {
-        bookingId,
-        fileUrl: `/uploads/receipts/${req.file.filename}`,
-        originalFilename: req.file.originalname,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
-        amount: parseFloat(amount),
-        transactionReference,
-        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-        notes,
-        status: ReceiptStatus.PENDING,
-      },
-    })
-
-    // Create notification for property host
+    // Create notification for admin
     await prisma.notification.create({
       data: {
-        userId: booking.property.hostId,
-        type: 'PAYMENT_RECEIVED',
-        title: 'Payment Receipt Uploaded',
-        message: `A payment receipt has been uploaded for booking ${booking.bookingNumber}`,
-        data: {
-          bookingId: booking.id,
-          receiptId: receipt.id,
-          amount: receipt.amount,
+        userId: req.user.id, // This would be admin ID in real implementation
+        type: 'PROPERTY_SUBMITTED',
+        title: 'New Property Submitted',
+        message: `${property.host.firstName} ${property.host.lastName} submitted a new property: ${property.name}`,
+        metadata: {
+          propertyId: property.id,
         },
       },
     })
 
-    auditLog('RECEIPT_UPLOADED', req.user.id, {
-      bookingId: booking.id,
-      receiptId: receipt.id,
-      amount: receipt.amount,
+    auditLog('PROPERTY_CREATED', req.user.id, {
+      propertyId: property.id,
+      propertyName: property.name,
     }, req.ip)
 
     res.status(201).json({
       success: true,
-      message: 'Receipt uploaded successfully. Awaiting verification.',
-      data: receipt,
+      message: 'Property created successfully. It will be reviewed by our team.',
+      data: property,
     })
   })
 )
 
 /**
- * @route   PATCH /api/v1/receipts/:id/verify
- * @desc    Verify receipt (admin, property host)
- * @access  Admin, Property Host
+ * @route   PUT /api/v1/properties/:id
+ * @desc    Update property
+ * @access  Property Host (owner), Admin
  */
-router.patch(
-  '/:id/verify',
+router.put(
+  '/:id',
   requireAuth(UserRole.PROPERTY_HOST),
   [
     param('id').isString(),
-    body('status').isIn([ReceiptStatus.VERIFIED, ReceiptStatus.REJECTED]),
-    body('verificationNotes').optional().isString(),
+    body('name').optional().trim().notEmpty(),
+    body('description').optional().trim().notEmpty(),
+    body('type').optional().isIn(Object.values(PropertyType)),
+    body('baseRate').optional().isFloat({ min: 0 }),
+    body('cleaningFee').optional().isFloat({ min: 0 }),
+    body('amenities').optional().isArray(),
+    body('houseRules').optional().isArray(),
+    body('images').optional().isArray(),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { id } = req.params
-    const { status, verificationNotes } = req.body
-
-    // Get receipt with booking
-    const receipt = await prisma.receipt.findUnique({
-      where: { id },
-      include: {
-        booking: {
-          include: {
-            property: {
-              select: { hostId: true },
-            },
-            customer: {
-              select: {
-                email: true,
-                firstName: true,
-              },
-            },
-          },
-        },
-      },
+    const property = await prisma.property.findUnique({
+      where: { id: req.params.id },
     })
 
-    if (!receipt) {
-      throw new AppError('Receipt not found', 404)
+    if (!property) {
+      throw new AppError('Property not found', 404)
     }
 
-    // Check authorization
-    const isHost = receipt.booking.property.hostId === req.user.id
+    // Check ownership or admin role
+    const isOwner = property.hostId === req.user.id
     const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
 
-    if (!isHost && !isAdmin) {
-      throw new AppError('Not authorized to verify this receipt', 403)
+    if (!isOwner && !isAdmin) {
+      throw new AppError('Not authorized to update this property', 403)
     }
 
-    // Update receipt
-    const updated = await prisma.receipt.update({
-      where: { id },
-      data: {
-        status,
-        verificationNotes,
-        verifiedAt: new Date(),
-        verifiedBy: req.user.id,
-      },
+    const updatedProperty = await prisma.property.update({
+      where: { id: req.params.id },
+      data: req.body,
     })
 
-    // Update booking payment status if verified
-    if (status === ReceiptStatus.VERIFIED) {
-      await prisma.booking.update({
-        where: { id: receipt.bookingId },
-        data: {
-          paymentStatus: PaymentStatus.PAID,
-          paidAmount: receipt.amount,
-          paidAt: new Date(),
-        },
-      })
-
-      // Send confirmation email
-      await emailService.sendReceiptVerified({
-        guestEmail: receipt.booking.customer.email,
-        guestName: receipt.booking.customer.firstName,
-        bookingNumber: receipt.booking.bookingNumber,
-      })
-    }
-
-    // Create notification for customer
-    await prisma.notification.create({
-      data: {
-        userId: receipt.booking.customerId,
-        type: 'RECEIPT_VERIFIED',
-        title: status === ReceiptStatus.VERIFIED ? 'Payment Verified' : 'Payment Verification Failed',
-        message: status === ReceiptStatus.VERIFIED 
-          ? `Your payment for booking ${receipt.booking.bookingNumber} has been verified.`
-          : `Your payment receipt was rejected. ${verificationNotes || 'Please upload a valid receipt.'}`,
-        data: {
-          bookingId: receipt.bookingId,
-          receiptId: receipt.id,
-          status,
-        },
-      },
-    })
-
-    auditLog('RECEIPT_VERIFIED', req.user.id, {
-      receiptId: receipt.id,
-      bookingId: receipt.bookingId,
-      status,
-      amount: receipt.amount,
+    auditLog('PROPERTY_UPDATED', req.user.id, {
+      propertyId: req.params.id,
+      changes: req.body,
     }, req.ip)
 
     res.json({
       success: true,
-      message: `Receipt ${status.toLowerCase()} successfully`,
-      data: updated,
+      message: 'Property updated successfully',
+      data: updatedProperty,
     })
   })
 )
 
 /**
- * @route   DELETE /api/v1/receipts/:id
- * @desc    Delete receipt
- * @access  Protected (owner before verification, admin)
+ * @route   DELETE /api/v1/properties/:id
+ * @desc    Delete property
+ * @access  Property Host (owner), Admin
  */
 router.delete(
   '/:id',
-  requireAuth(),
+  requireAuth(UserRole.PROPERTY_HOST),
   asyncHandler(async (req: any, res: any) => {
-    const { id } = req.params
-
-    const receipt = await prisma.receipt.findUnique({
-      where: { id },
+    const property = await prisma.property.findUnique({
+      where: { id: req.params.id },
       include: {
-        booking: {
-          select: {
-            customerId: true,
+        bookings: {
+          where: {
+            status: {
+              in: ['PENDING', 'APPROVED'],
+            },
           },
         },
       },
     })
 
-    if (!receipt) {
-      throw new AppError('Receipt not found', 404)
+    if (!property) {
+      throw new AppError('Property not found', 404)
     }
 
-    // Check authorization
-    const isOwner = receipt.booking.customerId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN
+    // Check ownership or admin role
+    const isOwner = property.hostId === req.user.id
+    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
 
     if (!isOwner && !isAdmin) {
-      throw new AppError('Not authorized to delete this receipt', 403)
+      throw new AppError('Not authorized to delete this property', 403)
     }
 
-    // Owners can only delete pending receipts
-    if (isOwner && receipt.status !== ReceiptStatus.PENDING) {
-      throw new AppError('Cannot delete verified or rejected receipts', 400)
+    // Check for active bookings
+    if (property.bookings.length > 0) {
+      throw new AppError('Cannot delete property with active bookings', 400)
     }
 
-    // Delete receipt
-    await prisma.receipt.delete({
-      where: { id },
+    await prisma.property.delete({
+      where: { id: req.params.id },
     })
 
-    auditLog('RECEIPT_DELETED', req.user.id, {
-      receiptId: id,
-      bookingId: receipt.bookingId,
+    auditLog('PROPERTY_DELETED', req.user.id, {
+      propertyId: req.params.id,
+      propertyName: property.name,
     }, req.ip)
 
     res.json({
       success: true,
-      message: 'Receipt deleted successfully',
+      message: 'Property deleted successfully',
+    })
+  })
+)
+
+/**
+ * @route   GET /api/v1/properties/:id/bookings
+ * @desc    Get property bookings
+ * @access  Property Host (owner), Admin
+ */
+router.get(
+  '/:id/bookings',
+  requireAuth(UserRole.PROPERTY_HOST),
+  asyncHandler(async (req: any, res: any) => {
+    const property = await prisma.property.findUnique({
+      where: { id: req.params.id },
+    })
+
+    if (!property) {
+      throw new AppError('Property not found', 404)
+    }
+
+    // Check ownership or admin role
+    const isOwner = property.hostId === req.user.id
+    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+
+    if (!isOwner && !isAdmin) {
+      throw new AppError('Not authorized to view these bookings', 403)
+    }
+
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      sortBy = 'createdAt',
+      order = 'desc',
+    } = req.query
+
+    const { page: validPage, limit: validLimit } = validatePagination(page, limit)
+
+    const where: any = { propertyId: req.params.id }
+    if (status) where.status = status
+
+    const orderBy: any = {}
+    orderBy[sortBy] = order
+
+    const [bookings, total] = await Promise.all([
+      prisma.booking.findMany({
+        where,
+        orderBy,
+        skip: (validPage - 1) * validLimit,
+        take: validLimit,
+        include: {
+          customer: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+              avatar: true,
+            },
+          },
+        },
+      }),
+      prisma.booking.count({ where }),
+    ])
+
+    const pagination = calculatePagination(validPage, validLimit, total)
+
+    res.json({
+      success: true,
+      data: {
+        bookings,
+        pagination,
+      },
     })
   })
 )

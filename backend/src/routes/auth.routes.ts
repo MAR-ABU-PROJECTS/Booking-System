@@ -161,16 +161,20 @@ router.post(
   asyncHandler(async (req: any, res: any) => {
     const { email } = req.body
     
-    // In a real implementation, you would:
-    // 1. Find user by email
-    // 2. Generate reset token
-    // 3. Send reset email
-    // 4. Save token in database
-    
-    res.json({
-      success: true,
-      message: 'If an account exists with this email, you will receive password reset instructions.',
-    })
+    try {
+      await authService.forgotPassword(email)
+      
+      res.json({
+        success: true,
+        message: 'If an account exists with this email, you will receive password reset instructions.',
+      })
+    } catch (error) {
+      // Don't reveal if email exists or not for security
+      res.json({
+        success: true,
+        message: 'If an account exists with this email, you will receive password reset instructions.',
+      })
+    }
   })
 )
 
@@ -193,10 +197,7 @@ router.post(
   asyncHandler(async (req: any, res: any) => {
     const { token, password } = req.body
     
-    // In a real implementation, you would:
-    // 1. Verify reset token
-    // 2. Update user password
-    // 3. Invalidate token
+    await authService.resetPassword(token, password)
     
     res.json({
       success: true,
@@ -239,6 +240,70 @@ router.get(
     res.json({
       success: true,
       data: req.user,
+    })
+  })
+)
+
+/**
+ * @route   PUT /api/v1/auth/profile
+ * @desc    Update user profile
+ * @access  Protected
+ */
+router.put(
+  '/profile',
+  requireAuth(),
+  [
+    body('firstName').optional().trim().notEmpty().withMessage('First name required'),
+    body('lastName').optional().trim().notEmpty().withMessage('Last name required'),
+    body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
+    body('avatar').optional().isURL().withMessage('Valid avatar URL required'),
+  ],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const updatedUser = await authService.updateProfile(req.user.id, req.body)
+
+    auditLog('PROFILE_UPDATED', req.user.id, {
+      email: req.user.email,
+      changes: req.body,
+    }, req.ip)
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedUser,
+    })
+  })
+)
+
+/**
+ * @route   PUT /api/v1/auth/change-password
+ * @desc    Change user password
+ * @access  Protected
+ */
+router.put(
+  '/change-password',
+  requireAuth(),
+  [
+    body('currentPassword').notEmpty().withMessage('Current password required'),
+    body('newPassword')
+      .isLength({ min: 8 })
+      .withMessage('Password must be at least 8 characters')
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+      .withMessage('Password must contain uppercase, lowercase, number and special character'),
+  ],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const { currentPassword, newPassword } = req.body
+    
+    await authService.changePassword(req.user.id, currentPassword, newPassword)
+
+    auditLog('PASSWORD_CHANGED', req.user.id, {
+      email: req.user.email,
+    }, req.ip)
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully',
     })
   })
 )
