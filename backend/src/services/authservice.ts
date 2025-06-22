@@ -68,21 +68,31 @@ export interface JWTPayload {
 // ===============================
 export class AuthService {
   private JWT_SECRET: string
-  private JWT_EXPIRES_IN: string | number
+  private JWT_EXPIRES_IN: string
   private JWT_REFRESH_SECRET: string
-  private JWT_REFRESH_EXPIRES_IN: string | number
+  private JWT_REFRESH_EXPIRES_IN: string
 
   constructor() {
-    // FIXED: Ensure these are always strings, never undefined
-    this.JWT_SECRET = process.env.JWT_SECRET || 'mar-abu-projects-default-secret-change-in-production'
+    // FIXED: Use environment variables with secure defaults for development only
+    this.JWT_SECRET = process.env.JWT_SECRET || 'mar-abu-projects-dev-secret-CHANGE-IN-PRODUCTION'
     this.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h'
-    this.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'mar-abu-projects-refresh-default-secret-change-in-production'
+    this.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'mar-abu-projects-refresh-dev-secret-CHANGE-IN-PRODUCTION'
     this.JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d'
+
+    // Warn in development if using default secrets
+    if (process.env.NODE_ENV !== 'production') {
+      if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+        console.warn('⚠️  WARNING: Using default JWT secrets. Set JWT_SECRET and JWT_REFRESH_SECRET in .env file!')
+      }
+    }
 
     // Validate that secrets are provided in production
     if (process.env.NODE_ENV === 'production') {
       if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
         throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be set in production')
+      }
+      if (process.env.JWT_SECRET.length < 32 || process.env.JWT_REFRESH_SECRET.length < 32) {
+        throw new Error('JWT secrets must be at least 32 characters long in production')
       }
     }
   }
@@ -219,7 +229,7 @@ export class AuthService {
   }
 
   /**
-   * Generate JWT tokens - FIXED with proper typing
+   * Generate JWT tokens - FIXED with proper typing and conversion
    */
   private async generateTokens(user: AuthUser): Promise<AuthTokens> {
     const payload: JWTPayload = {
@@ -228,14 +238,18 @@ export class AuthService {
       role: user.role,
     }
 
-    // FIXED: Explicitly cast to string to ensure proper typing
-    const accessToken = jwt.sign(payload, this.JWT_SECRET as string, {
-      expiresIn: this.JWT_EXPIRES_IN,
-    })
+    // FIXED: Ensure expiresIn is a string and use proper type casting
+    const accessToken = jwt.sign(
+      payload, 
+      this.JWT_SECRET, 
+      { expiresIn: String(this.JWT_EXPIRES_IN) } as jwt.SignOptions
+    )
 
-    const refreshToken = jwt.sign(payload, this.JWT_REFRESH_SECRET as string, {
-      expiresIn: this.JWT_REFRESH_EXPIRES_IN,
-    })
+    const refreshToken = jwt.sign(
+      payload, 
+      this.JWT_REFRESH_SECRET, 
+      { expiresIn: String(this.JWT_REFRESH_EXPIRES_IN) } as jwt.SignOptions
+    )
 
     return {
       accessToken,
@@ -249,7 +263,7 @@ export class AuthService {
    */
   verifyToken(token: string): JWTPayload {
     try {
-      return jwt.verify(token, this.JWT_SECRET as string) as JWTPayload
+      return jwt.verify(token, this.JWT_SECRET) as JWTPayload
     } catch (error) {
       throw new Error('Invalid or expired token')
     }
@@ -260,7 +274,7 @@ export class AuthService {
    */
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
     try {
-      const payload = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET as string) as JWTPayload
+      const payload = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET) as JWTPayload
 
       // Get updated user data
       const user = await prisma.user.findUnique({
@@ -381,7 +395,9 @@ export class AuthService {
       })
 
       // For now, just log the reset token (remove in production)
-      console.log(`Reset token for ${email}: ${resetToken}`)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Reset token for ${email}: ${resetToken}`)
+      }
 
     } catch (error) {
       console.error('Forgot password error:', error)
