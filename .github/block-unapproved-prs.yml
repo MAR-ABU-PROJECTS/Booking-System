@@ -1,0 +1,34 @@
+name: Block PRs Without Approval
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  require_approval:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Approval via GitHub API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 Checking PR approval status..."
+
+          pr_number=${{ github.event.pull_request.number }}
+          repo=${{ github.repository }}
+
+          # Get all reviews on the PR
+          reviews=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            https://api.github.com/repos/$repo/pulls/$pr_number/reviews)
+
+          # Filter approvals
+          approvals=$(echo "$reviews" | jq '[.[] | select(.state=="APPROVED")] | length')
+
+          echo "✅ Number of approvals: $approvals"
+
+          if [ "$approvals" -eq 0 ]; then
+            echo "❌ PR has not been approved. Blocking merge."
+            exit 1
+          else
+            echo "✅ PR is approved. Proceed."
+          fi
