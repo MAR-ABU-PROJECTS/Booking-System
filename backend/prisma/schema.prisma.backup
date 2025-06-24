@@ -1,0 +1,349 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  firstName        String
+  lastName         String
+  phone            String?
+  role             UserRole       @default(CUSTOMER)
+  status           UserStatus     @default(PENDING_VERIFICATION)
+  password         String
+  avatar           String?
+  dateOfBirth      DateTime?
+  address          String?
+  city             String?
+  state            String?
+  country          String?        @default("Nigeria")
+  emailVerified    DateTime?
+  phoneVerified    DateTime?
+  identityVerified DateTime?
+  idType           String?
+  idNumber         String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  lastLoginAt      DateTime?
+  auditLogs        AuditLog[]
+  bookings         Booking[]      @relation("CustomerBookings")
+  notifications    Notification[]
+  hostedProperties Property[]     @relation("PropertyHost")
+  receipts         receipts[]
+  reviews          Review[]
+
+  @@map("users")
+}
+
+model Property {
+  id                    String                  @id @default(cuid())
+  name                  String
+  description           String?
+  type                  PropertyType
+  status                PropertyStatus          @default(ACTIVE)
+  address               String
+  city                  String
+  state                 String
+  country               String                  @default("Nigeria")
+  latitude              Float?
+  longitude             Float?
+  bedrooms              Int
+  bathrooms             Int
+  maxGuests             Int
+  size                  Float?
+  floor                 Int?
+  buildingName          String?
+  baseRate              Float
+  weekendPremium        Float?                  @default(0)
+  monthlyDiscount       Float?                  @default(0)
+  cleaningFee           Float?                  @default(0)
+  securityDeposit       Float?                  @default(0)
+  serviceFee            Float?                  @default(0.05)
+  minStay               Int                     @default(1)
+  maxStay               Int                     @default(90)
+  checkInTime           String                  @default("15:00")
+  checkOutTime          String                  @default("11:00")
+  cancellationPolicy    String?
+  houseRules            String?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  hostId                String
+  bookings              Booking[]
+  host                  User                    @relation("PropertyHost", fields: [hostId], references: [id])
+  property_amenities    property_amenities[]
+  property_availability property_availability[]
+  property_documents    property_documents[]
+  property_images       property_images[]
+  reviews               Review[]
+
+  @@map("properties")
+}
+
+model Booking {
+  id                 String        @id @default(cuid())
+  bookingNumber      String        @unique
+  checkIn            DateTime
+  checkOut           DateTime
+  nights             Int
+  adults             Int           @default(1)
+  children           Int           @default(0)
+  status             BookingStatus @default(PENDING_APPROVAL)
+  paymentStatus      PaymentStatus @default(PENDING)
+  baseAmount         Float
+  cleaningFee        Float         @default(0)
+  serviceFee         Float         @default(0)
+  taxes              Float         @default(0)
+  discounts          Float         @default(0)
+  totalAmount        Float
+  paidAmount         Float         @default(0)
+  guestName          String
+  guestEmail         String
+  guestPhone         String
+  guestAddress       String?
+  specialRequests    String?
+  arrivalTime        String?
+  cancellationReason String?
+  cancellationDate   DateTime?
+  refundAmount       Float?
+  adminNotes         String?
+  approvedBy         String?
+  approvedAt         DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  customerId         String
+  propertyId         String
+  customer           User          @relation("CustomerBookings", fields: [customerId], references: [id])
+  property           Property      @relation(fields: [propertyId], references: [id])
+  receipts           receipts[]
+  review             Review[]
+
+  @@map("bookings")
+}
+
+model Review {
+  id                  String    @id @default(cuid())
+  rating              Int
+  title               String?
+  comment             String?
+  cleanlinessRating   Int?
+  communicationRating Int?
+  checkInRating       Int?
+  accuracyRating      Int?
+  locationRating      Int?
+  valueRating         Int?
+  approved            Boolean   @default(false)
+  featured            Boolean   @default(false)
+  hostResponse        String?
+  hostResponseAt      DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  bookingId           String
+  customerId          String
+  propertyId          String
+  booking             Booking   @relation(fields: [bookingId], references: [id])
+  customer            User      @relation(fields: [customerId], references: [id])
+  property            Property  @relation(fields: [propertyId], references: [id])
+
+  @@map("reviews")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  read      Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  action    AuditAction
+  entity    String
+  entityId  String?
+  changes   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime    @default(now())
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  category    String   @default("General")
+  description String?
+  dataType    String   @default("string")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model property_amenities {
+  id          String   @id
+  name        String
+  category    String
+  icon        String?
+  description String?
+  propertyId  String
+  properties  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model property_availability {
+  id         String   @id
+  date       DateTime
+  available  Boolean  @default(true)
+  price      Float?
+  minStay    Int?
+  notes      String?
+  propertyId String
+  properties Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, date])
+}
+
+model property_documents {
+  id         String   @id
+  name       String
+  url        String
+  type       String
+  size       Int?
+  mimeType   String?
+  createdAt  DateTime @default(now())
+  propertyId String
+  properties Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model property_images {
+  id          String   @id
+  url         String
+  title       String?
+  description String?
+  order       Int      @default(0)
+  isMain      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  propertyId  String
+  properties  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model receipts {
+  id                String        @id
+  fileName          String
+  originalName      String
+  fileUrl           String
+  fileSize          Int
+  mimeType          String
+  amount            Float
+  paymentMethod     String
+  bank              String?
+  transactionRef    String?
+  transactionDate   DateTime?
+  status            ReceiptStatus @default(PENDING)
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  rejectionReason   String?
+  verificationNotes String?
+  aiAnalysisResult  Json?
+  confidenceScore   Float?
+  uploadedAt        DateTime      @default(now())
+  updatedAt         DateTime
+  bookingId         String
+  uploadedBy        String
+  bookings          Booking       @relation(fields: [bookingId], references: [id])
+  users             User          @relation(fields: [uploadedBy], references: [id])
+}
+
+enum UserRole {
+  CUSTOMER
+  PROPERTY_HOST
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum PropertyType {
+  APARTMENT
+  PENTHOUSE
+  VILLA
+  SUITE
+  MANSION
+  HOUSE
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  COMING_SOON
+  SUSPENDED
+}
+
+enum BookingStatus {
+  PENDING_APPROVAL
+  APPROVED
+  CONFIRMED
+  CHECKED_IN
+  CHECKED_OUT
+  CANCELLED
+  REFUNDED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  REFUNDED
+  FAILED
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMATION
+  PAYMENT_RECEIVED
+  RECEIPT_VERIFIED
+  BOOKING_APPROVED
+  BOOKING_CANCELLED
+  REVIEW_REQUEST
+  SYSTEM_UPDATE
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  APPROVE
+  REJECT
+  VERIFY
+  CANCEL
+}
+
+enum ReceiptStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  UNDER_REVIEW
+}

@@ -163,7 +163,7 @@ router.get(
             createdAt: true,
             _count: {
               select: {
-                properties: true,
+                hostedProperties: true,
               },
             },
           },
@@ -188,8 +188,8 @@ router.get(
             },
           },
           select: {
-            checkIn: true,
-            checkOut: true,
+            checkInDate: true,
+            checkOutDate: true,
           },
         },
       },
@@ -207,8 +207,8 @@ router.get(
 
     // Get unavailable dates
     const unavailableDates = property.bookings.map(booking => ({
-      checkIn: booking.checkIn,
-      checkOut: booking.checkOut,
+      checkIn: booking.checkInDate,
+      checkOut: booking.checkOutDate,
     }))
 
     const responseData = {
@@ -216,7 +216,7 @@ router.get(
       averageRating: Math.round(averageRating * 10) / 10,
       reviewCount: property.reviews.length,
       unavailableDates,
-      hostPropertyCount: property.host._count.properties,
+      hostPropertyCount: property.host._count.hostedProperties,
     }
 
     res.json({
@@ -259,10 +259,10 @@ router.get(
         },
         OR: [
           {
-            checkIn: {
+            checkInDate: {
               lte: new Date(checkOut),
             },
-            checkOut: {
+            checkOutDate: {
               gte: new Date(checkIn),
             },
           },

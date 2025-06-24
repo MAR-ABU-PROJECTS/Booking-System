@@ -1,67 +1,53 @@
-// MAR ABU PROJECTS SERVICES LLC - Email Service
+// MAR ABU PROJECTS SERVICES LLC - Email Service (Extended)
 import nodemailer from 'nodemailer'
 import { logger } from '../middlewares/logger.middleware'
 import { APP_CONSTANTS } from '../utils/constants'
-import { formatCurrency, formatDate } from '../utils/helpers'
 
-// Email templates interface
-interface EmailTemplate {
-  subject: string
-  html: string
-  text?: string
-}
-
-// Email options interface
 interface EmailOptions {
-  to: string | string[]
+  to: string
   subject: string
   html: string
-  text?: string
-  attachments?: any[]
+  attachments?: Array<{
+    filename: string
+    path?: string
+    content?: Buffer
+  }>
 }
 
 export class EmailService {
   private transporter: nodemailer.Transporter
 
   constructor() {
-    // Create transporter
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_PORT === '465',
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.EMAIL_PORT || '587'),
+      secure: process.env.EMAIL_SECURE === 'true',
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     })
 
-    // Verify connection
-    this.verifyConnection()
-  }
-
-  /**
-   * Verify SMTP connection
-   */
-  private async verifyConnection(): Promise<void> {
-    try {
-      await this.transporter.verify()
-      logger.info('Email service connected successfully')
-    } catch (error) {
-      logger.error('Email service connection failed:', error)
-    }
+    // Verify connection configuration
+    this.transporter.verify((error, success) => {
+      if (error) {
+        logger.error('Email service error:', error)
+      } else {
+        logger.info('Email service ready')
+      }
+    })
   }
 
   /**
    * Send email
    */
-  private async sendEmail(options: EmailOptions): Promise<boolean> {
+  async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
-      const mailOptions = {
-        from: process.env.EMAIL_FROM || `"${APP_CONSTANTS.COMPANY.NAME}" <noreply@marabuprojects.com>`,
+      const info = await this.transporter.sendMail({
+        from: `"${APP_CONSTANTS.COMPANY.NAME}" <${process.env.EMAIL_USER}>`,
         ...options,
-      }
+      })
 
-      const info = await this.transporter.sendMail(mailOptions)
       logger.info('Email sent successfully', { messageId: info.messageId, to: options.to })
       return true
     } catch (error) {
@@ -155,7 +141,11 @@ export class EmailService {
           </div>
           <div class="footer">
             <p>&copy; ${new Date().getFullYear()} ${APP_CONSTANTS.COMPANY.NAME}. All rights reserved.</p>
-            <p>${APP_CONSTANTS.COMPANY.ADDRESS}</p>
+            <p>
+              <a href="mailto:${APP_CONSTANTS.COMPANY.SUPPORT_EMAIL}" style="color: white;">
+                ${APP_CONSTANTS.COMPANY.SUPPORT_EMAIL}
+              </a>
+            </p>
           </div>
         </div>
       </body>
@@ -166,278 +156,442 @@ export class EmailService {
   /**
    * Send welcome email
    */
-  async sendWelcomeEmail(user: {
-    email: string
-    firstName: string
-    lastName: string
-  }): Promise<boolean> {
-    const template: EmailTemplate = {
-      subject: `Welcome to ${APP_CONSTANTS.COMPANY.NAME}!`,
-      html: this.getBaseTemplate(`
-        <h2>Welcome ${user.firstName}!</h2>
-        <p>Thank you for joining ${APP_CONSTANTS.COMPANY.NAME}. We're excited to have you on board.</p>
-        <p>Your account has been created successfully. To get started, please verify your email address by clicking the button below:</p>
-        <center>
-          <a href="${process.env.FRONTEND_URL}/verify-email" class="button">Verify Email Address</a>
-        </center>
-        <p>If you have any questions, feel free to contact our support team.</p>
-        <p>Best regards,<br>The ${APP_CONSTANTS.COMPANY.NAME} Team</p>
-      `),
-    }
+  async sendWelcomeEmail(email: string, firstName: string): Promise<boolean> {
+    const content = `
+      <h2>Welcome to ${APP_CONSTANTS.COMPANY.NAME}, ${firstName}!</h2>
+      <p>We're excited to have you join our community of property hosts and travelers.</p>
+      <p>Here's what you can do next:</p>
+      <ul>
+        <li>Complete your profile to build trust with other users</li>
+        <li>Browse available properties for your next stay</li>
+        <li>List your property if you're a host</li>
+      </ul>
+      <a href="${process.env.APP_URL}/dashboard" class="button">Go to Dashboard</a>
+      <p>If you have any questions, don't hesitate to reach out to our support team.</p>
+    `
 
     return this.sendEmail({
-      to: user.email,
-      ...template,
+      to: email,
+      subject: `Welcome to ${APP_CONSTANTS.COMPANY.NAME}!`,
+      html: this.getBaseTemplate(content),
     })
   }
 
   /**
    * Send booking confirmation email
    */
-  async sendBookingConfirmation(booking: {
-    guestEmail: string
-    guestName: string
-    bookingNumber: string
-    property: {
-      name: string
-      address: string
-      city: string
-    }
-    checkIn: Date
-    checkOut: Date
-    totalGuests: number
-    total: number
-  }): Promise<boolean> {
-    const template: EmailTemplate = {
-      subject: `Booking Confirmation - ${booking.bookingNumber}`,
-      html: this.getBaseTemplate(`
-        <h2>Booking Confirmation</h2>
-        <p>Dear ${booking.guestName},</p>
-        <p>Your booking request has been received and is pending approval from the property host.</p>
-        
-        <div class="info-box">
-          <h3>Booking Details</h3>
-          <div class="detail-row">
-            <span class="detail-label">Booking Number:</span>
-            <span>${booking.bookingNumber}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Property:</span>
-            <span>${booking.property.name}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Location:</span>
-            <span>${booking.property.address}, ${booking.property.city}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Check-in:</span>
-            <span>${formatDate(booking.checkIn, 'long')}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Check-out:</span>
-            <span>${formatDate(booking.checkOut, 'long')}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Guests:</span>
-            <span>${booking.totalGuests}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Total Amount:</span>
-            <span><strong>${formatCurrency(booking.total)}</strong></span>
-          </div>
+  async sendBookingConfirmation(email: string, booking: any): Promise<boolean> {
+    const content = `
+      <h2>Booking Confirmation</h2>
+      <p>Your booking has been confirmed!</p>
+      
+      <div class="info-box">
+        <h3>Booking Details</h3>
+        <div class="detail-row">
+          <span class="detail-label">Booking Code:</span>
+          <span>${booking.bookingCode}</span>
         </div>
-        
-        <p>You will receive another email once the host approves your booking. After approval, you can proceed with the payment.</p>
-        
-        <center>
-          <a href="${process.env.FRONTEND_URL}/bookings/${booking.bookingNumber}" class="button">View Booking</a>
-        </center>
-        
-        <p>Thank you for choosing ${APP_CONSTANTS.COMPANY.NAME}!</p>
-      `),
-    }
+        <div class="detail-row">
+          <span class="detail-label">Property:</span>
+          <span>${booking.property.name}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Check-in:</span>
+          <span>${new Date(booking.checkInDate).toLocaleDateString()}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Check-out:</span>
+          <span>${new Date(booking.checkOutDate).toLocaleDateString()}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Total Amount:</span>
+          <span>${booking.currency} ${booking.total.toLocaleString()}</span>
+        </div>
+      </div>
+      
+      <a href="${process.env.APP_URL}/bookings/${booking.id}" class="button">View Booking</a>
+    `
 
     return this.sendEmail({
-      to: booking.guestEmail,
-      ...template,
-    })
-  }
-
-  /**
-   * Send booking approved email
-   */
-  async sendBookingApproved(booking: {
-    guestEmail: string
-    guestName: string
-    bookingNumber: string
-    property: { name: string }
-    total: number
-  }): Promise<boolean> {
-    const template: EmailTemplate = {
-      subject: `Booking Approved - ${booking.bookingNumber}`,
-      html: this.getBaseTemplate(`
-        <h2>Great News! Your Booking is Approved</h2>
-        <p>Dear ${booking.guestName},</p>
-        <p>Your booking for <strong>${booking.property.name}</strong> has been approved!</p>
-        
-        <div class="info-box">
-          <p><strong>Booking Number:</strong> ${booking.bookingNumber}</p>
-          <p><strong>Total Amount:</strong> ${formatCurrency(booking.total)}</p>
-        </div>
-        
-        <p>Please proceed with the payment to confirm your reservation. You can upload your payment receipt through your dashboard.</p>
-        
-        <center>
-          <a href="${process.env.FRONTEND_URL}/bookings/${booking.bookingNumber}/payment" class="button">Upload Payment Receipt</a>
-        </center>
-        
-        <p>If you have any questions, please don't hesitate to contact us.</p>
-      `),
-    }
-
-    return this.sendEmail({
-      to: booking.guestEmail,
-      ...template,
-    })
-  }
-
-  /**
-   * Send booking cancelled email
-   */
-  async sendBookingCancelled(booking: {
-    guestEmail: string
-    guestName: string
-    bookingNumber: string
-    property: { name: string }
-    reason?: string
-  }): Promise<boolean> {
-    const template: EmailTemplate = {
-      subject: `Booking Cancelled - ${booking.bookingNumber}`,
-      html: this.getBaseTemplate(`
-        <h2>Booking Cancellation</h2>
-        <p>Dear ${booking.guestName},</p>
-        <p>We regret to inform you that your booking has been cancelled.</p>
-        
-        <div class="info-box">
-          <p><strong>Booking Number:</strong> ${booking.bookingNumber}</p>
-          <p><strong>Property:</strong> ${booking.property.name}</p>
-          ${booking.reason ? `<p><strong>Reason:</strong> ${booking.reason}</p>` : ''}
-        </div>
-        
-        <p>If you have already made a payment, a refund will be processed within 5-7 business days.</p>
-        <p>We apologize for any inconvenience caused. Please feel free to browse other available properties on our platform.</p>
-        
-        <center>
-          <a href="${process.env.FRONTEND_URL}/properties" class="button">Browse Properties</a>
-        </center>
-      `),
-    }
-
-    return this.sendEmail({
-      to: booking.guestEmail,
-      ...template,
+      to: email,
+      subject: `Booking Confirmed - ${booking.bookingCode}`,
+      html: this.getBaseTemplate(content),
     })
   }
 
   /**
    * Send password reset email
    */
-  async sendPasswordReset(user: {
-    email: string
-    firstName: string
-    resetToken: string
-  }): Promise<boolean> {
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${user.resetToken}`
+  async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
+    const resetUrl = `${process.env.APP_URL}/reset-password?token=${resetToken}`
     
-    const template: EmailTemplate = {
-      subject: 'Password Reset Request',
-      html: this.getBaseTemplate(`
-        <h2>Password Reset Request</h2>
-        <p>Hi ${user.firstName},</p>
-        <p>We received a request to reset your password. Click the button below to create a new password:</p>
-        
-        <center>
-          <a href="${resetUrl}" class="button">Reset Password</a>
-        </center>
-        
-        <p>This link will expire in 1 hour for security reasons.</p>
-        <p>If you didn't request this password reset, please ignore this email.</p>
-        
-        <p>Best regards,<br>The ${APP_CONSTANTS.COMPANY.NAME} Team</p>
-      `),
-    }
+    const content = `
+      <h2>Password Reset Request</h2>
+      <p>You requested to reset your password. Click the button below to create a new password:</p>
+      
+      <a href="${resetUrl}" class="button">Reset Password</a>
+      
+      <p>This link will expire in 1 hour for security reasons.</p>
+      <p>If you didn't request this, please ignore this email.</p>
+    `
 
     return this.sendEmail({
-      to: user.email,
-      ...template,
+      to: email,
+      subject: 'Password Reset Request',
+      html: this.getBaseTemplate(content),
     })
   }
 
   /**
-   * Send receipt verified email
+   * Send email verification
    */
-  async sendReceiptVerified(booking: {
-    guestEmail: string
-    guestName: string
-    bookingNumber: string
-  }): Promise<boolean> {
-    const template: EmailTemplate = {
-      subject: `Payment Confirmed - ${booking.bookingNumber}`,
-      html: this.getBaseTemplate(`
-        <h2>Payment Confirmed!</h2>
-        <p>Dear ${booking.guestName},</p>
-        <p>Your payment has been verified successfully. Your booking is now confirmed!</p>
-        
-        <div class="info-box">
-          <p><strong>Booking Number:</strong> ${booking.bookingNumber}</p>
-          <p><strong>Status:</strong> Confirmed</p>
-        </div>
-        
-        <p>You will receive the property access details and check-in instructions closer to your arrival date.</p>
-        
-        <center>
-          <a href="${process.env.FRONTEND_URL}/bookings/${booking.bookingNumber}" class="button">View Booking Details</a>
-        </center>
-        
-        <p>Thank you for your booking!</p>
-      `),
-    }
+  async sendEmailVerification(email: string, verificationToken: string): Promise<boolean> {
+    const verifyUrl = `${process.env.APP_URL}/verify-email?token=${verificationToken}`
+    
+    const content = `
+      <h2>Verify Your Email Address</h2>
+      <p>Please click the button below to verify your email address:</p>
+      
+      <a href="${verifyUrl}" class="button">Verify Email</a>
+      
+      <p>This link will expire in 24 hours.</p>
+    `
 
     return this.sendEmail({
-      to: booking.guestEmail,
-      ...template,
+      to: email,
+      subject: 'Verify Your Email Address',
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send receipt uploaded notification
+   */
+  async sendReceiptUploadedNotification(email: string, booking: any): Promise<boolean> {
+    const content = `
+      <h2>Payment Receipt Uploaded</h2>
+      <p>A payment receipt has been uploaded for booking ${booking.bookingCode}.</p>
+      
+      <div class="info-box">
+        <p><strong>Property:</strong> ${booking.property.name}</p>
+        <p><strong>Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
+      </div>
+      
+      <p>Our team will verify the receipt within 24 hours.</p>
+      
+      <a href="${process.env.APP_URL}/bookings/${booking.id}" class="button">View Booking</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: `Receipt Uploaded - ${booking.bookingCode}`,
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send receipt verified notification
+   */
+  async sendReceiptVerifiedNotification(email: string, booking: any): Promise<boolean> {
+    const content = `
+      <h2>Payment Verified</h2>
+      <p>Great news! Your payment for booking ${booking.bookingCode} has been verified.</p>
+      
+      <div class="info-box">
+        <p><strong>Property:</strong> ${booking.property.name}</p>
+        <p><strong>Check-in:</strong> ${new Date(booking.checkInDate).toLocaleDateString()}</p>
+        <p><strong>Check-out:</strong> ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
+      </div>
+      
+      <p>You're all set for your stay!</p>
+      
+      <a href="${process.env.APP_URL}/bookings/${booking.id}" class="button">View Booking Details</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: `Payment Verified - ${booking.bookingCode}`,
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send booking approved email
+   */
+  async sendBookingApprovedEmail(email: string, booking: any): Promise<boolean> {
+    const content = `
+      <h2>Booking Approved!</h2>
+      <p>Good news! Your booking request has been approved by the host.</p>
+      
+      <div class="info-box">
+        <h3>Booking Details</h3>
+        <p><strong>Booking Code:</strong> ${booking.bookingCode}</p>
+        <p><strong>Property:</strong> ${booking.property.name}</p>
+        <p><strong>Check-in:</strong> ${new Date(booking.checkInDate).toLocaleDateString()}</p>
+        <p><strong>Check-out:</strong> ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
+        <p><strong>Total Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
+      </div>
+      
+      <p>Please complete your payment within 24 hours to secure your booking.</p>
+      
+      <a href="${process.env.APP_URL}/bookings/${booking.id}/payment" class="button">Make Payment</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: `Booking Approved - ${booking.bookingCode}`,
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send booking cancelled email
+   */
+  async sendBookingCancelledEmail(email: string, booking: any, reason?: string): Promise<boolean> {
+    const content = `
+      <h2>Booking Cancelled</h2>
+      <p>Your booking ${booking.bookingCode} has been cancelled.</p>
+      
+      <div class="info-box">
+        <p><strong>Property:</strong> ${booking.property.name}</p>
+        <p><strong>Original Dates:</strong> ${new Date(booking.checkInDate).toLocaleDateString()} - ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
+        ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+      </div>
+      
+      ${booking.refundAmount ? `
+        <p>A refund of ${booking.currency} ${booking.refundAmount.toLocaleString()} will be processed within 5-7 business days.</p>
+      ` : ''}
+      
+      <p>If you have any questions, please contact our support team.</p>
+      
+      <a href="${process.env.APP_URL}/support" class="button">Contact Support</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: `Booking Cancelled - ${booking.bookingCode}`,
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send property approved email
+   */
+  async sendPropertyApprovedEmail(email: string, property: any): Promise<boolean> {
+    const content = `
+      <h2>Property Approved!</h2>
+      <p>Congratulations! Your property listing has been approved.</p>
+      
+      <div class="info-box">
+        <h3>Property Details</h3>
+        <p><strong>Name:</strong> ${property.name}</p>
+        <p><strong>Location:</strong> ${property.city}, ${property.state}</p>
+        <p><strong>Type:</strong> ${property.type}</p>
+      </div>
+      
+      <p>Your property is now live and available for bookings!</p>
+      
+      <a href="${process.env.APP_URL}/properties/${property.id}" class="button">View Property</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: `Property Approved - ${property.name}`,
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send property rejected email
+   */
+  async sendPropertyRejectedEmail(email: string, property: any, reason: string): Promise<boolean> {
+    const content = `
+      <h2>Property Listing Update</h2>
+      <p>Unfortunately, your property listing has not been approved at this time.</p>
+      
+      <div class="info-box">
+        <h3>Property Details</h3>
+        <p><strong>Name:</strong> ${property.name}</p>
+        <p><strong>Reason:</strong> ${reason}</p>
+      </div>
+      
+      <p>Please address the issues mentioned and resubmit your property for review.</p>
+      
+      <a href="${process.env.APP_URL}/properties/${property.id}/edit" class="button">Edit Property</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: `Property Review Update - ${property.name}`,
+      html: this.getBaseTemplate(content),
     })
   }
 
   /**
    * Send review request email
    */
-  async sendReviewRequest(booking: {
-    guestEmail: string
-    guestName: string
-    bookingNumber: string
-    property: { name: string }
-  }): Promise<boolean> {
-    const template: EmailTemplate = {
-      subject: `How was your stay at ${booking.property.name}?`,
-      html: this.getBaseTemplate(`
-        <h2>We'd Love Your Feedback!</h2>
-        <p>Dear ${booking.guestName},</p>
-        <p>We hope you enjoyed your stay at <strong>${booking.property.name}</strong>.</p>
-        
-        <p>Your feedback is important to us and helps other guests make informed decisions. Please take a moment to share your experience.</p>
-        
-        <center>
-          <a href="${process.env.FRONTEND_URL}/bookings/${booking.bookingNumber}/review" class="button">Write a Review</a>
-        </center>
-        
-        <p>Thank you for choosing ${APP_CONSTANTS.COMPANY.NAME}!</p>
-      `),
-    }
+  async sendReviewRequestEmail(email: string, booking: any): Promise<boolean> {
+    const content = `
+      <h2>How was your stay?</h2>
+      <p>We hope you enjoyed your stay at ${booking.property.name}!</p>
+      
+      <p>Your feedback helps other travelers make informed decisions and helps hosts improve their services.</p>
+      
+      <div class="info-box">
+        <p><strong>Property:</strong> ${booking.property.name}</p>
+        <p><strong>Stay Dates:</strong> ${new Date(booking.checkInDate).toLocaleDateString()} - ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
+      </div>
+      
+      <p>Please take a moment to share your experience.</p>
+      
+      <a href="${process.env.APP_URL}/bookings/${booking.id}/review" class="button">Write a Review</a>
+    `
 
     return this.sendEmail({
-      to: booking.guestEmail,
-      ...template,
+      to: email,
+      subject: `Review Your Stay at ${booking.property.name}`,
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send password change notification - NEW
+   */
+  async sendPasswordChangeNotification(email: string): Promise<boolean> {
+    const content = `
+      <h2>Password Changed Successfully</h2>
+      <p>Your password has been changed successfully.</p>
+      
+      <div class="info-box">
+        <p><strong>Changed at:</strong> ${new Date().toLocaleString()}</p>
+        <p><strong>IP Address:</strong> ${process.env.NODE_ENV === 'production' ? 'Hidden for security' : 'Local development'}</p>
+      </div>
+      
+      <p>If you didn't make this change, please contact our support team immediately.</p>
+      
+      <a href="${process.env.APP_URL}/support" class="button">Contact Support</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: 'Password Changed - Security Alert',
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send account deletion confirmation - NEW
+   */
+  async sendAccountDeletionConfirmation(email: string, name: string): Promise<boolean> {
+    const content = `
+      <h2>Account Deleted</h2>
+      <p>Dear ${name},</p>
+      
+      <p>Your account has been successfully deleted as requested.</p>
+      
+      <div class="info-box">
+        <p>We're sorry to see you go. Your data will be permanently removed from our systems within 30 days.</p>
+        <p>If this was a mistake or you change your mind, please contact our support team within the next 7 days.</p>
+      </div>
+      
+      <p>Thank you for being part of ${APP_CONSTANTS.COMPANY.NAME}.</p>
+      
+      <a href="mailto:${APP_CONSTANTS.COMPANY.SUPPORT_EMAIL}" class="button">Contact Support</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: 'Account Deletion Confirmation',
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send host notification for new booking
+   */
+  async sendHostBookingNotification(email: string, booking: any): Promise<boolean> {
+    const content = `
+      <h2>New Booking Request</h2>
+      <p>You have a new booking request for your property!</p>
+      
+      <div class="info-box">
+        <h3>Booking Details</h3>
+        <p><strong>Property:</strong> ${booking.property.name}</p>
+        <p><strong>Guest:</strong> ${booking.customer.firstName} ${booking.customer.lastName}</p>
+        <p><strong>Check-in:</strong> ${new Date(booking.checkInDate).toLocaleDateString()}</p>
+        <p><strong>Check-out:</strong> ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
+        <p><strong>Guests:</strong> ${booking.adults} adults${booking.children ? `, ${booking.children} children` : ''}</p>
+        <p><strong>Total Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
+      </div>
+      
+      <p>Please review and respond to this booking request within 24 hours.</p>
+      
+      <a href="${process.env.APP_URL}/host/bookings/${booking.id}" class="button">Review Booking</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: `New Booking Request - ${booking.property.name}`,
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send payment reminder
+   */
+  async sendPaymentReminderEmail(email: string, booking: any): Promise<boolean> {
+    const content = `
+      <h2>Payment Reminder</h2>
+      <p>This is a friendly reminder that your payment for booking ${booking.bookingCode} is pending.</p>
+      
+      <div class="info-box">
+        <p><strong>Property:</strong> ${booking.property.name}</p>
+        <p><strong>Amount Due:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
+        <p><strong>Payment Deadline:</strong> ${new Date(booking.approvedAt).getTime() + 24 * 60 * 60 * 1000}</p>
+      </div>
+      
+      <p>Please complete your payment soon to secure your booking.</p>
+      
+      <a href="${process.env.APP_URL}/bookings/${booking.id}/payment" class="button">Make Payment</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: `Payment Reminder - ${booking.bookingCode}`,
+      html: this.getBaseTemplate(content),
+    })
+  }
+
+  /**
+   * Send check-in reminder
+   */
+  async sendCheckInReminderEmail(email: string, booking: any): Promise<boolean> {
+    const content = `
+      <h2>Check-in Reminder</h2>
+      <p>Your check-in at ${booking.property.name} is tomorrow!</p>
+      
+      <div class="info-box">
+        <h3>Check-in Details</h3>
+        <p><strong>Date:</strong> ${new Date(booking.checkInDate).toLocaleDateString()}</p>
+        <p><strong>Time:</strong> After ${APP_CONSTANTS.BOOKING.CHECKIN_TIME}</p>
+        <p><strong>Address:</strong> ${booking.property.address}, ${booking.property.city}</p>
+      </div>
+      
+      <div class="info-box">
+        <h3>Host Contact</h3>
+        <p><strong>Name:</strong> ${booking.property.host.firstName} ${booking.property.host.lastName}</p>
+        <p><strong>Phone:</strong> ${booking.property.host.phone || 'Available in app'}</p>
+      </div>
+      
+      <p>Have a wonderful stay!</p>
+      
+      <a href="${process.env.APP_URL}/bookings/${booking.id}" class="button">View Booking Details</a>
+    `
+
+    return this.sendEmail({
+      to: email,
+      subject: `Check-in Tomorrow - ${booking.property.name}`,
+      html: this.getBaseTemplate(content),
     })
   }
 }
