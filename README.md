@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # MAR ABU Booking Platform
 
 A comprehensive booking platform for MAR ABU PROJECTS SERVICES LLC.
