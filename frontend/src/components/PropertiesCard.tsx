@@ -114,7 +114,7 @@ const PropertiesCard = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-8 py-10">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[20px] lg:gap-[25px] py-[10px]">
       {cardContent.map((card) => (
         <motion.div
           key={card.id}
@@ -122,7 +122,7 @@ const PropertiesCard = () => {
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="cursor-pointer"
         >
-          <Card className="flex w-[300px] md:w-full h-[420px] p-[0px] border-2 border-[#F4A857] shadow transition-shadow hover:shadow-2xl">
+          <Card className="flex w-full h-[420px] lg:h-[440px] xl:h-[400px] p-[0px] border-2 border-[#F4A857] shadow transition-shadow hover:shadow-2xl gap-[5px]">
             <CardHeader className="bg-center bg-no-repeat bg-[url('/images/background.jpg')] bg-cover bg-gray-100 bg-blend-multiply rounded-t-2xl h-[200px] px-[8px] border-b-1 border-gray-400">
               <div className="flex flex-col py-[10px] gap-[20px] h-full">
                 <div className="flex justify-end">
@@ -142,7 +142,7 @@ const PropertiesCard = () => {
                   <p className="text-[16px] font-bold">{card.name}</p>
                   <div className="flex items-center gap-[3px]">
                     <MapPin size={16} className="text-red-500" />
-                    <p className="text-[16px] text-[#667085] font-medium capitalize">
+                    <p className="lg:text-[14px] text-[14px]  text-[#667085] font-medium capitalize">
                       {card.location}
                     </p>
                   </div>
@@ -198,7 +198,10 @@ const PropertiesCard = () => {
                       /night
                     </span>
                   </p>
-                  <Button className="bg-[#FFF] text-[#000] border border-black">
+                  <Button
+                    // variant="default"
+                    className="bg-[#FFF] text-[#000] border border-[#667085] hover:bg-[#F4A857] hover:text-[#FFF] hover:border-2 hover:border-[#F4A857] transition"
+                  >
                     View Details
                   </Button>
                 </div>
