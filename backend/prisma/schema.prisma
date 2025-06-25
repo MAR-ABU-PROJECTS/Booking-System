@@ -1,35 +1,490 @@
-// Updated User model in your schema.prisma file
-// MAR ABU PROJECTS SERVICES LLC - Updated User Schema
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+// ===============================
+// USER MANAGEMENT
+// ===============================
 
 model User {
-  id                String        @id @default(cuid())
-  email             String        @unique
-  firstName         String
-  lastName          String  
-  password          String
-  phone             String?
-  avatar            String?       // NEW: Avatar URL field
-  role              UserRole      @default(CUSTOMER)
-  status            UserStatus    @default(PENDING_VERIFICATION)
-  emailVerified     DateTime?
-  resetToken        String?       // NEW: Password reset token
-  resetTokenExpiry  DateTime?     // NEW: Reset token expiration
-  lastLoginAt       DateTime?     // NEW: Last login timestamp
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime?     @updatedAt // NEW: Updated timestamp
-
+  id                      String         @id @default(cuid())
+  email                   String         @unique
+  firstName               String
+  lastName                String
+  password                String
+  phone                   String?
+  avatar                  String?
+  bio                     String?        // NEW: Added bio field
+  dateOfBirth             DateTime?
+  address                 String?
+  city                    String?
+  state                   String?
+  country                 String?        @default("Nigeria")
+  role                    UserRole       @default(CUSTOMER)
+  status                  UserStatus     @default(PENDING_VERIFICATION)
+  emailVerified           DateTime?
+  phoneVerified           DateTime?
+  identityVerified        DateTime?
+  idType                  String?
+  idNumber                String?
+  
+  // NEW: Added missing fields
+  resetToken              String?
+  resetTokenExpiry        DateTime?
+  notificationPreferences Json?          // NEW: Notification preferences as JSON
+  deletedAt               DateTime?      // NEW: Soft delete field
+  
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  lastLoginAt             DateTime?
+  
   // Relations
-  bookings          Booking[]     @relation("CustomerBookings")
-  hostedProperties  Property[]    @relation("PropertyHost")
-  payments          Payment[]
-  reviews           Review[]
-  notifications     Notification[]
-  auditLogs         AuditLog[]
+  auditLogs               AuditLog[]
+  bookings                Booking[]      @relation("CustomerBookings")
+  notifications           Notification[]
+  hostedProperties        Property[]     @relation("PropertyHost")
+  receipts                Receipt[]      // Fixed: renamed from receipts
+  reviews                 Review[]
+  payments                Payment[]      // NEW: Added payments relation
+  favorites               Favorite[]     // NEW: Added favorites relation
 
   @@index([email])
-  @@index([resetToken])    // NEW: Index for password reset lookups
+  @@index([resetToken])
+  @@index([status])
+  @@index([deletedAt])
   @@map("users")
 }
+
+// ===============================
+// PROPERTY MANAGEMENT
+// ===============================
+
+model Property {
+  id                    String                  @id @default(cuid())
+  name                  String
+  description           String?
+  type                  PropertyType
+  status                PropertyStatus          @default(ACTIVE)
+  address               String
+  city                  String
+  state                 String
+  country               String                  @default("Nigeria")
+  latitude              Float?
+  longitude             Float?
+  
+  // Property details
+  bedrooms              Int
+  bathrooms             Int
+  maxGuests             Int
+  size                  Float?
+  floor                 Int?
+  buildingName          String?
+  
+  // Pricing
+  baseRate              Float
+  weekendPremium        Float?                  @default(0)
+  monthlyDiscount       Float?                  @default(0)
+  cleaningFee           Float?                  @default(0)
+  securityDeposit       Float?                  @default(0)
+  serviceFee            Float?                  @default(0.05)
+  currency              String                  @default("NGN")
+  
+  // Booking rules
+  minStay               Int                     @default(1)
+  maxStay               Int                     @default(90)
+  checkInTime           String                  @default("15:00")
+  checkOutTime          String                  @default("11:00")
+  cancellationPolicy    String?
+  houseRules            String?
+  
+  // NEW: Added fields for features and amenities
+  amenities             String[]
+  features              String[]
+  rules                 String[]
+  images                String[]
+  featuredImage         String?
+  
+  // NEW: Soft delete support
+  isActive              Boolean                 @default(true)
+  deletedAt             DateTime?
+  
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  
+  // Relations
+  hostId                String
+  host                  User                    @relation("PropertyHost", fields: [hostId], references: [id])
+  bookings              Booking[]
+  propertyAmenities     PropertyAmenity[]       @relation("PropertyAmenities")
+  propertyAvailability  PropertyAvailability[]  @relation("PropertyAvailability")
+  propertyDocuments     PropertyDocument[]      @relation("PropertyDocuments")
+  propertyImages        PropertyImage[]         @relation("PropertyImages")
+  reviews               Review[]
+  favorites             Favorite[]              // NEW: Added favorites relation
+
+  @@index([hostId])
+  @@index([status])
+  @@index([city])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("properties")
+}
+
+// ===============================
+// BOOKING MANAGEMENT
+// ===============================
+
+model Booking {
+  id                 String        @id @default(cuid())
+  bookingCode        String        @unique // Changed from bookingNumber
+  checkInDate        DateTime      // Changed from checkIn
+  checkOutDate       DateTime      // Changed from checkOut
+  nights             Int
+  adults             Int           @default(1)
+  children           Int           @default(0)
+  infants            Int           @default(0) // NEW: Added infants
+  
+  status             BookingStatus @default(PENDING)
+  paymentStatus      PaymentStatus @default(PENDING)
+  
+  // Pricing breakdown
+  baseAmount         Float
+  cleaningFee        Float         @default(0)
+  serviceFee         Float         @default(0)
+  taxes              Float         @default(0) // Renamed from taxes
+  discount           Float         @default(0) // Renamed from discounts
+  total              Float         // Renamed from totalAmount
+  paidAmount         Float         @default(0)
+  currency           String        @default("NGN")
+  
+  // Guest details (kept for quick access)
+  guestName          String
+  guestEmail         String
+  guestPhone         String
+  guestAddress       String?
+  
+  // Additional info
+  specialRequests    String?
+  arrivalTime        String?
+  source             String?       // NEW: Booking source
+  
+  // Cancellation
+  cancellationReason String?
+  cancelledAt        DateTime?     // Renamed from cancellationDate
+  cancelledBy        String?       // NEW: Who cancelled
+  refundAmount       Float?
+  
+  // Admin fields
+  adminNotes         String?
+  approvedBy         String?
+  approvedAt         DateTime?
+  completedAt        DateTime?     // NEW: When stay was completed
+  
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  
+  // Relations
+  customerId         String
+  propertyId         String
+  customer           User          @relation("CustomerBookings", fields: [customerId], references: [id])
+  property           Property      @relation(fields: [propertyId], references: [id])
+  receipts           Receipt[]     // Fixed: renamed
+  payment            Payment?      // NEW: One payment per booking
+  review             Review?       // One review per booking
+
+  @@index([bookingCode])
+  @@index([propertyId])
+  @@index([customerId])
+  @@index([status])
+  @@index([checkInDate])
+  @@map("bookings")
+}
+
+// ===============================
+// FAVORITES (NEW MODEL)
+// ===============================
+
+model Favorite {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId  String
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, propertyId])
+  @@index([userId])
+  @@index([propertyId])
+  @@map("favorites")
+}
+
+// ===============================
+// PAYMENT MANAGEMENT (NEW MODEL)
+// ===============================
+
+model Payment {
+  id                String          @id @default(cuid())
+  bookingId         String          @unique
+  booking           Booking         @relation(fields: [bookingId], references: [id])
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  
+  amount            Float
+  currency          String          @default("NGN")
+  method            PaymentMethod
+  status            PaymentStatus   @default(PENDING)
+  
+  // Payment gateway info
+  transactionId     String?         @unique
+  reference         String          @unique
+  gatewayResponse   Json?
+  
+  // Receipt
+  receiptUrl        String?
+  receiptUploaded   Boolean         @default(false)
+  receiptVerified   Boolean         @default(false)
+  verifiedAt        DateTime?
+  verifiedBy        String?
+  
+  // Timestamps
+  paidAt            DateTime?
+  failedAt          DateTime?
+  refundedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([reference])
+  @@map("payments")
+}
+
+// ===============================
+// RECEIPTS (RENAMED AND UPDATED)
+// ===============================
+
+model Receipt {
+  id                String        @id @default(cuid())
+  fileName          String
+  originalName      String
+  fileUrl           String
+  fileSize          Int
+  mimeType          String
+  amount            Float
+  paymentMethod     String
+  bank              String?
+  transactionRef    String?
+  transactionDate   DateTime?
+  status            ReceiptStatus @default(PENDING)
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  rejectionReason   String?
+  verificationNotes String?
+  aiAnalysisResult  Json?
+  confidenceScore   Float?
+  uploadedAt        DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  // Relations
+  bookingId         String
+  uploadedBy        String
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+  user              User          @relation(fields: [uploadedBy], references: [id])
+
+  @@map("receipts")
+}
+
+// ===============================
+// REVIEWS
+// ===============================
+
+model Review {
+  id                  String    @id @default(cuid())
+  rating              Int       // 1-5 stars
+  title               String?
+  comment             String?
+  
+  // Detailed ratings
+  cleanliness         Int?      // Renamed for consistency
+  accuracy            Int?      // NEW
+  checkIn             Int?      // Renamed
+  communication       Int?      // Renamed
+  location            Int?      // Renamed
+  value               Int?      // Renamed
+  
+  // Moderation
+  approved            Boolean   @default(true) // Changed default to true
+  featured            Boolean   @default(false)
+  flagged             Boolean   @default(false) // NEW
+  flagReason          String?   // NEW
+  
+  // Host response
+  hostResponse        String?
+  hostRespondedAt     DateTime? // Renamed
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  // Relations
+  bookingId           String    @unique
+  customerId          String
+  propertyId          String
+  booking             Booking   @relation(fields: [bookingId], references: [id])
+  customer            User      @relation(fields: [customerId], references: [id])
+  property            Property  @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId])
+  @@index([customerId])
+  @@index([approved])
+  @@map("reviews")
+}
+
+// ===============================
+// PROPERTY AMENITIES (UPDATED)
+// ===============================
+
+model PropertyAmenity {
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  icon        String?
+  description String?
+  propertyId  String
+  property    Property @relation("PropertyAmenities", fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_amenities")
+}
+
+// ===============================
+// PROPERTY AVAILABILITY (UPDATED)
+// ===============================
+
+model PropertyAvailability {
+  id         String   @id @default(cuid())
+  date       DateTime
+  available  Boolean  @default(true)
+  price      Float?
+  minStay    Int?
+  notes      String?
+  propertyId String
+  property   Property @relation("PropertyAvailability", fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, date])
+  @@map("property_availability")
+}
+
+// ===============================
+// PROPERTY DOCUMENTS (UPDATED)
+// ===============================
+
+model PropertyDocument {
+  id         String   @id @default(cuid())
+  name       String
+  url        String
+  type       String
+  size       Int?
+  mimeType   String?
+  createdAt  DateTime @default(now())
+  propertyId String
+  property   Property @relation("PropertyDocuments", fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_documents")
+}
+
+// ===============================
+// PROPERTY IMAGES (UPDATED)
+// ===============================
+
+model PropertyImage {
+  id          String   @id @default(cuid())
+  url         String
+  title       String?
+  description String?
+  order       Int      @default(0)
+  isMain      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  propertyId  String
+  property    Property @relation("PropertyImages", fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_images")
+}
+
+// ===============================
+// NOTIFICATIONS
+// ===============================
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  metadata  Json?
+  read      Boolean          @default(false)
+  readAt    DateTime?
+  urgent    Boolean          @default(false) // NEW
+  createdAt DateTime         @default(now())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([read])
+  @@index([type])
+  @@map("notifications")
+}
+
+// ===============================
+// AUDIT LOGS
+// ===============================
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  action    String      // Changed from enum to string for flexibility
+  entity    String
+  entityId  String?
+  changes   Json?
+  metadata  Json?       // NEW: renamed from ipAddress/userAgent
+  createdAt DateTime    @default(now())
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity])
+  @@index([entityId])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+// ===============================
+// SYSTEM SETTINGS
+// ===============================
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json     // Changed to Json for flexibility
+  category    String   @default("General")
+  description String?
+  dataType    String   @default("string")
+  updatedBy   String?  // NEW
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// ===============================
+// ENUMS
+// ===============================
 
 enum UserRole {
   CUSTOMER
@@ -41,6 +496,97 @@ enum UserRole {
 enum UserStatus {
   PENDING_VERIFICATION
   ACTIVE
+  INACTIVE
   SUSPENDED
-  DEACTIVATED
+  DELETED              // NEW: For soft deletes
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  VILLA
+  CONDO
+  TOWNHOUSE
+  COTTAGE
+  BUNGALOW
+  LOFT
+  STUDIO
+  PENTHOUSE
+  DUPLEX
+  SUITE
+  MANSION
+  GUEST_HOUSE
+  HOTEL_ROOM
+  OTHER
+}
+
+enum PropertyStatus {
+  PENDING              // NEW: Awaiting approval
+  ACTIVE
+  INACTIVE
+  SUSPENDED            // NEW: Admin suspended  
+  MAINTENANCE
+  COMING_SOON
+  DELETED              // NEW: Soft deleted
+}
+
+enum BookingStatus {
+  PENDING              // Simplified from PENDING_APPROVAL
+  APPROVED
+  CONFIRMED            // Payment received
+  CANCELLED
+  COMPLETED
+  EXPIRED              // NEW: Payment window expired
+  REJECTED             // NEW: Host rejected
+  CHECKED_IN
+  CHECKED_OUT
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING           // NEW
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED   // NEW
+  PARTIALLY_PAID
+  EXPIRED              // NEW
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  CASH
+  STRIPE               // NEW
+  PAYSTACK             // NEW
+  FLUTTERWAVE          // NEW
+}
+
+enum NotificationType {
+  BOOKING_REQUEST      // NEW
+  BOOKING_CONFIRMATION
+  BOOKING_APPROVED
+  BOOKING_REJECTED     // NEW
+  BOOKING_CANCELLED
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED       // NEW
+  RECEIPT_VERIFIED
+  REVIEW_RECEIVED      // NEW
+  REVIEW_RESPONSE      // NEW
+  REVIEW_REQUEST
+  PROPERTY_APPROVED    // NEW
+  PROPERTY_SUBMITTED
+  PROPERTY_REJECTED    // NEW
+  SYSTEM_UPDATE
+  PROMOTIONAL          // NEW
+  REMINDER             // NEW
+  ALERT                // NEW
+}
+
+enum ReceiptStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  UNDER_REVIEW
 }
