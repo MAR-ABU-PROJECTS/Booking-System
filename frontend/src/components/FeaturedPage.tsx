@@ -43,17 +43,59 @@ const FeaturedPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="VI">
-                      <div className="flex flex-col gap-1">
-                        <div>
-                          <p className="text-[18px] text-black font-semibold">
-                            MAR Luxury Penthouse - Victoria Island
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[16px] text-[#F4A857] font-semibold">
-                            ₦285,000/Night
-                          </p>
-                        </div>
+                      <div>
+                        <p className="text-[16px] text-black font-semibold">
+                          MAR Luxury Penthouse - Victoria Island
+                        </p>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Ikoyi">
+                      <div>
+                        <p className="text-[16px] text-black font-semibold">
+                          MAR Executive Suites - Ikoyi Heights
+                        </p>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="lekki">
+                      <div>
+                        <p className="text-[16px] text-black font-semibold">
+                          MAR Waterfront Residences - Lekki Phase 1
+                        </p>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="banana-island">
+                      <div>
+                        <p className="text-[16px] text-black font-semibold">
+                          MAR Presidential Villa - Banana Island
+                        </p>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="wuse">
+                      <div>
+                        <p className="text-[16px] text-black font-semibold">
+                          MAR Corporate Towers - Wuse 2, Abuja
+                        </p>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="maitama">
+                      <div>
+                        <p className="text-[16px] text-black font-semibold">
+                          MAR Garden Court - Maitama, Abuja
+                        </p>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="port-harcourt">
+                      <div>
+                        <p className="text-[16px] text-black font-semibold">
+                          MAR Skyline Apartments - GRA, Port Harcourt
+                        </p>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="asokoro">
+                      <div>
+                        <p className="text-[16px] text-black font-semibold">
+                          MAR Heritage Mansion - Asokoro, Abuja
+                        </p>
                       </div>
                     </SelectItem>
                   </SelectContent>
