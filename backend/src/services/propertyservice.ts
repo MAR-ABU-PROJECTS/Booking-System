@@ -441,6 +441,9 @@ export class PropertyService {
         case 'price':
           orderBy.baseRate = sortOrder
           break
+        case 'rating':
+          orderBy.reviews = { _avg: { rating: sortOrder } }
+          break
         case 'name':
           orderBy.name = sortOrder
           break
