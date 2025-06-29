@@ -1,6 +1,6 @@
 // MAR ABU PROJECTS SERVICES LLC - Database Configuration
 import { PrismaClient } from '@prisma/client'
-import { logger } from '../middleware/logger.middleware'
+import { logger } from '../middlewares/logger.middleware'
 
 // Extend PrismaClient with middleware
 const prismaClientSingleton = () => {
