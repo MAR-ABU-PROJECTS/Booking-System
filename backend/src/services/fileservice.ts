@@ -5,8 +5,8 @@ import fs from 'fs/promises'
 import crypto from 'crypto'
 import sharp from 'sharp'
 import { APP_CONSTANTS } from '../utils/constants'
-import { logger } from '../middleware/logger.middleware'
-import { AppError } from '../middleware/error.middleware'
+import { logger } from '../middlewares/logger.middleware'
+import { AppError } from '../middlewares/error.middleware'
 
 // File upload configuration
 interface FileUploadConfig {
