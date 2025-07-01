@@ -3,7 +3,7 @@
 import {useState} from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
-import { CalendarMinus2, CalendarRange, CreditCard, FileText, MessageSquareMore, Minus, Plus, UserRound } from "lucide-react";
+import { CalendarMinus2, CalendarRange, CreditCard, FileText, MapPin, MessageSquareMore, Minus, Plus, ShieldHalf, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -13,23 +13,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const page = () => {
-   const [open, setOpen] = useState(false);
-    const [date, setDate] = useState<Date | undefined>(undefined);
-    const [openSec, setOpenSec] = useState(false);
-    const [secDate, setSecDate] = useState<Date | undefined>(undefined);
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [openSec, setOpenSec] = useState(false);
+  const [secDate, setSecDate] = useState<Date | undefined>(undefined);
+  const [adultCount, setAdultCount] = useState(2);
+  const [childCount, setChildCount] = useState(0); 
 
-    const [fileName, setFileName] = useState("No file chosen");
+  const [fileName, setFileName] = useState("No file chosen");
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      setFileName(file ? file.name : "");
-    };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setFileName(file ? file.name : "");
+  };
   return (
     <>
-      <div className="grid grid-cols-[60%_40%] gap-[20px] px-12 py-[30px] bg-[#F1F1F1]">
-        <div className="flex flex-col w-full h-full p-[20px] bg-white rounded-xl border-2 border-[#F4A857]">
+      <div className="grid grid-cols-[60%_35%] justify-between gap-[40px] px-12 py-[30px] bg-[#F1F1F1]">
+        <div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0]">
           <div className="flex flex-col justify-center items-center">
             <h1 className="text-[20px] font-bold">Complete Your MAR Booking</h1>
             <p className="text-[16px] text-[#667085]">
@@ -129,11 +132,19 @@ const page = () => {
                         <p className="text-[14px] text-[#667085]">Age 18+</p>
                       </div>
                       <div className="flex justify-center items-center gap-[15px]">
-                        <div className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer">
+                        <div
+                          className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer"
+                          onClick={() =>
+                            setAdultCount(Math.max(0, adultCount - 1))
+                          }
+                        >
                           <Minus color="#FFF" />
                         </div>
-                        <p className="text-[16px] font-bold">2</p>
-                        <div className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer">
+                        <p className="text-[16px] font-bold">{adultCount}</p>
+                        <div
+                          className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer"
+                          onClick={() => setAdultCount(adultCount + 1)}
+                        >
                           <Plus color="#FFF" />
                         </div>
                       </div>
@@ -144,11 +155,19 @@ const page = () => {
                         <p className="text-[14px] text-[#667085]">Age 0 - 17</p>
                       </div>
                       <div className="flex justify-center items-center gap-[15px]">
-                        <div className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer">
+                        <div
+                          className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer"
+                          onClick={() =>
+                            setChildCount(Math.max(0, childCount - 1))
+                          }
+                        >
                           <Minus color="#FFF" />
                         </div>
                         <p className="text-[16px] font-bold">0</p>
-                        <div className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer">
+                        <div
+                          className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer"
+                          onClick={() => setChildCount(childCount + 1)}
+                        >
                           <Plus color="#FFF" />
                         </div>
                       </div>
@@ -231,7 +250,7 @@ const page = () => {
                           <SelectItem value="drivers-license">
                             Driver&lsquo;s License
                           </SelectItem>
-                          <SelectItem value="drivers-license">
+                          <SelectItem value="voters-card">
                             Voter&lsquo;s Card
                           </SelectItem>
                         </SelectGroup>
@@ -334,9 +353,7 @@ const page = () => {
                 </div>
                 <div className="flex justify-between items-center gap-[20px]">
                   <div className="grid w-full max-w-sm items-center gap-1">
-                    <Label htmlFor="time-picker">
-                      Number<span className="text-red-600">*</span>
-                    </Label>
+                    <Label htmlFor="time-picker">Estimated Arrival Time</Label>
                     <Input
                       type="time"
                       id="time-picker"
@@ -345,9 +362,7 @@ const page = () => {
                     />
                   </div>
                   <div className="grid w-full max-w-sm items-center gap-1">
-                    <Label>
-                      Email Address<span className="text-red-600">*</span>
-                    </Label>
+                    <Label>Purpose of Visit</Label>
                     <Select>
                       <SelectTrigger className="w-[full]">
                         <SelectValue placeholder="Select Purpose" />
@@ -355,28 +370,173 @@ const page = () => {
                       <SelectContent>
                         <SelectGroup>
                           <SelectItem value="passport">Business</SelectItem>
-                          <SelectItem value="drivers-license">
-                            Leisure
-                          </SelectItem>
-                          <SelectItem value="drivers-license">
+                          <SelectItem value="leisure">Leisure</SelectItem>
+                          <SelectItem value="family-visit">
                             Family Visit
                           </SelectItem>
-                          <SelectItem value="drivers-license">
+                          <SelectItem value="event">
                             Conference/Event
                           </SelectItem>
-                          <SelectItem value="drivers-license">
-                            Other
-                          </SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
                         </SelectGroup>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+                <div className="w-full h-full p-[10px] bg-[#fef9f3] border-2 border-[#F4A857] rounded-xl">
+                  <div className="flex gap-[10px] items-center">
+                    <Checkbox
+                      id="terms"
+                      className="bg-white border-1 border-black"
+                    />
+                    <Label htmlFor="terms" className="text-[14px] ">
+                      I agree to the{" "}
+                      <span className="text-[#F4A857] cursor-pointer hover:underline">
+                        Terms and Conditions
+                      </span>{" "}
+                      and{" "}
+                      <span className="text-[#F4A857] cursor-pointer hover:underline">
+                        Privacy Policy
+                      </span>{" "}
+                      of MAR ABU PROJECTS SERVICES LLC *
+                    </Label>
+                  </div>
+                </div>
+                <div className="w-full h-full p-[10px] bg-[#fef9f3] border-2 border-[#F4A857] rounded-xl">
+                  <div className="flex gap-[10px] items-center">
+                    <Checkbox
+                      id="subscribe"
+                      className="bg-white border-1 border-black"
+                    />
+                    <Label
+                      htmlFor="subscribe"
+                      className="text-[14px] capitalize"
+                    >
+                      Subscribe to our newsletter for exclusive offers and
+                      premium property updates
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <hr className="h-px my-[10px] bg-[#E8851A] border-0" />
+            <Button className="hover:bg-[#F4A857] py-[15px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl">
+              🔒 Complete Secure Booking
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-col w-full h-[870px] py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static">
+          <div className="flex flex-col gap-[5px]">
+            <div className="flex w-full h-[200px] justify-center items-center bg-[#F4A857] rounded-xl">
+              🏠
+            </div>
+            <div className="flex justify-center items-center">
+              <p className="text-[18px] font-semibold">MAR Executive Suite</p>
+            </div>
+            <div className="flex justify-center items-center gap-[5px]">
+              <MapPin color="red" fontSize={"10px"} />
+              <p className="text-[16px] text-[#667085]">
+                Victoria Island, Lagos, Nigeria
+              </p>
+            </div>
+          </div>
+          <hr className="h-px my-[20px] bg-[#fae7d1] border-0" />
+          <div className="flex flex-col">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[14px] text-[#667085]">Check-in:</p>
+              </div>
+              <div>
+                <p className="text-[14px] font-[500]">Sun, Jun 29</p>
+              </div>
+            </div>
+            <hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[14px] text-[#667085]">Check-Out:</p>
+              </div>
+              <div>
+                <p className="text-[14px] font-[500]">Mon, Jun 30</p>
+              </div>
+            </div>
+            <hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[14px] text-[#667085]">Duration:</p>
+              </div>
+              <div>
+                <p className="text-[14px] font-[500]">1 Night</p>
+              </div>
+            </div>
+            <hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[14px] text-[#667085]">Guests:</p>
+              </div>
+              <div>
+                <p className="text-[14px] font-[500]">
+                  {adultCount} Adult{adultCount !== 1 && "s"}, {childCount}{" "}
+                  Child{childCount !== 1 && "ren"}
+                </p>
+              </div>
+            </div>
+            <hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[14px] text-[#667085]">Rate per night:</p>
+              </div>
+              <div>
+                <p className="text-[14px] font-[500]">₦195,000</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col bg-[#fae7d1] border-2 border-[#f7d5b0] py-[15px] px-[10px] rounded-xl gap-[10px] my-[15px]">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[14px] text-[#667085]">Subtotal:</p>
+              </div>
+              <div>
+                <p className="text-[14px] font-[500]">₦195,000</p>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[14px] text-[#667085]">Service Fee (5%):</p>
+              </div>
+              <div>
+                <p className="text-[14px] font-[500]">₦9,750</p>
+              </div>
+            </div>
+            <hr className="h-px my-[10px] bg-[#F4A857] border-0" />
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-[16px] font-[400]">Total Amount:</p>
+              </div>
+              <div>
+                <p className="text-[16px] text-[#F4A857] font-[600]">
+                  ₦204,750
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col bg-[#e7f8f0] border-2 border-[#a6e4c8] py-[15px] px-[10px] rounded-xl gap-[10px]">
+            <div className="flex gap-[10px]">
+              <div className="flex w-[40px] h-[30px] p-[10px] justify-center items-center bg-[#12b76a] rounded-full">
+                <ShieldHalf color="red" />
+              </div>
+              <div className="flex flex-col gap-[5px]">
+                <p className="text-[15px] text-[#a6e4c8] font-[400]">
+                  Secure Booking Guarantee
+                </p>
+                <p className="text-[12px] text-[#667085]">
+                  Your personal and payment information is protected with
+                  bank-grade 256-bit SSL encryption and verified by MAR ABU
+                  security protocols.
+                </p>
               </div>
             </div>
           </div>
         </div>
-        <div>days</div>
       </div>
     </>
   );
