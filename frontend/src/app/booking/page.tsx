@@ -92,7 +92,7 @@ const page = () => {
         background: "#12B76A",
         color: "#ffffff",
         fontFamily: "Sora, sans-serif",
-        fontSize: "14px",
+        fontSize: "18px",
         fontWeight: "600",
         borderRadius: "8px",
         textTransform: "capitalize",
@@ -118,7 +118,7 @@ const page = () => {
         background: "#12B76A",
         color: "#ffffff",
         fontFamily: "Sora, sans-serif",
-        fontSize: "14px",
+        fontSize: "18px",
         fontWeight: "600",
         borderRadius: "8px",
         textTransform: "capitalize",
@@ -285,8 +285,14 @@ const page = () => {
                       </div>
                       <div className="flex justify-center items-center gap-[15px]">
                         <div
-                          className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer"
-                          onClick={handleAdultDecrement}
+                          className={`p-[3px] rounded-lg ${
+                            adultCount === 0
+                              ? "bg-gray-300 cursor-not-allowed"
+                              : "bg-[#F4A857] cursor-pointer"
+                          }`}
+                          onClick={
+                            adultCount === 0 ? undefined : handleAdultDecrement
+                          }
                         >
                           <Minus color="#FFF" />
                         </div>
@@ -306,8 +312,14 @@ const page = () => {
                       </div>
                       <div className="flex justify-center items-center gap-[15px]">
                         <div
-                          className="p-[3px] rounded-lg bg-[#F4A857] cursor-pointer"
-                          onClick={handleChildDecrement}
+                          className={`p-[3px] rounded-lg ${
+                            childCount === 0
+                              ? "bg-gray-300 cursor-not-allowed"
+                              : "bg-[#F4A857] cursor-pointer"
+                          }`}
+                          onClick={
+                            childCount === 0 ? undefined : handleChildDecrement
+                          }
                         >
                           <Minus color="#FFF" />
                         </div>
@@ -501,7 +513,9 @@ const page = () => {
                     </p>
 
                     <p className="text-[12px] text-[#667085]">
-                      Supported formats: JPG, PNG, PDF (Max 5MB)
+                      {fileName === "No file chosen"
+                        ? "Supported formats: JPG, PNG, PDF (Max 5MB)"
+                        : "Click to change file"}
                     </p>
 
                     <input
@@ -588,7 +602,8 @@ const page = () => {
                         <span className="text-[#F4A857] cursor-pointer hover:underline">
                           Privacy Policy
                         </span>{" "}
-                        of MAR ABU PROJECTS SERVICES LLC *
+                        of MAR ABU PROJECTS SERVICES LLC{" "}
+                        <span className="text-red-600">*</span>
                       </div>
                     </Label>
                   </div>
