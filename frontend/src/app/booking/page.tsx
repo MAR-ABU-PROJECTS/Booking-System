@@ -588,7 +588,8 @@ const page = () => {
                         <span className="text-[#F4A857] cursor-pointer hover:underline">
                           Privacy Policy
                         </span>{" "}
-                        of MAR ABU PROJECTS SERVICES LLC *
+                        of MAR ABU PROJECTS SERVICES LLC{" "}
+                        <span className="text-red-600">*</span>
                       </div>
                     </Label>
                   </div>
