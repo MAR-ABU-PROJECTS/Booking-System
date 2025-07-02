@@ -6,64 +6,69 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Seeding MAR ABU Booking Platform database...')
 
-  // Create Super Admin User
+  const existingUsers = await prisma.user.count()
+  console.log(`👥 Users in DB before seeding: ${existingUsers}`)
+
   const hashedPassword = await bcrypt.hash('admin123', 12)
-  
+
+  // Create Super Admin
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'admin@marabu.com' },
+    where: { email: 'admin@marabuprojects.com' },
     update: {},
     create: {
-      email: 'admin@marabu.com',
-      firstName: 'MAR ABU',
-      lastName: 'Administrator',
-      phone: '+234-801-MAR-ADMIN',
+      email: 'admin@marabuprojects.com',
+      firstName: 'MAR',
+      lastName: 'ABU',
+      phone: '(+234) 803 619 4871',
       role: UserRole.SUPER_ADMIN,
       status: 'ACTIVE',
       password: hashedPassword,
       emailVerified: new Date(),
     },
   })
+  console.log(`✅ Super Admin created: ${superAdmin.email}`)
 
   // Create Property Host
   const propertyHost = await prisma.user.upsert({
-    where: { email: 'host@marabu.com' },
+    where: { email: 'host@marabuprojects.com' },
     update: {},
     create: {
-      email: 'host@marabu.com',
+      email: 'host@marabuprojects.com',
       firstName: 'Property',
       lastName: 'Manager',
-      phone: '+234-801-MAR-HOST',
+      phone: '(+234) 803 619 4871',
       role: UserRole.PROPERTY_HOST,
       status: 'ACTIVE',
       password: hashedPassword,
       emailVerified: new Date(),
     },
   })
+  console.log(`✅ Property Host created: ${propertyHost.email}`)
 
-  // Create Sample Customer
+  // Create Customer
   const customer = await prisma.user.upsert({
-    where: { email: 'customer@example.com' },
+    where: { email: 'adejaretaye@gmail.com' },
     update: {},
     create: {
-      email: 'customer@example.com',
-      firstName: 'John',
-      lastName: 'Customer',
-      phone: '+234-803-123-4567',
+      email: 'adejaretaye@gmail.com',
+      firstName: 'Adejare',
+      lastName: 'Taiwo',
+      phone: '+234 816 276 1585',
       role: UserRole.CUSTOMER,
       status: 'ACTIVE',
       password: hashedPassword,
       emailVerified: new Date(),
     },
   })
+  console.log(`✅ Customer created: ${customer.email}`)
 
-  // Create MAR ABU Properties (based on your mockups)
   const properties = [
     {
-      name: 'MAR Luxury Penthouse - Victoria Island',
-      description: 'Experience unparalleled luxury in this 4-bedroom penthouse featuring floor-to-ceiling windows, premium Italian marble finishes, and breathtaking views of Lagos lagoon.',
+      name: 'MAR Luxury Penthouse - ABIKE PENTHOUSE',
+      description: 'Visionary residential development in Oribanwa, Ibeju-Lekki Lagos, Nigeria.',
       type: PropertyType.PENTHOUSE,
       status: PropertyStatus.ACTIVE,
-      address: 'Victoria Island, Lagos State',
+      address: 'Oribanwa, Ibeju-Lekki Lagos, Nigeria',
       city: 'Lagos',
       state: 'Lagos',
       bedrooms: 4,
@@ -77,11 +82,11 @@ async function main() {
       amenities: ['WiFi', 'Ocean View', 'Concierge', 'Gym', 'Pool', 'Parking', 'Generator', 'Air Conditioning']
     },
     {
-      name: 'MAR Executive Suites - Ikoyi Heights',
-      description: 'Elegantly appointed 3-bedroom executive suite in prestigious Ikoyi, featuring modern architectural design and premium appliances.',
+      name: 'MAR Executive Suites - OBUDU VILLA',
+      description: 'Luxury and golf-course living in Lakowe, Lagos.',
       type: PropertyType.SUITE,
       status: PropertyStatus.ACTIVE,
-      address: 'Ikoyi, Lagos State',
+      address: 'Lakowe, Ibeju Lekki, Lagos',
       city: 'Lagos',
       state: 'Lagos',
       bedrooms: 3,
@@ -95,11 +100,11 @@ async function main() {
       amenities: ['WiFi', 'City Views', 'Fitness Center', 'Parking', 'Security', 'Generator']
     },
     {
-      name: 'MAR Waterfront Residences - Lekki Phase 1',
-      description: 'Stunning waterfront residence offering direct lagoon access, modern architectural design, and premium fixtures.',
+      name: 'MAR Waterfront Residences - ZIRCON',
+      description: 'Semi-detached 4-bedroom duplex in Awoyaya, Ibeju-Lekki.',
       type: PropertyType.APARTMENT,
       status: PropertyStatus.ACTIVE,
-      address: 'Lekki Phase 1, Lagos State',
+      address: 'Ibeju-Lekki, Lagos Nigeria.',
       city: 'Lagos',
       state: 'Lagos',
       bedrooms: 3,
@@ -113,8 +118,8 @@ async function main() {
       amenities: ['WiFi', 'Waterfront', 'Private Jetty', 'Garden', 'Pool', 'Parking', 'Security']
     },
     {
-      name: 'MAR Presidential Villa - Banana Island',
-      description: 'The epitome of luxury living - a 5-bedroom presidential villa featuring private beach access, infinity pool, and home cinema.',
+      name: 'MAR Presidential Villa - WHITE-STONE',
+      description: 'Modern luxury villa in Banana Island, Lagos.',
       type: PropertyType.VILLA,
       status: PropertyStatus.ACTIVE,
       address: 'Banana Island, Lagos State',
@@ -129,37 +134,18 @@ async function main() {
       cleaningFee: 35000,
       securityDeposit: 150000,
       amenities: ['WiFi', 'Private Beach', 'Infinity Pool', 'Home Cinema', 'Wine Cellar', 'Staff Quarters', 'Gym']
-    },
-    {
-      name: 'MAR Corporate Towers - Wuse 2, Abuja',
-      description: 'Sophisticated 2-bedroom corporate apartment in prestigious Wuse 2, designed for business executives and diplomats.',
-      type: PropertyType.APARTMENT,
-      status: PropertyStatus.ACTIVE,
-      address: 'Wuse 2, Abuja, FCT',
-      city: 'Abuja',
-      state: 'FCT',
-      bedrooms: 2,
-      bathrooms: 2,
-      maxGuests: 4,
-      size: 120.0,
-      baseRate: 125000,
-      weekendPremium: 8,
-      cleaningFee: 15000,
-      securityDeposit: 50000,
-      amenities: ['WiFi', 'Business Center', 'Meeting Rooms', 'Airport Transfer', 'Concierge', 'Parking']
     }
   ]
 
-  // Create properties with amenities
   for (const propertyData of properties) {
     const { amenities, ...propertyFields } = propertyData
-    
+
     const property = await prisma.property.create({
       data: {
         ...propertyFields,
         hostId: propertyHost.id,
-        amenities: {
-          create: amenities.map((amenity, index) => ({
+        propertyAmenities: {
+          create: (amenities ?? []).map((amenity, index) => ({
             name: amenity,
             category: index < 3 ? 'Basic' : index < 6 ? 'Premium' : 'Luxury'
           }))
@@ -167,10 +153,9 @@ async function main() {
       }
     })
 
-    console.log(`✅ Created property: ${property.name}`)
+    console.log(`🏠 Created property: ${property.name}`)
   }
 
-  // Create System Settings
   const systemSettings = [
     { key: 'COMPANY_NAME', value: 'MAR ABU PROJECTS SERVICES LLC', category: 'General' },
     { key: 'PRIMARY_COLOR', value: '#F6931B', category: 'Branding' },
@@ -187,18 +172,18 @@ async function main() {
     await prisma.systemSetting.upsert({
       where: { key: setting.key },
       update: {},
-      create: setting
+      create: setting,
     })
+    console.log(`⚙️ System setting created: ${setting.key}`)
   }
 
-  console.log('✅ System settings created')
-  console.log('🎉 MAR ABU Booking Platform database seeded successfully!')
+  const finalUsers = await prisma.user.count()
+  console.log(`✅ Final user count: ${finalUsers}`)
+  console.log('🎉 Database seeding complete!')
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
+  .then(() => prisma.$disconnect())
   .catch(async (e) => {
     console.error(e)
     await prisma.$disconnect()

@@ -1,7 +1,7 @@
 // MAR ABU PROJECTS SERVICES LLC - User Profile Management Routes
 import { Router } from 'express'
 import { body, param, query, validationResult } from 'express-validator'
-import { UserRole, UserStatus } from '@prisma/client'
+import { UserRole, UserStatus, BookingStatus, PropertyStatus } from '@prisma/client'
 import { requireAuth } from '../services/authservice'
 import { asyncHandler } from '../middlewares/error.middleware'
 import { AppError } from '../middlewares/error.middleware'
@@ -85,7 +85,7 @@ router.get(
         _count: {
           select: {
             bookings: true,
-            properties: true,
+            hostedProperties: true,
             reviews: true,
           },
         },
@@ -354,9 +354,9 @@ router.get(
           where: {
             customerId: userId,
             status: 'APPROVED',
-            checkIn: { gte: new Date() },
+            checkInDate: { gte: new Date() },
           },
-          orderBy: { checkIn: 'asc' },
+          orderBy: { checkInDate: 'asc' },
           take: 3,
           include: {
             property: {

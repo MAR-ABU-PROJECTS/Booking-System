@@ -9,8 +9,14 @@ export const APP_CONSTANTS = {
     ADDRESS: 'Lagos, Nigeria',
   },
   
+  COLORS: {
+    PRIMARY: '#F6931B',
+    SECONDARY: '#000000',
+  },
+  
   UPLOAD: {
     MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+    MAX_IMAGE_SIZE: 5 * 1024 * 1024, // 5MB - NEW: Added missing constant
     MAX_DOCUMENT_SIZE: 5 * 1024 * 1024, // 5MB
     MAX_PROPERTY_IMAGES: 10,
     MAX_AVATAR_SIZE: 2 * 1024 * 1024, // 2MB
@@ -108,6 +114,8 @@ export const APP_CONSTANTS = {
       RECEIPT_VERIFIED: 'receipt-verified',
       PASSWORD_RESET: 'password-reset',
       EMAIL_VERIFICATION: 'email-verification',
+      PASSWORD_CHANGED: 'password-changed', // NEW
+      ACCOUNT_DELETED: 'account-deleted', // NEW
     },
   },
   
