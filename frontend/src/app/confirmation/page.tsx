@@ -2,10 +2,12 @@
 import Lottie from "lottie-react";
 import Checks from "../../../public/animations/check.json";
 import { CreditCard, House, MapPin, User } from "lucide-react";
+import { ToastContainer, toast } from "react-toastify";
 import { motion } from "framer-motion";
 import ConFirmationNavbar from "./ConFirmationNavbar";
+import { useEffect } from "react";
 
-const page = () => {
+const Page = () => {
   const whatsNext = [
     {
       no: 1,
@@ -55,8 +57,33 @@ const page = () => {
       description: "www.marabuhomes.com",
     },
   ];
+
+    useEffect(() => {
+      toast("🎉 Welcome to your MAR ABU confirmation!", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored",
+        style: {
+          background: "#1ab96f",
+          color: "#ffffff",
+          fontFamily: "Sora, sans-serif",
+          fontSize: "14px",
+          fontWeight: "600",
+          borderRadius: "8px",
+          textTransform: "capitalize",
+          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+          padding: "16px",
+        },
+      });
+    }, []);
   return (
     <>
+      <ToastContainer />
       <div className="flex flex-col bg-[#F1F1F1] gap-[20px]">
         <ConFirmationNavbar />
         <div className="flex flex-col gap-[20px] px-[20px] lg:px-12 ">
@@ -503,4 +530,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
