@@ -8,6 +8,21 @@ body {
   font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
 }
 
+ol.border-s-\[3px\] li:last-child::before {
+  content: '';
+  position: absolute;
+  left: -3px; 
+  top: 0;
+  height: 100%;
+  width: 3px;
+  background-color: #fff; 
+  z-index: 10;
+}
+
+html.dark ol.border-s-\[3px\] li:last-child::before {
+  background-color: #0f172a; 
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
