@@ -1,11 +1,13 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap'); */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Gilda+Display&display=swap');
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 body {
-  font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
 }
 
 ol.border-s-\[3px\] li:last-child::before {
@@ -22,7 +24,11 @@ ol.border-s-\[3px\] li:last-child::before {
 html.dark ol.border-s-\[3px\] li:last-child::before {
   background-color: #0f172a; 
 }
-
+@theme {
+  /* colors: {
+    brand: #f6931b;
+  } */
+}
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -69,7 +75,7 @@ html.dark ol.border-s-\[3px\] li:last-child::before {
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(75.111% 0.16523 62.805); /*     brand: #f6931b; */
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -137,4 +143,19 @@ html.dark ol.border-s-\[3px\] li:last-child::before {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* O.K Emmanuel takes over */
+.gilda-display {
+  font-family: "Gilda Display", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.brand-50 {
+  color: #f6941ba9;
+}
+.brand {
+  color: #f6931b;
+
 }

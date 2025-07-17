@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/Navigation";
 import BookingForm from "@/components/bookingComponents/BookingForm";
 import BookingSummary from "@/components/bookingComponents/BookingSummary";
 
