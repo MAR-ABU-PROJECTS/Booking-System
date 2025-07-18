@@ -1,4 +1,4 @@
-import FeaturedPage from "@/components/FeaturedPage";
+import AvailabilitySearch from "@/components/AvailabilitySearch";
 import FeaturedProperties from "@/components/FeaturedProperties";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -9,7 +9,7 @@ export default function Home() {
     <div>
       <Navigation />
       <Header />
-      <FeaturedPage />
+      <AvailabilitySearch />
       <FeaturedProperties />
       <Footer />
     </div>

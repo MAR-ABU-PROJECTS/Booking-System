@@ -114,93 +114,117 @@ const PropertiesCard = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[20px] lg:gap-[25px] py-[10px]">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 py-8">
       {cardContent.map((card) => (
         <motion.div
           key={card.id}
-          whileHover={{ y: -10, scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="cursor-pointer"
+          whileHover={{ y: -12, scale: 1.03 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className="cursor-pointer group"
         >
-          <Card className="flex w-full h-[420px] lg:h-[440px] xl:h-[400px] p-[0px] border-2 border-[#F4A857] shadow transition-shadow hover:shadow-2xl gap-[5px]">
-            <CardHeader className="bg-center bg-no-repeat bg-[url('/images/background.jpg')] bg-cover bg-gray-100 bg-blend-multiply rounded-t-2xl h-[200px] px-[8px] border-b-1 border-gray-400">
-              <div className="flex flex-col py-[10px] gap-[20px] h-full">
-                <div className="flex justify-end">
-                  <Badge>{card.status}</Badge>
-                </div>
-                <div className="flex justify-center items-center pt-[30px]">
-                  <p className="text-sm text-gray-700 text-center">
-                    {card.desc}
+          <Card className="relative overflow-hidden bg-white border-0 shadow-lg hover:shadow-2xl transition-all duration-500 rounded-2xl h-[500px] p-0">
+            {/* Image Header with Overlay */}
+            <div className="relative h-[240px] overflow-hidden rounded-t-2xl group">
+              {/* Background Image with Hover effect */}
+              <div className="absolute inset-0 bg-center bg-no-repeat bg-[url('/banner/sample.jpg')] bg-cover group-hover:filter-none filter blur-[2px] transition-all duration-500"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+
+              {/* Status Badge - Top Right */}
+              <div className="absolute top-4 right-4 z-10">
+                <Badge className="bg-white/90 text-gray-900 border-0 shadow-md font-medium px-3 py-1 backdrop-blur-sm">
+                  {card.status}
+                </Badge>
+              </div>
+
+              {/* Availability Status - Top Left */}
+              <div className="absolute top-4 left-4 z-10">
+                <Badge
+                  className="flex items-center gap-2 px-3 py-1 border-0 shadow-md backdrop-blur-sm font-medium"
+                  style={{
+                    backgroundColor: card.statusColor + "15",
+                    color: card.statusColor,
+                  }}
+                >
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: card.statusColor }}
+                  />
+                  {card.roomStatus}
+                </Badge>
+              </div>
+
+              {/* Property Description Overlay */}
+              <div className="absolute bottom-4 left-4 right-4 z-10">
+                <p className="text-white text-sm leading-relaxed font-light">
+                  {card.desc}
+                </p>
+              </div>
+            </div>
+
+            <CardContent className="p-6 flex flex-col justify-between h-[260px]">
+              {/* Property Title & Location */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-bold text-gray-900 leading-tight line-clamp-2">
+                  {card.name}
+                </h3>
+                <div className="flex items-center gap-2 border-t border-gray-100 pt-2">
+                  <MapPin size={16} className="text-amber-500 flex-shrink-0" />
+                  <p className="text-sm text-gray-600 font-medium">
+                    {card.location}
                   </p>
                 </div>
-              </div>
-            </CardHeader>
 
-            <CardContent className="p-0">
-              <div className="flex flex-col px-[8px] gap-[10px]">
-                <div className="flex flex-col gap-[2px]">
-                  <p className="text-[16px] font-bold">{card.name}</p>
-                  <div className="flex items-center gap-[3px]">
-                    <MapPin size={16} className="text-red-500" />
-                    <p className="lg:text-[14px] text-[14px]  text-[#667085] font-medium capitalize">
-                      {card.location}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-[5px]">
-                  {card.amenities.map((item, idx) => (
+                {/* Amenities */}
+                <div className="flex flex-wrap gap-2">
+                  {card.amenities.slice(0, 3).map((item, idx) => (
                     <Badge
                       key={idx}
-                      className="bg-[#FDF3E8] text-[#F4A857] border-[#FF8888]"
+                      className="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-medium px-2 py-1"
                     >
                       {item}
                     </Badge>
                   ))}
+                  {card.amenities.length > 3 && (
+                    <Badge className="bg-gray-100 text-gray-600 border border-gray-200 text-xs font-medium px-2 py-1">
+                      +{card.amenities.length - 3} more
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom Section */}
+              <div className="space-y-4">
+                {/* Bed & Bath Info */}
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <Bed size={18} className="text-gray-500" />
+                    <span className="text-sm text-gray-600 font-medium">
+                      {card.bed} Bed{card.bed > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Bath size={18} className="text-gray-500" />
+                    <span className="text-sm text-gray-600 font-medium">
+                      {card.baths} Bath{card.baths > 1 ? 's' : ''}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-[10px]">
-                    <div className="flex items-center gap-[2px]">
-                      <Bed size={18} className="text-blue-500" />
-                      <p className="text-[14px] text-[#667085]">
-                        {card.bed} Beds
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-[2px]">
-                      <Bath size={18} className="text-blue-500" />
-                      <p className="text-[14px] text-[#667085]">
-                        {card.baths} Baths
-                      </p>
+                {/* Price & CTA */}
+                <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-gray-900">
+                        {card.amount}
+                      </span>
+                      <span className="text-sm text-gray-500 font-medium">
+                        /night
+                      </span>
                     </div>
                   </div>
-
-                  <Badge
-                    className="flex items-center gap-1 px-2"
-                    style={{
-                      backgroundColor: card.statusColor + "20",
-                      color: card.statusColor,
-                      borderColor: card.statusColor,
-                    }}
-                  >
-                    <div
-                      className="w-[6px] h-[6px] rounded-full"
-                      style={{ backgroundColor: card.statusColor }}
-                    />
-                    {card.roomStatus}
-                  </Badge>
-                </div>
-
-                <div className="flex justify-between items-center pt-[10px]">
-                  <p className="font-semibold text-[18px]">
-                    {card.amount}
-                    <span className="text-[#667085] font-normal capitalize">
-                      /night
-                    </span>
-                  </p>
                   <Button
-                    // variant="default"
-                    className="bg-[#FFF] text-[#000] border border-[#667085] hover:bg-[#F4A857] hover:text-[#FFF] hover:border-2 hover:border-[#F4A857] transition"
+                    size="sm"
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300 px-6 font-medium cursor-pointer"
                   >
                     View Details
                   </Button>
@@ -208,6 +232,7 @@ const PropertiesCard = () => {
               </div>
             </CardContent>
           </Card>
+
         </motion.div>
       ))}
     </div>
