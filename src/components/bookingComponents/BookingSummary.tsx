@@ -18,7 +18,7 @@ const BookingSummary = ({ adultCount, childCount }: BookingSummaryProps) => {
         <div className="flex justify-center items-center gap-[5px]">
           <MapPin color="red" fontSize={"10px"} />
           <p className="text-[16px] text-[#667085]">
-            Victoria Island, Lagos, Nigeria
+            Ibeju-Lekki, Lagos, Nigeria
           </p>
         </div>
       </div>
@@ -105,7 +105,7 @@ const BookingSummary = ({ adultCount, childCount }: BookingSummaryProps) => {
           </div>
           <div className="flex flex-col gap-[5px]">
             <p className="text-[15px] text-[#12B76A] font-[400]">
-              Secure Booking Guarantee
+              Secure Booking Guaranteed
             </p>
             <p className="text-[12px] text-[#667085]">
               Your personal and payment information is protected with bank-grade 256-bit SSL encryption and verified by MAR ABU security protocols.
