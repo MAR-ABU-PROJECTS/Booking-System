@@ -1,3 +1,51 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Production builds
+dist/
+build/
+.next/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.staging
+
+# Database
+*.sqlite
+*.db
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+temp/
+tmp/
+=======
+>>>>>>> f97850a5fa3b5b28913ba430d2ac10f57ab7d552
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -39,3 +87,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+<<<<<<< HEAD
+=======
+>>>>>>> feat/HomePage
+>>>>>>> f97850a5fa3b5b28913ba430d2ac10f57ab7d552
