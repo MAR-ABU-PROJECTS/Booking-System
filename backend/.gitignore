@@ -18,3 +18,5 @@ logs/
 # Database
 *.db
 *.sqlite
+
+codes.txt

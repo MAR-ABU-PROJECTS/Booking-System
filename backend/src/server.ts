@@ -139,7 +139,7 @@ app.use(errorHandler)
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = parseInt(process.env.PORT || '5000')
+const PORT = process.env.PORT || '5000'
 
 const startServer = async () => {
   try {
