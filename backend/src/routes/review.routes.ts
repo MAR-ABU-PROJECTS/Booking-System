@@ -86,9 +86,9 @@ router.get(
           },
           booking: {
             select: {
-              bookingNumber: true,
-              checkIn: true,
-              checkOut: true,
+              bookingCode: true,
+              checkInDate: true,
+              checkOutDate: true,
             },
           },
         },
@@ -141,9 +141,9 @@ router.get(
         },
         booking: {
           select: {
-            bookingNumber: true,
-            checkIn: true,
-            checkOut: true,
+            bookingCode: true,
+            checkInDate: true,
+            checkOutDate: true,
           },
         },
       },
@@ -228,7 +228,7 @@ router.post(
             },
           },
         },
-        reviews: true,
+        review: true,
       },
     })
 
@@ -247,12 +247,12 @@ router.post(
     }
 
     // Check if review already exists
-    if (booking.reviews.length > 0) {
+    if (booking.review?.comment && booking.review.comment.length > 0) {
       throw new AppError('Review already exists for this booking', 400)
     }
 
     // Check if checkout date has passed
-    if (new Date() < booking.checkOut) {
+    if (new Date() < booking.checkOutDate) {
       throw new AppError('Cannot review booking before checkout date', 400)
     }
 
@@ -298,7 +298,7 @@ router.post(
     })
 
     // Send email notification to host
-    await emailService.sendNewReviewNotification(
+    await emailService.sendReviewRequestEmail(
       booking.property.host.email,
       {
         hostName: `${booking.property.host.firstName} ${booking.property.host.lastName}`,
@@ -558,9 +558,9 @@ router.get(
           },
           booking: {
             select: {
-              bookingNumber: true,
-              checkIn: true,
-              checkOut: true,
+              bookingCode: true,
+              checkInDate: true,
+              checkOutDate: true,
             },
           },
         },
@@ -638,14 +638,31 @@ router.get(
     const averageRating = totalRating / reviews.length
 
     // Calculate category averages
-    const categories = ['cleanliness', 'communication', 'checkIn', 'accuracy', 'location', 'value']
-    const categoryAverages = categories.reduce((acc, category) => {
-      const validRatings = reviews.filter(r => r[category] !== null).map(r => r[category])
-      if (validRatings.length > 0) {
-        acc[category] = validRatings.reduce((sum, rating) => sum + rating, 0) / validRatings.length
-      }
-      return acc
-    }, {} as Record<string, number>)
+    const categories = [
+      "cleanliness",
+      "communication",
+      "checkIn",
+      "accuracy",
+      "location",
+      "value",
+    ] as const;
+    type Category = (typeof categories)[number];
+
+    const categoryAverages = categories.reduce(
+      (acc, category: Category) => {
+        const validRatings = reviews
+          .filter((r) => r[category] !== null)
+          .map((r) => r[category] as number);
+        if (validRatings.length > 0) {
+          acc[category] =
+            validRatings.reduce((sum, rating) => sum + rating, 0) /
+            validRatings.length;
+        }
+        return acc;
+      },
+      {} as Record<Category, number>
+    );
+
 
     // Format rating distribution
     const distribution = ratingDistribution.reduce((acc, item) => {
@@ -660,7 +677,7 @@ router.get(
         averageRating: Math.round(averageRating * 10) / 10,
         ratingDistribution: distribution,
         categoryAverages: Object.keys(categoryAverages).reduce((acc, key) => {
-          acc[key] = Math.round(categoryAverages[key] * 10) / 10
+          acc[key] = Math.round(categoryAverages[key as Category] * 10) / 10
           return acc
         }, {} as Record<string, number>),
       },

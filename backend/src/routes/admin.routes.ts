@@ -194,7 +194,7 @@ router.get(
           _count: {
             select: {
               bookings: true,
-              properties: true,
+              hostedProperties: true,
             },
           },
         },
@@ -239,7 +239,7 @@ router.get(
             },
           },
         },
-        properties: {
+        hostedProperties: {
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
@@ -546,7 +546,7 @@ router.get(
   '/settings',
   requireAuth(UserRole.SUPER_ADMIN),
   asyncHandler(async (req: any, res: any) => {
-    const settings = await prisma.setting.findMany({
+    const settings = await prisma.systemSetting.findMany({
       orderBy: { key: 'asc' },
     })
 
@@ -577,7 +577,7 @@ router.put(
     // Update settings in batch
     await Promise.all(
       settings.map((setting: any) =>
-        prisma.setting.upsert({
+        prisma.systemSetting.upsert({
           where: { key: setting.key },
           update: { value: setting.value },
           create: { key: setting.key, value: setting.value },
