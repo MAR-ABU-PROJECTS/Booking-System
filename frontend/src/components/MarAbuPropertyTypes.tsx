@@ -2,6 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Building, Home, Clock, MapPin, Users, Calendar, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 const MarAbuPropertyTypes = () => {
   // Property type categories specific to MAR ABU HOMES
@@ -295,9 +296,9 @@ const MarAbuPropertyTypes = () => {
               Book your premium accommodation with MAR ABU HOMES today and enjoy unparalleled comfort and service.
             </p>
           </div>
-          <button className="px-6 py-3 bg-white text-amber-600 font-medium rounded-xl hover:bg-amber-50 transition-colors whitespace-nowrap">
+          <Link href="/properties" className="px-6 py-3 bg-white text-amber-600 font-medium rounded-xl hover:bg-amber-50 transition-colors whitespace-nowrap">
             Browse Available Properties
-          </button>
+          </Link>
         </div>
       </div>
     </section>
