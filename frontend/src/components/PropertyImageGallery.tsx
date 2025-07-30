@@ -16,11 +16,11 @@ const PropertyImagesGallery = ({ images }: ImageBlockProps) => {
 	return (
 		<div>
 			{!isMobile ? (
-				<div className="md:h-[400px] lg:h-[550px] rounded-[13px] overflow-hidden mt-10">
+				<div className="md:h-[400px] lg:h-[550px] rounded-[13px] overflow-hidden mt-5">
 					<ImageLayout images={images} />
 				</div>
 			) : (
-				<div className="mt-10">
+				<div className="mt-5">
 					<PropertyCarousel images={images} />
 				</div>
 			)}

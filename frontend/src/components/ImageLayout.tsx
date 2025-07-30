@@ -169,7 +169,7 @@ const ImageLayout = ({ images }: Props) => {
 						onClick={closeModal}
 					>
 						<button
-							className="!cursor-pointer absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-full text-white !cursor-pointer"
+							className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-full text-white !cursor-pointer"
 							onClick={closeModal}
 						>
 							<X className="w-6 h-6" />

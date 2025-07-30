@@ -8,7 +8,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BookSchema } from "../lib/schemas";
 import dayjs from "dayjs";
-import { Bath, Bed } from "lucide-react";
+import { Bath, Bed, Share, Heart } from "lucide-react";
 
 const SingleProperty = ({ property }: { property: Property }) => {
 	const form = useForm<z.infer<typeof BookSchema>>({
@@ -26,13 +26,28 @@ const SingleProperty = ({ property }: { property: Property }) => {
 	});
 
 	return (
-		<section className="mt-[150px] lg:mt-[100px]">
+		<section className="mt-[160px] lg:mt-[110px]">
 			<div className="max-w-7xl mx-auto px-4  pb-10">
 				<div>
-					<div className="py-2 mb-4">
-						<h2 className="font-semibold text-[18px] sm:text-2xl">
+					<div className="flex justify-between items-center">
+						<h2 className="font-medium text-[18px] sm:text-2xl">
 							{property.location}
 						</h2>
+
+						<div className="flex items-center gap-6">
+							<div className="flex items-center gap-1.5">
+								<Share size={18} className="text-black" />
+								<span className="text-sm text-black font-medium underline">
+									Share
+								</span>
+							</div>
+							<div className="flex items-center gap-1.5 !cursor-pointer">
+								<Heart size={18} className="text-black hover:fill-red-600" />
+								<span className="text-sm text-black font-medium underline">
+									Save
+								</span>
+							</div>
+						</div>
 					</div>
 
 					<PropertyImagesGallery images={property.images} />
@@ -40,19 +55,13 @@ const SingleProperty = ({ property }: { property: Property }) => {
 						<form className="md:pt-9 lg:pt-12 md:flex md:justify-between">
 							<div className="md:basis-[52%] lg:basis-[58%] mb-6">
 								<div className="mt-3 py-4 md:py-5 border-b-[1px] border-black/20 w-full flex justify-between gap-4 items-center">
-									<div className="flex flex-col">
-										<div className="flex flex-wrap gap-x-3">
-											<p>{property.bed} beds</p>
-											<p>{property.baths} bathroom</p>
-										</div>
-									</div>
 									<div className="flex items-center gap-6">
 										<div className="flex items-center gap-2">
 											<Bed
 												size={18}
-												className="text-gray-500"
+												className="text-black"
 											/>
-											<span className="text-sm text-gray-600 font-medium">
+											<span className="text-sm text-black font-medium">
 												{property.bed} Bed
 												{property.bed > 1 ? "s" : ""}
 											</span>
@@ -60,9 +69,9 @@ const SingleProperty = ({ property }: { property: Property }) => {
 										<div className="flex items-center gap-2">
 											<Bath
 												size={18}
-												className="text-gray-500"
+												className="text-black"
 											/>
-											<span className="text-sm text-gray-600 font-medium">
+											<span className="text-sm text-black font-medium">
 												{property.baths} Bath
 												{property.baths > 1 ? "s" : ""}
 											</span>

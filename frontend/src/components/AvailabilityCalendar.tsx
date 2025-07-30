@@ -31,7 +31,7 @@ const AvailabilityCalendar = ({ price }: Props) => {
 
 	const totalCost = nights * ratePerNight;
 	return (
-		<div className="p-4 md:p-6">
+		<div className="p-5 py-8 md:p-6">
 			{totalCost > 0 ? (
 				<h3 className="text-[18px]">
 					{formatCurrency(totalCost)} for {nightsLabel}
@@ -95,7 +95,7 @@ const AvailabilityCalendar = ({ price }: Props) => {
 				</div>
 
 				<button
-					type="submit"
+					type="button"
 					className="cursor-pointer mt-2 w-full py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-[17px] font-medium"
 				>
 					Book Now
