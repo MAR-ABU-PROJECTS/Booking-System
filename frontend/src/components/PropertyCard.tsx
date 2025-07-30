@@ -84,7 +84,7 @@ const PropertyCard = ({
         {/* Navigation Arrows - Only show on hover */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between px-2">
           <motion.button
-            className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md"
+            className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md !cursor-pointer"
             onClick={prevImage}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -93,7 +93,7 @@ const PropertyCard = ({
           </motion.button>
           
           <motion.button
-            className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md"
+            className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md !cursor-pointer"
             onClick={nextImage}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
