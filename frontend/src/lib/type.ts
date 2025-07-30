@@ -9,7 +9,7 @@ export type Property = {
   baths: number;
   roomStatus: "AVAILABLE" | "LIMITED" | "UNAVAILABLE";
   statusColor: string;
-  amount: string;
+  price: number;
   images: string[]; // optional since not all entries include it
 };
 

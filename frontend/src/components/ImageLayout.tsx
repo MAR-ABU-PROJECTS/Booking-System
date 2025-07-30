@@ -31,6 +31,17 @@ const ImageLayout = ({ images }: Props) => {
 	const openModal = (index: number) => setSelectedIndex(index);
 	const closeModal = () => setSelectedIndex(null);
 
+	const ShowAll = () => {
+		return (
+			<button
+				className="!cursor-pointer text-sm font-[500] px-2.5 py-1.5 border border-2 rounded-[9px] bg-white absolute right-7 bottom-5"
+				onClick={() => openModal(0)}
+			>
+				Show All Photos
+			</button>
+		);
+	};
+
 	const goToPrev = (e: React.MouseEvent) => {
 		e.stopPropagation();
 		if (selectedIndex !== null)
@@ -55,6 +66,7 @@ const ImageLayout = ({ images }: Props) => {
 					{renderImage(images[0], "object-cover", 0, () =>
 						openModal(0)
 					)}
+				
 				</div>
 			);
 
@@ -64,6 +76,7 @@ const ImageLayout = ({ images }: Props) => {
 					{images.map((img, i) =>
 						renderImage(img, "", i, () => openModal(i))
 					)}
+				
 				</div>
 			);
 
@@ -85,6 +98,7 @@ const ImageLayout = ({ images }: Props) => {
 						2,
 						() => openModal(2)
 					)}
+				
 				</div>
 			);
 
@@ -112,12 +126,13 @@ const ImageLayout = ({ images }: Props) => {
 						3,
 						() => openModal(3)
 					)}
+				
 				</div>
 			);
 
 		// 5+ images
 		return (
-			<div className="h-full grid grid-cols-4 grid-rows-2 gap-2">
+			<div className="h-full grid grid-cols-4 grid-rows-2 gap-2 relative">
 				{renderImage(images[0], "row-span-full col-span-2", 0, () =>
 					openModal(0)
 				)}
@@ -133,6 +148,8 @@ const ImageLayout = ({ images }: Props) => {
 				{renderImage(images[4], "col-start-4 row-start-2", 4, () =>
 					openModal(4)
 				)}
+
+				<ShowAll />
 			</div>
 		);
 	};
@@ -152,7 +169,7 @@ const ImageLayout = ({ images }: Props) => {
 						onClick={closeModal}
 					>
 						<button
-							className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-full text-white !cursor-pointer"
+							className="!cursor-pointer absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-sm rounded-full text-white !cursor-pointer"
 							onClick={closeModal}
 						>
 							<X className="w-6 h-6" />

@@ -6,6 +6,7 @@ import { z } from "zod";
 import dayjs from "dayjs";
 import { RootState } from "../../lib/features/store";
 import {useSelector} from "react-redux"
+import {formatCurrency} from "../../lib/utils";
 
 const BookingSummary = () => {
   const booking = useSelector((state: RootState) => state.booking );
@@ -31,8 +32,6 @@ const BookingSummary = () => {
 	const serviceFee = subtotal * 0.05;
 	const totalAmount = subtotal + serviceFee;
 
-	const formatCurrency = (amount: number) =>
-		`₦${new Intl.NumberFormat("en-NG").format(amount)}`;
 
 	return (
 		<div className="flex flex-col w-full h-[890px] md:h-[970px] lg:h-[890px] xl:h-[870px] py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static">

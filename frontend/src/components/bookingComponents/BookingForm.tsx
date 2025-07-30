@@ -34,12 +34,8 @@ import GuestCounterTwo from "@/components/GuestCounterTwo";
 import { useState } from "react";
 import dayjs from "dayjs";
 
-interface BookingFormProps {
-	fileName: string;
-	handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
 
-const BookingForm = ({ fileName, handleFileChange }: BookingFormProps) => {
+const BookingForm = () => {
 	const { control } = useFormContext<z.infer<typeof bookingDetailsSchema>>();
 	const [open, setOpen] = useState(false);
 	const [openSec, setOpenSec] = useState(false);
@@ -539,7 +535,7 @@ const BookingForm = ({ fileName, handleFileChange }: BookingFormProps) => {
 							)}
 						/>
 
-						<div className="w-full grid items-center gap-1">
+						{/* <div className="w-full grid items-center gap-1">
 							<Label htmlFor="file-upload">
 								Upload Payment Receipt
 							</Label>
@@ -583,7 +579,7 @@ const BookingForm = ({ fileName, handleFileChange }: BookingFormProps) => {
 									{fileName}
 								</p>
 							</label>
-						</div>
+						</div> */}
 					</div>
 				</div>
 				<div className="flex flex-col w-full gap-[20px]">

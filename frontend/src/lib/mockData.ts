@@ -11,7 +11,7 @@ export const properties: Property[] = [
 		baths: 5,
 		roomStatus: "AVAILABLE",
 		statusColor: "#12B76A",
-		amount: "₦285,000",
+		price: 285000,
 		images: [
 			'/apartment-images/IMG_5673.JPG',
 			'/apartment-images/IMG_5674.JPG',
@@ -32,8 +32,8 @@ export const properties: Property[] = [
 		baths: 2,
 		roomStatus: "LIMITED",
 		statusColor: "#F4A857",
-		amount: "₦195,000",
-    images:[]
+    images:[],
+		price: 195000,
 	},
 	{
 		id: 3,
@@ -46,8 +46,8 @@ export const properties: Property[] = [
 		baths: 3,
 		roomStatus: "AVAILABLE",
 		statusColor: "#12B76A",
-		amount: "₦165,000",
-    images:[]
+    images:[],
+		price: 165000,
 	},
   
 	{
@@ -61,7 +61,7 @@ export const properties: Property[] = [
 		baths: 4,
 		roomStatus: "AVAILABLE",
 		statusColor: "#12B76A",
-		amount: "₦450,000",
+		price: 450000,
     images:[]
 	},
 	{
@@ -75,7 +75,7 @@ export const properties: Property[] = [
 		baths: 2,
 		roomStatus: "AVAILABLE",
 		statusColor: "#12B76A",
-		amount: "₦125,000",
+		price: 125000,
     images:[]
 	},
 	{
@@ -89,7 +89,7 @@ export const properties: Property[] = [
 		baths: 2,
 		roomStatus: "LIMITED",
 		statusColor: "#F4A857",
-		amount: "₦155,000",
+		price: 155000,
     images:[]
 	},
 	{
@@ -103,7 +103,7 @@ export const properties: Property[] = [
 		baths: 2,
 		roomStatus: "AVAILABLE",
 		statusColor: "#12B76A",
-		amount: "₦95,000",
+		price: 950000,
     images:[]
 	},
 	{
@@ -117,7 +117,7 @@ export const properties: Property[] = [
 		baths: 3,
 		roomStatus: "UNAVAILABLE",
 		statusColor: "#F04438",
-		amount: "₦225,000",
+		price: 225000,
     images:[]
 	},
 ];
