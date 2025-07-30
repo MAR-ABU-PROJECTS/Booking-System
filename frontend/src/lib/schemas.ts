@@ -1,0 +1,112 @@
+import { z } from "zod";
+
+export const homePageBookingSchema = z.object({
+	stepOne: z.object({
+		location: z.string().min(1, "please select location"),
+    price: z.number(),
+	}),
+	stepTwo: z.object({
+		checkin: z.date({
+			error: (issue) =>
+				issue.input === undefined
+					? "Please select a check-in date"
+					: "Invalid check-in date",
+		}),
+	}),
+	stepThree: z.object({
+		checkout: z.date({
+			error: (issue) =>
+				issue.input === undefined
+					? "Please select a check-out date"
+					: "Invalid check-out date",
+		}),
+	}),
+	stepFour: z.object({
+		Guests: z.object({
+			adults: z.number().min(1, "Atleast 1 adult"),
+			children: z.number().min(0),
+			infants: z.number().min(0),
+		}),
+	}),
+ 
+});
+
+// Max file size: 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+
+export const bookingDetailsSchema = z
+	.object({
+		// Booking Dates
+
+		checkInDate: z.date({
+			error: (issue) =>
+				issue.input === undefined
+					? "Please select a check-in date"
+					: "Invalid check-in date",
+		}),
+		checkOutDate: z.date({
+			error: (issue) =>
+				issue.input === undefined
+					? "Please select a check-out date"
+					: "Invalid check-out date",
+		}),
+
+		// Guests
+		adults: z.number().min(1, "At least 1 adult is required"),
+		children: z.number().min(0),
+
+		// Guest Info
+		firstName: z.string().min(1, "First name is required"),
+		lastName: z.string().min(1, "Last name is required"),
+		email: z
+			.string()
+			.min(1, "email address is required")
+			.email("Invalid email address"),
+		phone: z.string().min(10, "Phone number is required"),
+		address: z.string().min(1, "Billing address is required"),
+
+		// ID
+		idType: z.string().min(1, "Select an ID type"),
+		idNumber: z.string().min(1, "Enter your ID number"),
+		emergencyContact: z.string().min(1, "Emergency contact is required"),
+
+		// Payment
+		paymentMethod: z.string().min(1, "Select a payment method"),
+		paymentReceipt: z
+			.file()
+			.refine(
+				(file) =>
+					!file ||
+					(file instanceof File && file.size <= MAX_FILE_SIZE),
+				{
+					message: "File must be under 5MB",
+				}
+			)
+			.refine(
+				(file) => !file || ACCEPTED_FILE_TYPES.includes(file?.type),
+				{
+					message: "Only JPG, PNG, and PDF files are supported",
+				}
+			),
+
+		// Additional Info
+		additionalInfo: z.string().optional(),
+		arrivalTime: z
+			.string()
+			.regex(
+				/^([01]\d|2[0-3]):([0-5]\d)$/,
+				"Time must be in HH:mm format (24hr)"
+			),
+		purpose: z.string().min(1, "Please select a purpose"),
+		agree: z.boolean(),
+	})
+	.superRefine((data, ctx) => {
+		if (!data.agree) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Please agree to the terms to continue.",
+				path: ["agree"],
+			});
+		}
+	});
