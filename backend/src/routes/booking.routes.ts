@@ -37,7 +37,7 @@ const searchBookingsSchema = z.object({
     .optional(),
   propertyId: z.string().optional(),
   customerId: z.string().optional(),
-  bookingNumber: z.string().optional(),
+  bookingCode: z.string().optional(),
   guestEmail: z.string().optional(),
   checkInFrom: z.string().optional(),
   checkInTo: z.string().optional(),
@@ -88,6 +88,104 @@ const calculateBookingCosts = (
  * @desc    Get bookings with filters
  * @access  Protected
  */
+/**
+ * @swagger
+ * /api/v1/bookings:
+ *   get:
+ *     summary: Get bookings with filters
+ *     description: Retrieve a list of bookings with optional filters based on user role. Customers see their own, hosts see bookings for their properties, and admins can see all.
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Current page
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Booking status
+ *       - in: query
+ *         name: paymentStatus
+ *         schema:
+ *           type: string
+ *         description: Payment status
+ *       - in: query
+ *         name: propertyId
+ *         schema:
+ *           type: string
+ *         description: Filter by property ID
+ *       - in: query
+ *         name: customerId
+ *         schema:
+ *           type: string
+ *         description: Filter by customer ID (Admin only)
+ *       - in: query
+ *         name: bookingCode
+ *         schema:
+ *           type: string
+ *         description: Search booking code (partial match)
+ *       - in: query
+ *         name: guestEmail
+ *         schema:
+ *           type: string
+ *         description: Search by guest email (partial match)
+ *       - in: query
+ *         name: checkInFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter check-in date from
+ *       - in: query
+ *         name: checkInTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter check-in date to
+ *     responses:
+ *       200:
+ *         description: Bookings fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     bookings:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Booking'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         pages:
+ *                           type: integer
+ *       400:
+ *         description: Validation failed
+ *       401:
+ *         description: Unauthorized
+ */
+
 router.get(
   "/",
   requireAuth(),
@@ -116,9 +214,9 @@ router.get(
       if (where.customerId && req.user.role === UserRole.ADMIN) {
         whereClause.customerId = where.customerId;
       }
-      if (where.bookingNumber) {
-        whereClause.bookingNumber = {
-          contains: where.bookingNumber,
+      if (where.bookingCode) {
+        whereClause.bookingCode = {
+          contains: where.bookingCode,
           mode: "insensitive",
         };
       }
@@ -208,6 +306,40 @@ router.get(
  * @desc    Get booking details
  * @access  Protected (owner, property host, admin)
  */
+/**
+ * @swagger
+ * /api/v1/bookings/{id}:
+ *   get:
+ *     summary: Get booking details
+ *     description: Get a single booking by ID. Access is restricted to booking owner, property host, or admin.
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID
+ *     responses:
+ *       200:
+ *         description: Booking found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Booking'
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Booking not found
+ */
+
 router.get(
   "/:id",
   requireAuth(),
@@ -272,6 +404,103 @@ router.get(
  * @route   POST /api/v1/bookings
  * @desc    Create new booking
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /api/v1/bookings:
+ *   post:
+ *     summary: Create a new booking
+ *     tags:
+ *       - Bookings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - propertyId
+ *               - checkIn
+ *               - checkOut
+ *               - adults
+ *               - guestName
+ *               - guestEmail
+ *               - guestPhone
+ *             properties:
+ *               propertyId:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
+ *               checkIn:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-08-01"
+ *               checkOut:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-08-05"
+ *               adults:
+ *                 type: integer
+ *                 example: 2
+ *               children:
+ *                 type: integer
+ *                 example: 1
+ *               infants:
+ *                 type: integer
+ *                 example: 0
+ *               guestName:
+ *                 type: string
+ *                 example: "John Doe"
+ *               guestEmail:
+ *                 type: string
+ *                 format: email
+ *                 example: "john@example.com"
+ *               guestPhone:
+ *                 type: string
+ *                 example: "+2348123456789"
+ *               specialRequests:
+ *                 type: string
+ *                 example: "Please provide a baby cot."
+ *     responses:
+ *       201:
+ *         description: Booking created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Booking created successfully. Awaiting host approval.
+ *                 data:
+ *                   type: object
+ *                   description: Booking details
+ *       400:
+ *         description: Validation failed or property not available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Validation failed
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 router.post(
   "/",
@@ -435,6 +664,68 @@ router.post(
  * @desc    Update booking status (approve/reject)
  * @access  Property Host, Admin
  */
+/**
+ * @swagger
+ * /api/v1/bookings/{id}/status:
+ *   patch:
+ *     summary: Update booking status (approve/reject/cancel)
+ *     tags:
+ *       - Bookings
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: Booking ID
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *           example: "123e4567-e89b-12d3-a456-426614174000"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [APPROVED, REJECTED, CANCELLED]
+ *                 example: APPROVED
+ *               reason:
+ *                 type: string
+ *                 example: "Guest did not respond to verification request"
+ *     responses:
+ *       200:
+ *         description: Booking status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Booking approved successfully
+ *                 data:
+ *                   type: object
+ *                   description: Updated booking details
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Not authorized to update this booking
+ *       404:
+ *         description: Booking not found
+ *       500:
+ *         description: Server error
+ */
 router.patch(
   "/:id/status",
   requireAuth(UserRole.PROPERTY_HOST),
@@ -553,6 +844,56 @@ router.patch(
  * @desc    Cancel booking
  * @access  Protected (booking owner)
  */
+/**
+ * @swagger
+ * /api/v1/bookings/{id}/cancel:
+ *   post:
+ *     summary: Cancel a booking
+ *     description: Allows a booking owner to cancel a booking if it is still pending or approved.
+ *     tags:
+ *       - Bookings
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID to cancel
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Optional reason for cancellation
+ *     responses:
+ *       200:
+ *         description: Booking cancelled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Booking cancelled successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Booking'
+ *       400:
+ *         description: Cannot cancel booking in current status
+ *       403:
+ *         description: Not authorized to cancel this booking
+ *       404:
+ *         description: Booking not found
+ */
 router.post(
   "/:id/cancel",
   requireAuth(),
@@ -653,6 +994,77 @@ router.post(
  * @route   GET /api/v1/bookings/:id/invoice
  * @desc    Get booking invoice
  * @access  Protected (authorized users only)
+ */
+/**
+ * @swagger
+ * /api/v1/bookings/{id}/invoice:
+ *   get:
+ *     summary: Get booking invoice
+ *     description: Retrieve an invoice for a specific booking. Only the booking owner, the property host, or an admin can access this invoice.
+ *     tags:
+ *       - Bookings
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the booking
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Invoice fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     booking:
+ *                       type: object
+ *                       description: Booking details
+ *                     invoice:
+ *                       type: object
+ *                       description: Invoice details
+ *                       properties:
+ *                         number:
+ *                           type: string
+ *                           example: INV-ABC123
+ *                         date:
+ *                           type: string
+ *                           format: date-time
+ *                         dueDate:
+ *                           type: string
+ *                           format: date-time
+ *                         items:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               description:
+ *                                 type: string
+ *                               quantity:
+ *                                 type: integer
+ *                               rate:
+ *                                 type: number
+ *                               amount:
+ *                                 type: number
+ *                         subtotal:
+ *                           type: number
+ *                         fees:
+ *                           type: number
+ *                         total:
+ *                           type: number
+ *       403:
+ *         description: Not authorized to view this invoice
+ *       404:
+ *         description: Booking not found
  */
 router.get(
   "/:id/invoice",

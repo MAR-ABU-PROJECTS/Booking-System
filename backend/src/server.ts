@@ -8,6 +8,7 @@ import dotenv from 'dotenv'
 import rateLimit from 'express-rate-limit'
 import { PrismaClient } from '@prisma/client'
 import path from 'path'
+import { swaggerSpec, swaggerUi } from './swagger'
 
 // Load environment variables
 dotenv.config()
@@ -37,6 +38,9 @@ const app = express()
 
 // Trust proxy (for production behind reverse proxy)
 app.set('trust proxy', 1)
+
+// Swagger implementation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ===============================
 // MIDDLEWARE CONFIGURATION
@@ -97,7 +101,7 @@ app.use('/api/', limiter)
 // Stricter rate limiting for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per window
+  max: 50, // 50 requests per window
   message: 'Too many authentication attempts, please try again later.',
   skipSuccessfulRequests: true,
 })
@@ -108,7 +112,9 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')))
 // ===============================
 // API ROUTES
 // ===============================
-const API_PREFIX = process.env.API_PREFIX || '/api/v1'
+// const API_PREFIX = process.env.API_PREFIX || '/api/v1'
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
 // Health check
 app.get('/health', (req, res) => {
@@ -121,14 +127,14 @@ app.get('/health', (req, res) => {
 })
 
 // API routes
-app.use(`${API_PREFIX}/auth`, authLimiter, authRoutes)
-app.use(`${API_PREFIX}/users`, userRoutes)
-app.use(`${API_PREFIX}/properties`, propertyRoutes)
-app.use(`${API_PREFIX}/bookings`, bookingRoutes)
-app.use(`${API_PREFIX}/receipts`, receiptRoutes)
-app.use(`${API_PREFIX}/reviews`, reviewRoutes)
-app.use(`${API_PREFIX}/notifications`, notificationRoutes)
-app.use(`${API_PREFIX}/admin`, adminRoutes)
+app.use(`/api/v1/auth`, authLimiter, authRoutes);
+app.use(`/api/v1/users`, userRoutes)
+app.use(`/api/v1/properties`, propertyRoutes)
+app.use(`/api/v1/bookings`, bookingRoutes)
+app.use(`/api/v1/receipts`, receiptRoutes)
+app.use(`/api/v1/reviews`, reviewRoutes)
+app.use(`/api/v1/notifications`, notificationRoutes)
+app.use(`/api/v1/admin`, adminRoutes)
 
 // ===============================
 // ERROR HANDLING
@@ -139,7 +145,7 @@ app.use(errorHandler)
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = process.env.PORT || '5000'
+const PORT = process.env.PORT || '5001'
 
 const startServer = async () => {
   try {
