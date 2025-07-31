@@ -1,6 +1,6 @@
 export type Property = {
 	id: number;
-	status: string;
+	status?: string;
 	desc: string;
 	name: string;
 	location: string;
@@ -17,7 +17,8 @@ export type Property = {
 	rating?: number;
 	reviews?: number;
 	guests: number;
-  isNew?:boolean
+  isNew?:boolean;
+	type?: string;
 };
 
 // {

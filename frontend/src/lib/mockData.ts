@@ -2,18 +2,12 @@ import type { Property } from "../lib/type";
 
 const marAbuApartments = [
 	{
-		name: "ABIKE PENTHOUSE",
-		location: "Ikoyi, Lagos",
-		type: "Premium Penthouse",
-		price: 120000,
-	},
-	{
 		name: "WHITE-STONE",
 		location: "Victoria Island, Lagos",
 		type: "Luxury Apartment",
 		price: 85000,
 	},
-	
+
 	{
 		name: "OBUDU VILLA",
 		location: "Lekki Phase 1, Lagos",
@@ -28,15 +22,24 @@ const marAbuApartments = [
 	},
 ];
 
+// {
+// 	status: "Premium",
+// 	statusColor: "#12B76A",
+// },
 
 export const properties: Property[] = [
 	{
 		id: 1,
 		status: "Premium",
-		desc: "Exquisite penthouse with panoramic Lagos lagoon views and premium finishes",
+		desc: "Sophisticated penthouse with contemporary design and premium amenities",
 		name: "ABIKE PENTHOUSE",
 		location: "Ikoyi, Lagos",
-		amenities: ["Ocean View", "Concierge", "Gym"],
+		amenities: [
+			"Ocean view",
+			"Premium seating",
+			"Modern entertainment",
+			"Luxury finishes",
+		],
 		bed: 4,
 		baths: 5,
 		roomStatus: "AVAILABLE",
@@ -51,8 +54,11 @@ export const properties: Property[] = [
 			"/apartment-images/IMG_5678.JPG",
 		],
 		isSuperhost: true,
-		guests:10,
-		isNew: true
+		guests: 10,
+		isNew: true,
+		type: "Short Let",
+		rating: 5.0,
+		reviews: 89,
 	},
 	// {
 	// 	id: 2,
@@ -154,5 +160,3 @@ export const properties: Property[] = [
 	// 	images: [],
 	// },
 ];
-
-

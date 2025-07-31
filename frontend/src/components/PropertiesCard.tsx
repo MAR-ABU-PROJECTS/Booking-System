@@ -1,126 +1,165 @@
 "use client";
 import { Bath, Bed, MapPin } from "lucide-react";
 import { Badge } from "./ui/badge";
-import { Card, CardContent, CardHeader } from "./ui/card";
+import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { properties } from "../lib/mockData";
+import {formatCurrency} from "../lib/utils";
 
 const PropertiesCard = () => {
-	const cardContent = [
-		{
-			id: 1,
-			status: "Premium",
-			desc: "Exquisite penthouse with panoramic Lagos lagoon views and premium finishes",
-			name: "MAR Luxury Penthouse - Victoria Island",
-			location: "Victoria Island, Lagos",
-			amenities: ["Ocean View", "Concierge", "Gym"],
-			bed: 4,
-			baths: 5,
-			roomStatus: "AVAILABLE",
-			statusColor: "#12B76A",
-			amount: "₦285,000",
-		},
-		{
-			id: 2,
-			status: "Executive",
-			desc: "Sophisticated executive suites with contemporary design and premium amenities",
-			name: "MAR Executive Suites - Ikoyi Heights",
-			location: "Ikoyi, Lagos",
-			amenities: ["City View", "Rooftop Terrance", "Fitness Center"],
-			bed: 3,
-			baths: 2,
-			roomStatus: "LIMITED",
-			statusColor: "#F4A857",
-			amount: "₦195,000",
-		},
-		{
-			id: 3,
-			status: "Water Front",
-			desc: "Modern waterfront residence with direct lagoon access and luxury finishes",
-			name: "MAR Waterfront Residences - Lekki Phase 1",
-			location: "Lekki, Lagos",
-			amenities: ["Water Front", "Private Jetty", "Garden"],
-			bed: 3,
-			baths: 3,
-			roomStatus: "AVAILABLE",
-			statusColor: "#12B76A",
-			amount: "₦165,000",
-		},
-		{
-			id: 4,
-			status: "Presidential",
-			desc: "Ultra-luxury presidential villa with private beach access and world-class amenities",
-			name: "MAR Presidential Villa - Banana Island",
-			location: "Banana Island, Lagos",
-			amenities: ["Private Beach", "Infinity Pool", "Home Cinema"],
-			bed: 5,
-			baths: 4,
-			roomStatus: "AVAILABLE",
-			statusColor: "#12B76A",
-			amount: "₦450,000",
-		},
-		{
-			id: 5,
-			status: "Corporate",
-			desc: "Premium corporate accommodation in the heart of Nigeria's capital city",
-			name: "MAR Corporate Towers - Wuse 2, Abuja",
-			location: "Wuse 2, Abuja",
-			amenities: ["Business Center", "Meeting Rooms", "High-Speed Wifi"],
-			bed: 2,
-			baths: 2,
-			roomStatus: "AVAILABLE",
-			statusColor: "#12B76A",
-			amount: "₦125,000",
-		},
-		{
-			id: 6,
-			status: "Garden",
-			desc: "Serene garden court residence in Abuja's most prestigious diplomatic zone",
-			name: "MAR Garden Court - Maitama, Abuja",
-			location: "Maitama, Abuja",
-			amenities: ["Private Garden", "Diplomatic Security", "Quiet Zone"],
-			bed: 3,
-			baths: 2,
-			roomStatus: "LIMITED",
-			statusColor: "#F4A857",
-			amount: "₦155,000",
-		},
-		{
-			id: 7,
-			status: "Skyline",
-			desc: "Modern skyline apartments with panoramic city views in Port Harcourt's premier district",
-			name: "MAR Skyline Apartments - GRA, Port Harcourt",
-			location: "GRA Phase 2, Port Harcourt",
-			amenities: ["City Views", "Business District", "Airport Proximity"],
-			bed: 2,
-			baths: 2,
-			roomStatus: "AVAILABLE",
-			statusColor: "#12B76A",
-			amount: "₦95,000",
-		},
-		{
-			id: 8,
-			status: "Heritage",
-			desc: "Magnificent heritage mansion in Abuja's most exclusive residential district",
-			name: "MAR Heritage Mansion - Asokoro, Abuja",
-			location: "Asokoro District, Abuja",
-			amenities: [
-				"Exclusive District",
-				"Private Gardens",
-				"VIP Security",
-			],
-			bed: 4,
-			baths: 3,
-			roomStatus: "UNAVAILABLE",
-			statusColor: "#F04438",
-			amount: "₦225,000",
-		},
-	];
+	// const cardContent = [
+	// 	{
+	// 		id: 1,
+	// 		status: "Premium",
+	// 		desc: "Exquisite penthouse with panoramic Lagos lagoon views and premium finishes",
+	// 		name: "MAR Luxury Penthouse - Victoria Island",
+	// 		location: "Victoria Island, Lagos",
+	// 		amenities: ["Ocean View", "Concierge", "Gym"],
+	// 		bed: 4,
+	// 		baths: 5,
+	// 		roomStatus: "AVAILABLE",
+	// 		statusColor: "#12B76A",
+	// 		amount: "₦285,000",
+	// 	},
+	// 	{
+	// 		id: 2,
+	// 		status: "Executive",
+	// 		desc: "Sophisticated executive suites with contemporary design and premium amenities",
+	// 		name: "MAR Executive Suites - Ikoyi Heights",
+	// 		location: "Ikoyi, Lagos",
+	// 		amenities: ["City View", "Rooftop Terrance", "Fitness Center"],
+	// 		bed: 3,
+	// 		baths: 2,
+	// 		roomStatus: "LIMITED",
+	// 		statusColor: "#F4A857",
+	// 		amount: "₦195,000",
+	// 	},
+	// 	{
+	// 		id: 3,
+	// 		status: "Water Front",
+	// 		desc: "Modern waterfront residence with direct lagoon access and luxury finishes",
+	// 		name: "MAR Waterfront Residences - Lekki Phase 1",
+	// 		location: "Lekki, Lagos",
+	// 		amenities: ["Water Front", "Private Jetty", "Garden"],
+	// 		bed: 3,
+	// 		baths: 3,
+	// 		roomStatus: "AVAILABLE",
+	// 		statusColor: "#12B76A",
+	// 		amount: "₦165,000",
+	// 	},
+	// 	{
+	// 		id: 4,
+	// 		status: "Presidential",
+	// 		desc: "Ultra-luxury presidential villa with private beach access and world-class amenities",
+	// 		name: "MAR Presidential Villa - Banana Island",
+	// 		location: "Banana Island, Lagos",
+	// 		amenities: ["Private Beach", "Infinity Pool", "Home Cinema"],
+	// 		bed: 5,
+	// 		baths: 4,
+	// 		roomStatus: "AVAILABLE",
+	// 		statusColor: "#12B76A",
+	// 		amount: "₦450,000",
+	// 	},
+	// 	{
+	// 		id: 5,
+	// 		status: "Corporate",
+	// 		desc: "Premium corporate accommodation in the heart of Nigeria's capital city",
+	// 		name: "MAR Corporate Towers - Wuse 2, Abuja",
+	// 		location: "Wuse 2, Abuja",
+	// 		amenities: ["Business Center", "Meeting Rooms", "High-Speed Wifi"],
+	// 		bed: 2,
+	// 		baths: 2,
+	// 		roomStatus: "AVAILABLE",
+	// 		statusColor: "#12B76A",
+	// 		amount: "₦125,000",
+	// 	},
+	// 	{
+	// 		id: 6,
+	// 		status: "Garden",
+	// 		desc: "Serene garden court residence in Abuja's most prestigious diplomatic zone",
+	// 		name: "MAR Garden Court - Maitama, Abuja",
+	// 		location: "Maitama, Abuja",
+	// 		amenities: ["Private Garden", "Diplomatic Security", "Quiet Zone"],
+	// 		bed: 3,
+	// 		baths: 2,
+	// 		roomStatus: "LIMITED",
+	// 		statusColor: "#F4A857",
+	// 		amount: "₦155,000",
+	// 	},
+	// 	{
+	// 		id: 7,
+	// 		status: "Skyline",
+	// 		desc: "Modern skyline apartments with panoramic city views in Port Harcourt's premier district",
+	// 		name: "MAR Skyline Apartments - GRA, Port Harcourt",
+	// 		location: "GRA Phase 2, Port Harcourt",
+	// 		amenities: ["City Views", "Business District", "Airport Proximity"],
+	// 		bed: 2,
+	// 		baths: 2,
+	// 		roomStatus: "AVAILABLE",
+	// 		statusColor: "#12B76A",
+	// 		amount: "₦95,000",
+	// 	},
+	// 	{
+	// 		id: 8,
+	// 		status: "Heritage",
+	// 		desc: "Magnificent heritage mansion in Abuja's most exclusive residential district",
+	// 		name: "MAR Heritage Mansion - Asokoro, Abuja",
+	// 		location: "Asokoro District, Abuja",
+	// 		amenities: [
+	// 			"Exclusive District",
+	// 			"Private Gardens",
+	// 			"VIP Security",
+	// 		],
+	// 		bed: 4,
+	// 		baths: 3,
+	// 		roomStatus: "UNAVAILABLE",
+	// 		statusColor: "#F04438",
+	// 		amount: "₦225,000",
+	// 	},
+	// ];
+
+	const renderStatus = (roomStatus: string) => {
+		let statusColor = "";
+
+		switch (roomStatus.toUpperCase()) {
+			case "AVAILABLE":
+				statusColor = "#12B76A";
+				break;
+			case "LIMITED":
+				statusColor = "#F4A857";
+				break;
+			case "UNAVAILABLE":
+				statusColor = "#F04438";
+				break;
+			default:
+				statusColor = "#D0D5DD";
+				break;
+		}
+
+		return (
+			<div className="absolute top-4 left-4 z-10">
+				<Badge
+					className="flex items-center gap-2 px-3 py-1 border-0 shadow-md backdrop-blur-sm font-medium"
+					style={{
+						backgroundColor: statusColor + "15", // transparent background
+						color: statusColor,
+					}}
+				>
+					<div
+						className="w-2 h-2 rounded-full"
+						style={{ backgroundColor: statusColor }}
+					/>
+					{roomStatus}
+				</Badge>
+			</div>
+		);
+	};
 
 	return (
-		<div className="mt-[150px] lg:mt-[100px] px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 py-8 max-w-7xl mx-auto">
-			{cardContent.map((card) => (
+		<div className="mt-[150px] lg:mt-[100px] px-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 py-8 max-w-7xl mx-auto">
+			{properties.map((card) => (
 				<motion.div
 					key={card.id}
 					whileHover={{ y: -12, scale: 1.01 }}
@@ -160,6 +199,7 @@ const PropertiesCard = () => {
 									{card.roomStatus}
 								</Badge>
 							</div>
+							{renderStatus(card.roomStatus)}
 
 							{/* Property Description Overlay */}
 							<div className="absolute bottom-4 left-4 right-4 z-10">
@@ -208,7 +248,7 @@ const PropertiesCard = () => {
 								</div>
 
 								{/* Bottom Section */}
-								<div className="space-y-4">
+								<div className="space-y-4 mt-1.5">
 									{/* Bed & Bath Info */}
 									<div className="flex items-center gap-6">
 										<div className="flex items-center gap-2">
@@ -238,7 +278,9 @@ const PropertiesCard = () => {
 										<div className="flex flex-col">
 											<div className="flex items-baseline gap-1">
 												<span className="text-2xl font-bold text-gray-900">
-													{card.amount}
+													{formatCurrency(
+														card.price
+													)}
 												</span>
 												<span className="text-sm text-gray-500 font-medium">
 													/night

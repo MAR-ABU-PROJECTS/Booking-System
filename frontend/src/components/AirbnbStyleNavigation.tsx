@@ -161,7 +161,19 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 							className="flex items-center gap-2 p-1 pl-3 border border-gray-300 rounded-full hover:shadow-md transition-shadow"
 							onClick={() => setIsProfileOpen(!isProfileOpen)}
 						>
-							<Menu className="w-4 h-4 text-gray-700" />
+							{/* <Menu className="w-4 h-4 text-gray-700" /> */}
+							{whiteBg ? (
+								<Menu className="w-4 h-4 text-gray-700" />
+							) : isScrolled ? (
+								<Menu className="w-4 h-4 text-gray-700" />
+							) : (
+								<Menu className="w-4 h-4 text-white" />
+							)}
+							{/* {isScrolled ? (
+								<Menu className="w-4 h-4 text-gray-700" />
+							) : (
+								<Menu className="w-4 h-4 text-white" />
+							)} */}
 							<div className="bg-gray-500 text-white rounded-full p-1">
 								<User className="w-5 h-5" />
 							</div>
