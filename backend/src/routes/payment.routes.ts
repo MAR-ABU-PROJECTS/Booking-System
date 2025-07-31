@@ -588,7 +588,7 @@ router.get(
     // Regular users can only see their own payments
     if (req.user.role === UserRole.CUSTOMER) {
       where.booking = { customerId: req.user.id }
-    } else if (req.user.role === UserRole.PROPERTY_HOST) {
+    } else if (req.user.role === UserRole.ADMIN) {
       where.booking = { property: { hostId: req.user.id } }
     }
 
@@ -681,7 +681,7 @@ router.get(
     // Check authorization
     const isCustomer = payment.booking.customerId === req.user.id
     const isHost = payment.booking.property.hostId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN
 
     if (!isCustomer && !isHost && !isAdmin) {
       throw new AppError('Not authorized to view this payment', 403)

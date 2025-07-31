@@ -100,7 +100,7 @@ const getDateRange = (period: string) => {
  */
 router.get(
   "/overview",
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     query("period")
       .optional()
@@ -120,7 +120,7 @@ router.get(
     };
 
     // Property hosts can only see their own data
-    if (req.user.role === UserRole.PROPERTY_HOST) {
+    if (req.user.role === UserRole.ADMIN) {
       baseWhere.property = { hostId: req.user.id };
     }
 
@@ -196,7 +196,7 @@ router.get(
         WHERE created_at >= ${startDate} 
         AND created_at <= ${endDate}
         ${
-          req.user.role === UserRole.PROPERTY_HOST
+          req.user.role === UserRole.ADMIN
             ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
             : ""
         }
@@ -214,7 +214,7 @@ router.get(
         FROM booking 
         WHERE created_at >= ${new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
         ${
-          req.user.role === UserRole.PROPERTY_HOST
+          req.user.role === UserRole.ADMIN
             ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
             : ""
         }
@@ -257,7 +257,7 @@ router.get(
           gte: previousPeriodStart,
           lt: previousPeriodEnd,
         },
-        ...(req.user.role === UserRole.PROPERTY_HOST && {
+        ...(req.user.role === UserRole.ADMIN && {
           property: { hostId: req.user.id },
         }),
       },
@@ -454,7 +454,7 @@ router.get(
 
 router.get(
   "/bookings",
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     query("period")
       .optional()
@@ -474,7 +474,7 @@ router.get(
       },
     };
 
-    if (req.user.role === UserRole.PROPERTY_HOST) {
+    if (req.user.role === UserRole.ADMIN) {
       baseWhere.property = { hostId: req.user.id };
     }
 
@@ -531,7 +531,7 @@ router.get(
         WHERE created_at >= ${startDate} 
         AND created_at <= ${endDate}
         ${
-          req.user.role === UserRole.PROPERTY_HOST
+          req.user.role === UserRole.ADMIN
             ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
             : ""
         }
@@ -562,7 +562,7 @@ router.get(
         WHERE created_at >= ${startDate} 
         AND created_at <= ${endDate}
         ${
-          req.user.role === UserRole.PROPERTY_HOST
+          req.user.role === UserRole.ADMIN
             ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
             : ""
         }
@@ -757,7 +757,7 @@ router.get(
 
 router.get(
   "/revenue",
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     query("period")
       .optional()
@@ -777,7 +777,7 @@ router.get(
       paymentStatus: "PAID",
     };
 
-    if (req.user.role === UserRole.PROPERTY_HOST) {
+    if (req.user.role === UserRole.ADMIN) {
       baseWhere.property = { hostId: req.user.id };
     }
 
@@ -836,7 +836,7 @@ router.get(
         WHERE created_at >= ${new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
         AND payment_status = 'PAID'
         ${
-          req.user.role === UserRole.PROPERTY_HOST
+          req.user.role === UserRole.ADMIN
             ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
             : ""
         }
@@ -858,7 +858,7 @@ router.get(
             gte: startDate,
             lte: endDate,
           },
-          ...(req.user.role === UserRole.PROPERTY_HOST && {
+          ...(req.user.role === UserRole.ADMIN && {
             property: { hostId: req.user.id },
           }),
         },
@@ -1024,7 +1024,7 @@ router.get(
  */
 router.get(
   "/properties",
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     query("period")
       .optional()
@@ -1036,7 +1036,7 @@ router.get(
     const { startDate, endDate } = getDateRange(period);
 
     const baseWhere: any = {};
-    if (req.user.role === UserRole.PROPERTY_HOST) {
+    if (req.user.role === UserRole.ADMIN) {
       baseWhere.hostId = req.user.id;
     }
 
@@ -1106,7 +1106,7 @@ router.get(
           AND b.created_at >= ${startDate} 
           AND b.created_at <= ${endDate}
           AND b.status IN ('APPROVED', 'COMPLETED')
-        ${req.user.role === UserRole.PROPERTY_HOST ? `WHERE p.host_id = '${req.user.id}'` : ""}
+        ${req.user.role === UserRole.ADMIN ? `WHERE p.host_id = '${req.user.id}'` : ""}
         GROUP BY p.id, p.name
       `,
 
@@ -1258,7 +1258,7 @@ router.get(
  */
 router.get(
   "/export",
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     query("type")
       .isIn(["bookings", "revenue", "properties"])
@@ -1281,7 +1281,7 @@ router.get(
       },
     };
 
-    if (req.user.role === UserRole.PROPERTY_HOST) {
+    if (req.user.role === UserRole.ADMIN) {
       baseWhere.property = { hostId: req.user.id };
     }
 
@@ -1328,7 +1328,7 @@ router.get(
 
       case "properties":
         const propertyWhere: any = {};
-        if (req.user.role === UserRole.PROPERTY_HOST) {
+        if (req.user.role === UserRole.ADMIN) {
           propertyWhere.hostId = req.user.id;
         }
 

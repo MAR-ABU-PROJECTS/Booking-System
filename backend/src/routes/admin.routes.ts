@@ -255,6 +255,9 @@ router.get(
  * /admin/users:
  *   get:
  *     summary: Get all users
+ *     description: |
+ *        Retrieve a paginated list of users with filtering capabilities.
+ *        Requires admin privileges.
  *     tags:
  *       - Admin
  *     security:
@@ -280,15 +283,16 @@ router.get(
  *                   role:
  *                     type: string
  *                     enum:
+ *                       - CUSTOMER
  *                       - ADMIN
- *                       - USER
- *                       - MANAGER
  *                   status:
  *                     type: string
  *                     enum:
+ *                       - PENDING_VERIFICATION
  *                       - ACTIVE
  *                       - INACTIVE
  *                       - SUSPENDED
+ *                       - DELETED
  */
 router.get(
   "/users",
@@ -375,7 +379,7 @@ router.get(
  *       - in: path
  *         name: id
  *         required: true
- *         description: The ID of the user to retrieve
+ *         description: User ID
  *         schema:
  *           type: string
  *     responses:
@@ -471,7 +475,6 @@ router.get(
  *                   type: string
  *                   example: User not found
  */
-
 router.get(
   "/users/:id",
   param("id").isString(),
@@ -556,15 +559,10 @@ router.get(
  *                 example: johndoe@example.com
  *               role:
  *                 type: string
- *                 enum: -ADMIN
- *                       -USER
- *                       -MANAGER
+ *                 enum: [CUSTOMER, ADMIN]
  *               status:
  *                 type: string
- *                 enum:
- *                  - ACTIVE
- *                  - INACTIVE
- *                  - SUSPENDED
+ *                 enum: [PENDING_VERIFICATION, ACTIVE, INACTIVE, SUSPENDED, DELETED]
  *     responses:
  *       200:
  *         description: User updated successfully
@@ -621,7 +619,6 @@ router.get(
  *                   type: string
  *                   example: User not found
  */
-
 router.put(
   "/users/:id",
   [
@@ -718,7 +715,6 @@ router.put(
  *                   type: string
  *                   example: User not found
  */
-
 router.delete(
   "/users/:id",
   param("id").isString(),
@@ -793,17 +789,42 @@ router.delete(
  *         name: status
  *         schema:
  *           type: string
+ *           enum:
+ *             - PENDING
+ *             - ACTIVE
+ *             - INACTIVE
+ *             - SUSPENDED
+ *             - MAINTENANCE
+ *             - COMING_SOON
+ *             - DELETED
  *         description: Filter by property status
  *       - in: query
  *         name: type
  *         schema:
  *           type: string
+ *         enum:
+ *             - APARTMENT
+ *             - HOUSE
+ *             - VILLA
+ *             - CONDO
+ *             - TOWNHOUSE
+ *             - COTTAGE
+ *             - BUNGALOW
+ *             - LOFT
+ *             - STUDIO
+ *             - PENTHOUSE
+ *             - DUPLEX
+ *             - SUITE
+ *             - MANSION
+ *             - GUEST_HOUSE
+ *             - HOTEL_ROOM
+ *             - OTHER
  *         description: Filter by property type
  *       - in: query
  *         name: hostId
  *         schema:
  *           type: string
- *         description: Filter by host ID
+ *         description: Filter by host user ID
  *       - in: query
  *         name: search
  *         schema:
@@ -813,7 +834,12 @@ router.delete(
  *         name: sortBy
  *         schema:
  *           type: string
- *           default: createdAt
+ *           enum:
+ *             - createdAt
+ *             - updatedAt
+ *             - name
+ *             - baseRate
+ *         default: createdAt
  *         description: Field to sort by
  *       - in: query
  *         name: sortOrder
@@ -860,6 +886,7 @@ router.delete(
  *                                 type: string
  *                           _count:
  *                             type: object
+ *                             description: Number of associated records
  *                             properties:
  *                               bookings:
  *                                 type: integer
@@ -983,10 +1010,12 @@ router.get(
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [PENDING, APPROVED, REJECTED, SUSPENDED]  # Adjust based on PropertyStatus enum
+ *                 enum: [PENDING, ACTIVE, INACTIVE, SUSPENDED, MAINTENANCE, COMING_SOON, DELETED]
+ *                 example: PENDING
  *               reason:
  *                 type: string
  *                 description: Optional reason for status change
+ *                 example: Violated community guidelines
  *     responses:
  *       200:
  *         description: Property status updated successfully
@@ -1108,11 +1137,13 @@ router.put(
  *         name: status
  *         schema:
  *           type: string
+ *           enum: [PENDING, APPROVED, REJECTED, CANCELLED]
  *         description: Filter by booking status
  *       - in: query
  *         name: paymentStatus
  *         schema:
  *           type: string
+ *           enum: [PENDING, PAID, FAILED, REFUNDED]
  *         description: Filter by payment status
  *       - in: query
  *         name: propertyId
@@ -1154,46 +1185,9 @@ router.put(
  *                     bookings:
  *                       type: array
  *                       items:
- *                         type: object
- *                         properties:
- *                           id:
- *                             type: string
- *                           status:
- *                             type: string
- *                           paymentStatus:
- *                             type: string
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                           property:
- *                             type: object
- *                             properties:
- *                               name:
- *                                 type: string
- *                               type:
- *                                 type: string
- *                               city:
- *                                 type: string
- *                           customer:
- *                             type: object
- *                             properties:
- *                               firstName:
- *                                 type: string
- *                               lastName:
- *                                 type: string
- *                               email:
- *                                 type: string
+ *                         $ref: '#/components/schemas/BookingSummary'
  *                     pagination:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                         limit:
- *                           type: integer
- *                         total:
- *                           type: integer
- *                         pages:
- *                           type: integer
+ *                       $ref: '#/components/schemas/Pagination'
  *       401:
  *         description: Unauthorized
  *       403:
@@ -1216,8 +1210,11 @@ router.get(
       sortOrder = "desc",
     } = req.query;
 
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 20;
+
     // Build where clause
-    const where: any = {};
+    const where: Record<string, any> = {};
     if (status) where.status = status;
     if (paymentStatus) where.paymentStatus = paymentStatus;
     if (propertyId) where.propertyId = propertyId;
@@ -1226,9 +1223,9 @@ router.get(
     const [bookings, total] = await Promise.all([
       prisma.booking.findMany({
         where,
-        orderBy: { [sortBy]: sortOrder },
-        skip: (parseInt(page) - 1) * parseInt(limit),
-        take: parseInt(limit),
+        orderBy: { [sortBy as string]: sortOrder },
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
         include: {
           property: {
             select: {
@@ -1254,10 +1251,10 @@ router.get(
       data: {
         bookings,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: pageNum,
+          limit: limitNum,
           total,
-          pages: Math.ceil(total / parseInt(limit)),
+          pages: Math.ceil(total / limitNum),
         },
       },
     });
@@ -1317,7 +1314,7 @@ router.get(
 
 router.get(
   "/settings",
-  requireAuth(UserRole.SUPER_ADMIN),
+  requireAuth(UserRole.ADMIN),
   asyncHandler(async (req: any, res: any) => {
     const settings = await prisma.systemSetting.findMany({
       orderBy: { key: "asc" },
@@ -1393,7 +1390,7 @@ router.get(
 
 router.put(
   "/settings",
-  requireAuth(UserRole.SUPER_ADMIN),
+  requireAuth(UserRole.ADMIN),
   [
     body("settings").isArray(),
     body("settings.*.key").notEmpty(),

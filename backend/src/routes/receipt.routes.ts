@@ -113,8 +113,7 @@ router.get(
       receipt.uploadedBy === userId ||
       receipt.booking.customerId === userId ||
       receipt.booking.property.hostId === userId ||
-      role === UserRole.ADMIN ||
-      role === UserRole.SUPER_ADMIN
+      role === UserRole.ADMIN
 
     if (!allowed) {
       throw new AppError('Not authorized to view this receipt', 403)

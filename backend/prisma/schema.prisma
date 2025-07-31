@@ -493,9 +493,7 @@ model SystemSetting {
 
 enum UserRole {
   CUSTOMER
-  PROPERTY_HOST
   ADMIN
-  SUPER_ADMIN
 }
 
 enum UserStatus {

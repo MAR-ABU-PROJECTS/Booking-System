@@ -604,9 +604,7 @@ export class AuthService {
   hasPermission(userRole: UserRole, requiredRole: UserRole): boolean {
     const roleHierarchy = {
       [UserRole.CUSTOMER]: 0,
-      [UserRole.PROPERTY_HOST]: 1,
-      [UserRole.ADMIN]: 2,
-      [UserRole.SUPER_ADMIN]: 3,
+      [UserRole.ADMIN]: 1,
     };
 
     return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
@@ -685,7 +683,7 @@ export function requireAuth(requiredRole?: UserRole) {
       if (requiredRole && !authService.hasPermission(user.role, requiredRole)) {
         return res.status(403).json({
           success: false,
-          message: "Insufficient permissions",
+          message: "Unauthorized permissions",
         });
       }
 

@@ -78,7 +78,7 @@ const getDateRange = (startDate?: string, endDate?: string, period?: string) => 
  */
 router.get(
   '/bookings',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     query('startDate').optional().isISO8601(),
     query('endDate').optional().isISO8601(),
@@ -111,7 +111,7 @@ router.get(
     }
 
     // Apply filters based on user role
-    if (req.user.role === UserRole.PROPERTY_HOST) {
+    if (req.user.role === UserRole.ADMIN) {
       where.property = { hostId: req.user.id }
     } else if (hostId && req.user.role === UserRole.ADMIN) {
       where.property = { hostId }
@@ -251,7 +251,7 @@ router.get(
  */
 router.get(
   '/revenue',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     query('startDate').optional().isISO8601(),
     query('endDate').optional().isISO8601(),
@@ -285,7 +285,7 @@ router.get(
     }
 
     // Apply filters based on user role
-    if (req.user.role === UserRole.PROPERTY_HOST) {
+    if (req.user.role === UserRole.ADMIN) {
       where.property = { hostId: req.user.id }
     } else if (hostId && req.user.role === UserRole.ADMIN) {
       where.property = { hostId }
@@ -310,7 +310,7 @@ router.get(
         WHERE payment_status = 'PAID'
         AND paid_at >= ${start} 
         AND paid_at <= ${end}
-        ${req.user.role === UserRole.PROPERTY_HOST ? 
+        ${req.user.role === UserRole.ADMIN ? 
           `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')` : 
           ''
         }
@@ -332,7 +332,7 @@ router.get(
         WHERE payment_status = 'PAID'
         AND paid_at >= ${start} 
         AND paid_at <= ${end}
-        ${req.user.role === UserRole.PROPERTY_HOST ? 
+        ${req.user.role === UserRole.ADMIN ? 
           `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')` : 
           ''
         }
@@ -454,7 +454,7 @@ router.get(
  */
 router.get(
   '/property-performance',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     query('startDate').optional().isISO8601(),
     query('endDate').optional().isISO8601(),
@@ -481,7 +481,7 @@ router.get(
       status: PropertyStatus.ACTIVE,
     }
 
-    if (req.user.role === UserRole.PROPERTY_HOST) {
+    if (req.user.role === UserRole.ADMIN) {
       propertyWhere.hostId = req.user.id
     } else if (hostId && req.user.role === UserRole.ADMIN) {
       propertyWhere.hostId = hostId
@@ -904,21 +904,21 @@ router.get(
         id: 'bookings',
         name: 'Booking Reports',
         description: 'Detailed booking analysis and trends',
-        access: [UserRole.ADMIN, UserRole.PROPERTY_HOST],
+        access: [UserRole.ADMIN, UserRole.ADMIN],
         formats: ['json', 'csv', 'excel', 'pdf'],
       },
       {
         id: 'revenue',
         name: 'Revenue Reports',
         description: 'Financial performance and revenue analysis',
-        access: [UserRole.ADMIN, UserRole.PROPERTY_HOST],
+        access: [UserRole.ADMIN, UserRole.ADMIN],
         formats: ['json', 'csv', 'excel', 'pdf'],
       },
       {
         id: 'property-performance',
         name: 'Property Performance',
         description: 'Individual property metrics and performance',
-        access: [UserRole.ADMIN, UserRole.PROPERTY_HOST],
+        access: [UserRole.ADMIN, UserRole.ADMIN],
         formats: ['json', 'csv', 'excel', 'pdf'],
       },
       {
