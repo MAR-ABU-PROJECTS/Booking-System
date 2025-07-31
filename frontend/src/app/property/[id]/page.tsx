@@ -21,7 +21,7 @@ const page = async ({ params }: props) => {
 
 	return (
 		<div className="relative">
-			<AirbnbStyleNavigation />
+			<AirbnbStyleNavigation whiteBg />
 			<SingleProperty property={property} />
 			<Footer />
 		</div>

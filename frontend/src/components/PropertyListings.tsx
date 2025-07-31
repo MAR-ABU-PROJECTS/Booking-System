@@ -162,7 +162,7 @@ const PropertyListings = () => {
 			</div>
 
 			{/* Show More Button */}
-			<div className="mt-10 text-center">
+			<div className="mt-10 text-center mb-10">
 				<motion.button
 					className="px-6 py-3 bg-amber-500 text-white font-medium rounded-xl shadow-md hover:bg-amber-600 transition-colors"
 					whileHover={{ scale: 1.03 }}

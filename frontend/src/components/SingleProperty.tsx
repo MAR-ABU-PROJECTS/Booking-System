@@ -91,7 +91,7 @@ const SingleProperty = ({ property }: { property: Property }) => {
 										What this place Offers
 									</p>
 
-									<div className="grid grid-cols-2 max-w-[450px]">
+									<div className="grid grid-cols-2">
 										{property.amenities.map((item, i) => (
 											<li
 												className="list-none m-1"
