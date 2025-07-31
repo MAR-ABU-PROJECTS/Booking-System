@@ -8,7 +8,7 @@ export type Property = {
 	bed: number;
 	baths: number;
 	roomStatus: "AVAILABLE" | "LIMITED" | "UNAVAILABLE";
-	statusColor: string;
+	statusColor?: string;
 	price: number;
 	images: string[]; // optional since not all entries include it
 	latitude?: string;

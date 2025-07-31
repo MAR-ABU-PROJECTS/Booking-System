@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { properties } from "../lib/mockData";
-import {formatCurrency} from "../lib/utils";
+import { formatCurrency } from "../lib/utils";
 
 const PropertiesCard = () => {
 	// const cardContent = [
@@ -128,7 +128,7 @@ const PropertiesCard = () => {
 				statusColor = "#12B76A";
 				break;
 			case "LIMITED":
-				statusColor = "#F4A857";
+				statusColor = "#FFF";
 				break;
 			case "UNAVAILABLE":
 				statusColor = "#F04438";
@@ -170,15 +170,25 @@ const PropertiesCard = () => {
 						{/* Image Header with Overlay */}
 						<div className="relative h-[240px] overflow-hidden rounded-t-2xl group">
 							{/* Background Image with Hover effect */}
-							<div className="absolute inset-0 bg-center bg-no-repeat bg-[url('/banner/sample.jpg')] bg-cover group-hover:filter-none filter blur-[2px] transition-all duration-500"></div>
+							{/* <div className="absolute inset-0 bg-center bg-no-repeat bg-[url('/banner/sample.jpg')] bg-cover group-hover:filter-none filter blur-[2px] transition-all duration-500"></div> */}
 							<div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+							{card.images.length > 0 && (
+								<div
+									className="absolute inset-0 bg-center bg-no-repeat bg-cover group-hover:filter-none filter blur-[2px] transition-all duration-500"
+									style={{
+										backgroundImage: `url(${card.images[0]})`,
+									}}
+								/>
+							)}
 
 							{/* Status Badge - Top Right */}
-							<div className="absolute top-4 right-4 z-10">
-								<Badge className="bg-white/90 text-gray-900 border-0 shadow-md font-medium px-3 py-1 backdrop-blur-sm">
-									{card.status}
-								</Badge>
-							</div>
+							{card.status && (
+								<div className="absolute top-4 right-4 z-10">
+									<Badge className="bg-white/90 text-gray-900 border-0 shadow-md font-medium px-3 py-1 backdrop-blur-sm">
+										{card.status}
+									</Badge>
+								</div>
+							)}
 
 							{/* Availability Status - Top Left */}
 							<div className="absolute top-4 left-4 z-10">
@@ -210,8 +220,8 @@ const PropertiesCard = () => {
 						</div>
 
 						<Link href={`/property/${card.id}`}>
-							<CardContent className="p-6 flex flex-col justify-between h-[260px]">
-								{/* Property Title & Location */}
+							<CardContent className="pb-6 flex flex-col justify-between h-[260px]">
+								{/* Property Name & Location */}
 								<div className="space-y-3">
 									<h3 className="text-lg font-bold text-gray-900 leading-tight line-clamp-2">
 										{card.name}
@@ -278,9 +288,7 @@ const PropertiesCard = () => {
 										<div className="flex flex-col">
 											<div className="flex items-baseline gap-1">
 												<span className="text-2xl font-bold text-gray-900">
-													{formatCurrency(
-														card.price
-													)}
+													{formatCurrency(card.price)}
 												</span>
 												<span className="text-sm text-gray-500 font-medium">
 													/night
