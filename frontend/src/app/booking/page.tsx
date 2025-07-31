@@ -10,12 +10,20 @@ import { bookingDetailsSchema } from "../../lib/schemas";
 import { z } from "zod";
 import { RootState } from "../../lib/features/store";
 import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 
 const Page = () => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const [adultCount, setAdultCount] = useState(2);
 	const [childCount, setChildCount] = useState(0);
-	const [fileName, setFileName] = useState("No file chosen");
+
+	const router = useRouter();
+
+	useEffect(() => {
+		if (!booking?.location) {
+			router.push("/");
+		}
+	}, [booking]);
 
 	const form = useForm<z.infer<typeof bookingDetailsSchema>>({
 		resolver: zodResolver(bookingDetailsSchema),
@@ -37,11 +45,9 @@ const Page = () => {
 			idType: "",
 			paymentMethod: "",
 			emergencyContact: "",
-			paymentReceipt: undefined,
 		},
 		mode: "onChange",
 	});
-
 
 	useEffect(() => {
 		if (booking?.checkIn) {
@@ -57,11 +63,6 @@ const Page = () => {
 			form.setValue("children", booking.children);
 		}
 	}, [booking, form]);
-
-	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		setFileName(file ? file.name : "");
-	};
 
 	useEffect(() => {
 		toast("Welcome to MAR ABU luxury booking experience!", {
@@ -204,37 +205,10 @@ const Page = () => {
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="grid md:grid-cols-[60%_35%] justify-between gap-[20px] lg:gap-[40px] px-[20px] lg:px-12 pt-[100px] py-[30px] bg-[#F1F1F1]"
 				>
-					<BookingForm
-						fileName={fileName}
-						handleFileChange={handleFileChange}
-					/>
+					<BookingForm />
 					<BookingSummary />
 				</form>
 			</FormProvider>
-			{/* <div className="grid md:grid-cols-[60%_35%] justify-between gap-[20px] lg:gap-[40px] px-[20px] lg:px-12 pt-[100px] py-[30px] bg-[#F1F1F1]">
-				<BookingForm
-					date={date}
-					setDate={setDate}
-					open={open}
-					setOpen={setOpen}
-					secDate={secDate}
-					setSecDate={setSecDate}
-					openSec={openSec}
-					setOpenSec={setOpenSec}
-					adultCount={adultCount}
-					childCount={childCount}
-					handleAdultIncrement={handleAdultIncrement}
-					handleAdultDecrement={handleAdultDecrement}
-					handleChildIncrement={handleChildIncrement}
-					handleChildDecrement={handleChildDecrement}
-					fileName={fileName}
-					handleFileChange={handleFileChange}
-				/>
-				<BookingSummary
-					adultCount={adultCount}
-					childCount={childCount}
-				/>
-			</div> */}
 		</>
 	);
 };

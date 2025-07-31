@@ -43,7 +43,7 @@ const CategoryFilters = () => {
   };
 
   return (
-    <div className="relative py-6 px-4 mx-auto max-w-7xl">
+    <div className="relative py-6 px-4 mx-auto max-w-7xl mt-10">
       {/* Left Scroll Button */}
       <button 
         onClick={() => scroll("left")}
@@ -56,7 +56,7 @@ const CategoryFilters = () => {
       {/* Categories Scroll Container */}
       <div 
         ref={scrollContainerRef}
-        className="flex items-center gap-4 overflow-x-auto scrollbar-hide pb-2 px-2 md:px-10"
+        className="flex items-center gap-8 md:gap-14 lg:gap-20 overflow-x-auto scrollbar-hide pb-2 px-2 md:px-10"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {categories.map((category) => (
