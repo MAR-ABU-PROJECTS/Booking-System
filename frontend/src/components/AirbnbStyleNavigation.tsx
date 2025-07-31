@@ -236,19 +236,22 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 			</div>
 
 			{/* Mobile Search Bar */}
-			<div className="md:hidden px-6 pt-4">
-				<button className="w-full flex items-center gap-4 px-4 py-3 bg-white rounded-full border border-gray-200 shadow-sm">
+			<form onSubmit={handleSubmit} className="md:hidden px-6 pt-4">
+				<button
+					type="submit"
+					className="w-full flex items-center gap-2 px-4 py-3 bg-white rounded-full border border-gray-200 shadow-sm"
+				>
 					<Search className="w-4 h-4 text-gray-500" />
-					<div className="text-left">
-						<div className="text-sm font-medium text-gray-800">
-							Anywhere
-						</div>
-						<div className="text-xs text-gray-500">
-							Any week · Add guests
-						</div>
+					<div className="text-left flex flex-col">
+						<input
+							className="!outline-0 w-full px-1 text-sm font-medium text-gray-800 rounded-full !border-none"
+							placeholder="Search..."
+							value={value}
+							onChange={(e) => setValue(e.target.value)}
+						/>
 					</div>
 				</button>
-			</div>
+			</form>
 		</header>
 	);
 };
