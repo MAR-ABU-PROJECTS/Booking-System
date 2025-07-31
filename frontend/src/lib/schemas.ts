@@ -3,7 +3,8 @@ import { z } from "zod";
 export const homePageBookingSchema = z.object({
 	stepOne: z.object({
 		location: z.string().min(1, "please select location"),
-    price: z.number(),
+		name: z.string().min(1, "please select location"),
+		price: z.number(),
 	}),
 	stepTwo: z.object({
 		checkin: z.date({
@@ -28,7 +29,6 @@ export const homePageBookingSchema = z.object({
 			infants: z.number().min(0),
 		}),
 	}),
- 
 });
 
 // Max file size: 5MB
@@ -73,22 +73,6 @@ export const bookingDetailsSchema = z
 
 		// Payment
 		paymentMethod: z.string().min(1, "Select a payment method"),
-		paymentReceipt: z
-			.file()
-			.refine(
-				(file) =>
-					!file ||
-					(file instanceof File && file.size <= MAX_FILE_SIZE),
-				{
-					message: "File must be under 5MB",
-				}
-			)
-			.refine(
-				(file) => !file || ACCEPTED_FILE_TYPES.includes(file?.type),
-				{
-					message: "Only JPG, PNG, and PDF files are supported",
-				}
-			),
 
 		// Additional Info
 		additionalInfo: z.string().optional(),
@@ -110,3 +94,28 @@ export const bookingDetailsSchema = z
 			});
 		}
 	});
+
+export const BookSchema = z.object({
+	bookingDate: z
+		.object({
+			from: z.date({
+				error: (issue) =>
+					issue.input === undefined
+						? "Please select a check-in date"
+						: "Invalid check-in date",
+			}),
+			to: z.date({
+				error: (issue) =>
+					issue.input === undefined
+						? "Please select a check-out date"
+						: "Invalid check-out date",
+			}),
+		})
+		.refine((data) => data.to > data.from, {
+			message: "check-out must be after check-in date",
+			path: ["to"],
+		}),
+	adults: z.number().min(1, "Atleast 1 adult"),
+	children: z.number().min(0),
+	infants: z.number().min(0),
+});

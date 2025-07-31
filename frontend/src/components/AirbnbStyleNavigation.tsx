@@ -14,12 +14,17 @@ import {
 	LogIn,
 	HelpCircle,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
-const AirbnbStyleNavigation = () => {
+type Props = {
+	whiteBg?: boolean;
+};
+const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 	const pathname = usePathname();
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
+	const router = useRouter();
 
 	// Handle scroll effect
 	useEffect(() => {
@@ -35,6 +40,22 @@ const AirbnbStyleNavigation = () => {
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, []);
 
+	const [value, setValue] = useState("");
+
+	const handleSearch = () => {
+		if (!value.trim()) return;
+
+		const params = new URLSearchParams();
+		params.set("q", value.trim());
+
+		router.push(`/properties?${params.toString()}`);
+	};
+
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		handleSearch();
+	};
+
 	return (
 		<header
 			className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -43,36 +64,77 @@ const AirbnbStyleNavigation = () => {
 		>
 			<div className="px-6 md:px-10 lg:px-20 mx-auto flex items-center justify-between">
 				{/* Logo */}
-				<Link href="/" className="flex items-center">
-					<img
-						src="/logo/logo.png"
-						alt="MAR ABU HOMES"
-						className="h-8 md:h-10"
-					/>
-				</Link>
+
+				{whiteBg ? (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/black-logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				) : isScrolled ? (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/black-logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				) : (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				)}
+
+				{/* {isScrolled ? (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/black-logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				) : (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				)} */}
 
 				{/* Search Bar (Desktop) */}
-				<div className="hidden md:flex items-center">
-					<div className="bg-white rounded-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 flex items-center divide-x divide-gray-200">
-						<button className="px-4 py-2 text-sm font-medium text-gray-800">
-							Anywhere
-						</button>
-						<button className="px-4 py-2 text-sm font-medium text-gray-800">
-							Any week
-						</button>
-						<button className="pl-4 pr-2 py-2 text-sm font-medium text-gray-500 flex items-center gap-2">
-							Add guests
-							<div className="p-2 bg-amber-500 rounded-full text-white">
-								<Search className="w-4 h-4" />
-							</div>
+				<form
+					onSubmit={handleSubmit}
+					className="hidden md:flex items-center"
+				>
+					<div className="bg-white rounded-full border shadow-sm hover:shadow-md transition-shadow duration-200 flex items-center divide-x divide-gray-200 pr-2">
+						<input
+							className="!outline-0 w-[300px] px-4 py-3 text-sm font-medium text-gray-800 rounded-full !border-none"
+							placeholder="Search..."
+							value={value}
+							onChange={(e) => setValue(e.target.value)}
+						/>
+						<button
+							type="submit"
+							className="p-2 bg-amber-500 rounded-full text-white hover:bg-amber-600 transition-colors"
+						>
+							<Search className="w-4 h-4" />
 						</button>
 					</div>
-				</div>
+				</form>
 
 				{/* Right Navigation */}
 				<div className="flex items-center gap-1 md:gap-4">
 					{/* Become a Host */}
-					<Link href="/property"
+					<Link
+						href="/property"
 						className={`hidden md:block px-4 py-2 rounded-full text-sm font-medium ${
 							isScrolled
 								? "text-gray-700 hover:bg-gray-100"
@@ -99,7 +161,19 @@ const AirbnbStyleNavigation = () => {
 							className="flex items-center gap-2 p-1 pl-3 border border-gray-300 rounded-full hover:shadow-md transition-shadow"
 							onClick={() => setIsProfileOpen(!isProfileOpen)}
 						>
-							<Menu className="w-4 h-4 text-gray-700" />
+							{/* <Menu className="w-4 h-4 text-gray-700" /> */}
+							{whiteBg ? (
+								<Menu className="w-4 h-4 text-gray-700" />
+							) : isScrolled ? (
+								<Menu className="w-4 h-4 text-gray-700" />
+							) : (
+								<Menu className="w-4 h-4 text-white" />
+							)}
+							{/* {isScrolled ? (
+								<Menu className="w-4 h-4 text-gray-700" />
+							) : (
+								<Menu className="w-4 h-4 text-white" />
+							)} */}
 							<div className="bg-gray-500 text-white rounded-full p-1">
 								<User className="w-5 h-5" />
 							</div>
@@ -117,10 +191,16 @@ const AirbnbStyleNavigation = () => {
 								>
 									<div className="py-2">
 										<div className="font-medium border-b border-gray-100">
-											<Link href="/sign-up" className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors">
+											<Link
+												href="/sign-up"
+												className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+											>
 												Sign up
 											</Link>
-											<Link href="/log-in" className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors">
+											<Link
+												href="/log-in"
+												className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+											>
 												Log in
 											</Link>
 										</div>
@@ -156,19 +236,22 @@ const AirbnbStyleNavigation = () => {
 			</div>
 
 			{/* Mobile Search Bar */}
-			<div className="md:hidden px-6 pt-4">
-				<button className="w-full flex items-center gap-4 px-4 py-3 bg-white rounded-full border border-gray-200 shadow-sm">
+			<form onSubmit={handleSubmit} className="md:hidden px-6 pt-4">
+				<button
+					type="submit"
+					className="w-full flex items-center gap-2 px-4 py-3 bg-white rounded-full border border-gray-200 shadow-sm"
+				>
 					<Search className="w-4 h-4 text-gray-500" />
-					<div className="text-left">
-						<div className="text-sm font-medium text-gray-800">
-							Anywhere
-						</div>
-						<div className="text-xs text-gray-500">
-							Any week · Add guests
-						</div>
+					<div className="text-left flex flex-col">
+						<input
+							className="!outline-0 w-full px-1 text-sm font-medium text-gray-800 rounded-full !border-none"
+							placeholder="Search..."
+							value={value}
+							onChange={(e) => setValue(e.target.value)}
+						/>
 					</div>
 				</button>
-			</div>
+			</form>
 		</header>
 	);
 };
