@@ -70,9 +70,9 @@ router.get(
         where: {
           customerId: userId,
           status: BookingStatus.APPROVED,
-          checkIn: { gte: new Date() },
+          checkInDate: { gte: new Date() },
         },
-        orderBy: { checkIn: 'asc' },
+        orderBy: { checkInDate: 'asc' },
         take: 5,
         include: {
           property: {
@@ -140,10 +140,10 @@ router.get(
         where: {
           customerId: userId,
           status: BookingStatus.COMPLETED,
-          checkOut: { lt: new Date() },
-          reviews: { none: {} },
+          checkOutDate: { lt: new Date() },
+          review: { none: {} },
         },
-        orderBy: { checkOut: 'desc' },
+        orderBy: { checkOutDate: 'desc' },
         take: 5,
         include: {
           property: {
@@ -355,12 +355,12 @@ router.get(
         where: {
           property: { hostId },
           status: BookingStatus.APPROVED,
-          checkIn: {
+          checkInDate: {
             gte: today,
             lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next 7 days
           },
         },
-        orderBy: { checkIn: 'asc' },
+        orderBy: { checkInDate: 'asc' },
         include: {
           property: {
             select: { name: true },
@@ -735,7 +735,7 @@ router.get(
           where: {
             customerId: req.user.id,
             status: BookingStatus.APPROVED,
-            checkIn: { gte: new Date() },
+            checkInDate: { gte: new Date() },
           },
         })
 
@@ -743,7 +743,7 @@ router.get(
           where: {
             customerId: req.user.id,
             status: BookingStatus.COMPLETED,
-            reviews: { none: {} },
+            review: { none: {} },
           },
         })
 
@@ -768,7 +768,7 @@ router.get(
           where: {
             property: { hostId: req.user.id },
             status: BookingStatus.APPROVED,
-            checkIn: {
+            checkInDate: {
               gte: new Date(new Date().setHours(0, 0, 0, 0)),
               lt: new Date(new Date().setHours(23, 59, 59, 999)),
             },

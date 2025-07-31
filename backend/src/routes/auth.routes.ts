@@ -30,42 +30,192 @@ const validate = (req: any, res: any, next: any) => {
  * @desc    Register new user
  * @access  Public
  */
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - firstName
+ *               - lastName
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 example: Passw0rd!
+ *               firstName:
+ *                 type: string
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 example: Doe
+ *               phone:
+ *                 type: string
+ *                 example: "+1234567890"
+ *               role:
+ *                 type: string
+ *                 enum: [CUSTOMER, PROPERTY_HOST]
+ *                 example: CUSTOMER
+ *     responses:
+ *       201:
+ *         description: Registration successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Registration successful. Please check your email to verify your account.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *       400:
+ *         description: Validation errors
+ *       500:
+ *         description: Server error
+ */
 router.post(
-  '/register',
+  "/register",
   [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
-    body('password')
+    body("email")
+      .isEmail()
+      .normalizeEmail()
+      .withMessage("Valid email required"),
+    body("password")
       .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number and special character'),
-    body('firstName').trim().notEmpty().withMessage('First name required'),
-    body('lastName').trim().notEmpty().withMessage('Last name required'),
-    body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
-    body('role').optional().isIn(['CUSTOMER', 'PROPERTY_HOST']).withMessage('Invalid role'),
+      .withMessage("Password must be at least 8 characters")
+      .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+      )
+      .withMessage(
+        "Password must contain uppercase, lowercase, number and special character"
+      ),
+    body("firstName").trim().notEmpty().withMessage("First name required"),
+    body("lastName").trim().notEmpty().withMessage("Last name required"),
+    body("phone")
+      .optional()
+      .isMobilePhone("any")
+      .withMessage("Valid phone number required"),
+    body("role")
+      .optional()
+      .isIn(["CUSTOMER", "PROPERTY_HOST", "ADMIN", "SUPER_ADMIN"])
+      .withMessage("Invalid role"),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const result = await authService.register(req.body)
+    const result = await authService.register(req.body);
 
-    auditLog('USER_REGISTERED', result.user.id, {
-      email: result.user.email,
-      role: result.user.role,
-    }, req.ip)
+    auditLog(
+      "USER_REGISTERED",
+      result.user.id,
+      {
+        email: result.user.email,
+        role: result.user.role,
+      },
+      req.ip
+    );
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful. Please check your email to verify your account.',
+      message:
+        "Registration successful. Please check your email to verify your account.",
       data: result,
-    })
+    });
   })
-)
+);
 
 /**
  * @route   POST /api/v1/auth/login
  * @desc    Login user
  * @access  Public
  */
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Log in a user
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: Passw0rd!
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Login successful
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *       400:
+ *         description: Validation error or invalid credentials
+ *       500:
+ *         description: Server error
+ */
+
 router.post(
   '/login',
   [
@@ -95,6 +245,52 @@ router.post(
  * @desc    Refresh access token
  * @access  Public
  */
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Token refreshed successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *       401:
+ *         description: Invalid or expired refresh token
+ *       500:
+ *         description: Server error
+ */
+
 router.post(
   '/refresh',
   [
@@ -130,6 +326,35 @@ router.post(
  * @desc    Verify email address
  * @access  Protected
  */
+/**
+ * @swagger
+ * /auth/verify-email:
+ *   post:
+ *     summary: Verify user email address
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Email verified successfully
+ *       401:
+ *         description: Unauthorized (missing or invalid token)
+ *       500:
+ *         description: Server error
+ */
+
 router.post(
   '/verify-email',
   requireAuth(),
@@ -152,6 +377,46 @@ router.post(
  * @desc    Request password reset
  * @access  Public
  */
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Request password reset
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Password reset request acknowledged
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: If an account exists with this email, you will receive password reset instructions.
+ *       400:
+ *         description: Invalid input
+ *       500:
+ *         description: Server error
+ */
+
 router.post(
   '/forgot-password',
   [
@@ -183,6 +448,50 @@ router.post(
  * @desc    Reset password with token
  * @access  Public
  */
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password with token
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - password
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 example: abc123resetToken
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: StrongP@ssword1
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Password reset successful. Please login with your new password.
+ *       400:
+ *         description: Validation error or invalid token
+ *       500:
+ *         description: Server error
+ */
+
 router.post(
   '/reset-password',
   [
@@ -211,6 +520,35 @@ router.post(
  * @desc    Logout user
  * @access  Protected
  */
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Logout successful
+ *       401:
+ *         description: Unauthorized - invalid or missing token
+ *       500:
+ *         description: Server error
+ */
+
 router.post(
   '/logout',
   requireAuth(),
@@ -233,6 +571,47 @@ router.post(
  * @desc    Get current user
  * @access  Protected
  */
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current authenticated user
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "clw83sk7g0000uw6b4xrp6y3d"
+ *                     name:
+ *                       type: string
+ *                       example: "John Doe"
+ *                     email:
+ *                       type: string
+ *                       example: "john@example.com"
+ *                     role:
+ *                       type: string
+ *                       example: "USER"
+ *       401:
+ *         description: Unauthorized - token missing or invalid
+ *       500:
+ *         description: Server error
+ */
+
 router.get(
   '/me',
   requireAuth(),
@@ -249,6 +628,75 @@ router.get(
  * @desc    Update user profile
  * @access  Protected
  */
+/**
+ * @swagger
+ * /auth/profile:
+ *   put:
+ *     summary: Update user profile
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: "John"
+ *               lastName:
+ *                 type: string
+ *                 example: "Doe"
+ *               phone:
+ *                 type: string
+ *                 example: "+2348012345678"
+ *               avatar:
+ *                 type: string
+ *                 format: uri
+ *                 example: "https://example.com/avatar.jpg"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "clw83sk7g0000uw6b4xrp6y3d"
+ *                     firstName:
+ *                       type: string
+ *                       example: "John"
+ *                     lastName:
+ *                       type: string
+ *                       example: "Doe"
+ *                     phone:
+ *                       type: string
+ *                       example: "+2348012345678"
+ *                     avatar:
+ *                       type: string
+ *                       example: "https://example.com/avatar.jpg"
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+
 router.put(
   '/profile',
   requireAuth(),
@@ -279,6 +727,50 @@ router.put(
  * @route   PUT /api/v1/auth/change-password
  * @desc    Change user password
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /auth/change-password:
+ *   put:
+ *     summary: Change user password
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 example: OldPassword123!
+ *               newPassword:
+ *                 type: string
+ *                 example: NewPassword123!
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Password changed successfully
+ *       400:
+ *         description: Validation error or incorrect current password
+ *       401:
+ *         description: Unauthorized
  */
 router.put(
   '/change-password',
