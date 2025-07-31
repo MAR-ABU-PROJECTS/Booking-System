@@ -54,6 +54,7 @@ const PropertyCarousel = ({ images }: Props) => {
 			<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between px-2">
 				<motion.button
 					className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md !cursor-pointer"
+					type="button"
 					onClick={prevImage}
 					whileHover={{ scale: 1.1 }}
 					whileTap={{ scale: 0.9 }}
@@ -62,6 +63,7 @@ const PropertyCarousel = ({ images }: Props) => {
 				</motion.button>
 
 				<motion.button
+					type="button"
 					className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md !cursor-pointer"
 					onClick={nextImage}
 					whileHover={{ scale: 1.1 }}

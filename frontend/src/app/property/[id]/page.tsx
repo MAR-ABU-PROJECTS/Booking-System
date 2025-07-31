@@ -14,6 +14,7 @@ const page = async ({ params }: props) => {
 		return (
 			<div className="">
 				<h1 className="text-center mt-5">Error getting Property</h1>
+				<Footer />
 			</div>
 		);
 	}

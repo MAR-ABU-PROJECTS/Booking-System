@@ -16,7 +16,7 @@ import {z} from "zod"
 const AirbnbStyleSearch = () => {
 	const [activeTab, setActiveTab] = useState<string | null>(null);
 	const router = useRouter();
-	// const [guests, setGuests] = useState("");
+
 
 	const dispatch = useDispatch()
 
@@ -59,7 +59,7 @@ const AirbnbStyleSearch = () => {
 	const form = useForm({
 		resolver: zodResolver(homePageBookingSchema),
 		defaultValues: {
-			stepOne: { location: "" },
+			stepOne: { location: "", name:"" },
 			stepTwo: { checkin: undefined },
 			stepThree: { checkout: undefined },
 			stepFour: {
@@ -85,6 +85,7 @@ const AirbnbStyleSearch = () => {
 	const onSubmit = (data: z.infer<typeof homePageBookingSchema>) => {
 		handleClose();
 		dispatch(updateBooking({ key: "location", value: data.stepOne.location }));
+		dispatch(updateBooking({ key: "name", value: data.stepOne.name }));
 		dispatch(updateBooking({ key: "price", value: data.stepOne.price }));
 		dispatch(updateBooking({ key: "checkIn", value: data.stepTwo.checkin }));
 		dispatch(updateBooking({ key: "checkOut", value: data.stepThree.checkout }));
@@ -220,6 +221,10 @@ const AirbnbStyleSearch = () => {
 														onClick={async () => {
 															form.setValue(
 																"stepOne.location",
+																apartment.location
+															);
+															form.setValue(
+																"stepOne.name",
 																apartment.name
 															);
 															form.setValue(

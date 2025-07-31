@@ -3,6 +3,7 @@ import { z } from "zod";
 export const homePageBookingSchema = z.object({
 	stepOne: z.object({
 		location: z.string().min(1, "please select location"),
+		name: z.string().min(1, "please select location"),
 		price: z.number(),
 	}),
 	stepTwo: z.object({

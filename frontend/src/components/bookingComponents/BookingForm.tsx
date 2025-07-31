@@ -691,7 +691,7 @@ const BookingForm = () => {
 									field: { value, onChange, ref },
 									fieldState,
 								}) => (
-									<div className="flex items-start md:items-center gap-[10px]">
+									<div className="flex items-start md:items-center gap-[10px] flex-wrap">
 										<Checkbox
 											id="terms"
 											checked={value}
@@ -719,7 +719,7 @@ const BookingForm = () => {
 											</div>
 										</Label>
 										{fieldState.error && (
-											<p className="text-sm text-red-600 mt-1">
+											<p className="text-sm text-red-600 mt-1 block w-full">
 												{fieldState.error.message}
 											</p>
 										)}

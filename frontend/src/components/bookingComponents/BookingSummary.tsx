@@ -5,11 +5,12 @@ import { useFormContext } from "react-hook-form";
 import { z } from "zod";
 import dayjs from "dayjs";
 import { RootState } from "../../lib/features/store";
-import {useSelector} from "react-redux"
-import {formatCurrency} from "../../lib/utils";
+import { useSelector } from "react-redux";
+import { formatCurrency } from "../../lib/utils";
+import PropertyCarousel from "@/components/PropertyCarousel";
 
 const BookingSummary = () => {
-  const booking = useSelector((state: RootState) => state.booking );
+	const booking = useSelector((state: RootState) => state.booking);
 	const { watch } = useFormContext<z.infer<typeof bookingDetailsSchema>>();
 	const adultCount = watch("adults");
 	const childCount = watch("children");
@@ -31,24 +32,30 @@ const BookingSummary = () => {
 	const subtotal = ratePerNight * nights;
 	const serviceFee = subtotal * 0.05;
 	const totalAmount = subtotal + serviceFee;
+	const location = booking.location;
+	const name = booking.name;
 
+	const images = [
+		"/apartment-images/IMG_5673.JPG",
+		"/apartment-images/IMG_5674.JPG",
+		"/apartment-images/IMG_5675.JPG",
+		"/apartment-images/IMG_5676.JPG",
+		"/apartment-images/IMG_5677.JPG",
+		"/apartment-images/IMG_5678.JPG",
+	];
 
 	return (
-		<div className="flex flex-col w-full h-[890px] md:h-[970px] lg:h-[890px] xl:h-[870px] py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static">
+		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
 			<div className="flex flex-col gap-[5px]">
-				<div className="flex w-full h-[200px] justify-center items-center bg-[#F4A857] rounded-xl">
-					🏠
+				<div className="w-full rounded-xl -mt-2">
+					<PropertyCarousel images={images} />
 				</div>
 				<div className="flex justify-center items-center">
-					<p className="text-[18px] font-semibold">
-						MAR Executive Suite
-					</p>
+					<p className="text-[18px] font-semibold">{name}</p>
 				</div>
 				<div className="flex justify-center items-center gap-[5px]">
 					<MapPin color="red" fontSize={"10px"} />
-					<p className="text-[16px] text-[#667085]">
-						Ibeju-Lekki, Lagos, Nigeria
-					</p>
+					<p className="text-[16px] text-[#667085]">{location}</p>
 				</div>
 			</div>
 			<hr className="h-px my-[20px] bg-[#fae7d1] border-0" />
@@ -141,7 +148,7 @@ const BookingSummary = () => {
 					</div>
 					<div>
 						<p className="text-[16px] text-[#F4A857] font-[600]">
-						{formatCurrency(totalAmount)}
+							{formatCurrency(totalAmount)}
 						</p>
 					</div>
 				</div>
