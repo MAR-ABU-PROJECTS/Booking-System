@@ -43,13 +43,25 @@ const AirbnbStyleNavigation = () => {
 		>
 			<div className="px-6 md:px-10 lg:px-20 mx-auto flex items-center justify-between">
 				{/* Logo */}
-				<Link href="/" className="flex items-center">
-					<img
-						src="/logo/logo.png"
-						alt="MAR ABU HOMES"
-						className="h-8 md:h-10"
-					/>
-				</Link>
+
+				{isScrolled ? (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/black-logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				) : (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				)}
+				
 
 				{/* Search Bar (Desktop) */}
 				<div className="hidden md:flex items-center">
@@ -72,7 +84,8 @@ const AirbnbStyleNavigation = () => {
 				{/* Right Navigation */}
 				<div className="flex items-center gap-1 md:gap-4">
 					{/* Become a Host */}
-					<Link href="/property"
+					<Link
+						href="/property"
 						className={`hidden md:block px-4 py-2 rounded-full text-sm font-medium ${
 							isScrolled
 								? "text-gray-700 hover:bg-gray-100"
@@ -117,10 +130,16 @@ const AirbnbStyleNavigation = () => {
 								>
 									<div className="py-2">
 										<div className="font-medium border-b border-gray-100">
-											<Link href="/sign-up" className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors">
+											<Link
+												href="/sign-up"
+												className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+											>
 												Sign up
 											</Link>
-											<Link href="/log-in" className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors">
+											<Link
+												href="/log-in"
+												className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+											>
 												Log in
 											</Link>
 										</div>

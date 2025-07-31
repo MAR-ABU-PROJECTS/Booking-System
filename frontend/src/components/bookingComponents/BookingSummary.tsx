@@ -47,7 +47,7 @@ const BookingSummary = () => {
 	return (
 		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
 			<div className="flex flex-col gap-[5px]">
-				<div className="w-full rounded-xl -mt-2">
+				<div className="w-full rounded-xl -mt-1">
 					<PropertyCarousel images={images} />
 				</div>
 				<div className="flex justify-center items-center">
