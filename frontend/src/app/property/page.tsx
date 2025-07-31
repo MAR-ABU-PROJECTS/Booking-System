@@ -5,7 +5,7 @@ import AirbnbStyleNavigation from "../../components/AirbnbStyleNavigation";
 const page = () => {
 	return (
 		<>
-			<AirbnbStyleNavigation />
+			<AirbnbStyleNavigation whiteBg />
 
 			<PropertiesCard />
 		</>

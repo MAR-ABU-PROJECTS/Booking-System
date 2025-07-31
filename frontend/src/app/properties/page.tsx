@@ -1,8 +1,9 @@
 import PropertyListings from "@/components/PropertyListings";
+import AirbnbStyleNavigation from "../../components/AirbnbStyleNavigation";
 const page = () => {
 	return (
 		<>
-			<p>properties</p>
+			<AirbnbStyleNavigation whiteBg />
 			<PropertyListings />
 		</>
 	);

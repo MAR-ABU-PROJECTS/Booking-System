@@ -14,12 +14,17 @@ import {
 	LogIn,
 	HelpCircle,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
-const AirbnbStyleNavigation = () => {
+type Props = {
+	whiteBg?: boolean;
+};
+const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 	const pathname = usePathname();
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
+	const router = useRouter();
 
 	// Handle scroll effect
 	useEffect(() => {
@@ -35,6 +40,22 @@ const AirbnbStyleNavigation = () => {
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, []);
 
+	const [value, setValue] = useState("");
+
+	const handleSearch = () => {
+		if (!value.trim()) return;
+
+		const params = new URLSearchParams();
+		params.set("q", value.trim());
+
+		router.push(`/properties?${params.toString()}`);
+	};
+
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		handleSearch();
+	};
+
 	return (
 		<header
 			className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -44,7 +65,15 @@ const AirbnbStyleNavigation = () => {
 			<div className="px-6 md:px-10 lg:px-20 mx-auto flex items-center justify-between">
 				{/* Logo */}
 
-				{isScrolled ? (
+				{whiteBg ? (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/black-logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				) : isScrolled ? (
 					<Link href="/" className="flex items-center">
 						<img
 							src="/logo/black-logo.png"
@@ -61,25 +90,45 @@ const AirbnbStyleNavigation = () => {
 						/>
 					</Link>
 				)}
-				
+
+				{/* {isScrolled ? (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/black-logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				) : (
+					<Link href="/" className="flex items-center">
+						<img
+							src="/logo/logo.png"
+							alt="MAR ABU HOMES"
+							className="h-8 md:h-10"
+						/>
+					</Link>
+				)} */}
 
 				{/* Search Bar (Desktop) */}
-				<div className="hidden md:flex items-center">
-					<div className="bg-white rounded-full border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 flex items-center divide-x divide-gray-200">
-						<button className="px-4 py-2 text-sm font-medium text-gray-800">
-							Anywhere
-						</button>
-						<button className="px-4 py-2 text-sm font-medium text-gray-800">
-							Any week
-						</button>
-						<button className="pl-4 pr-2 py-2 text-sm font-medium text-gray-500 flex items-center gap-2">
-							Add guests
-							<div className="p-2 bg-amber-500 rounded-full text-white">
-								<Search className="w-4 h-4" />
-							</div>
+				<form
+					onSubmit={handleSubmit}
+					className="hidden md:flex items-center"
+				>
+					<div className="bg-white rounded-full border shadow-sm hover:shadow-md transition-shadow duration-200 flex items-center divide-x divide-gray-200 pr-2">
+						<input
+							className="!outline-0 w-[300px] px-4 py-3 text-sm font-medium text-gray-800 rounded-full !border-none"
+							placeholder="Search..."
+							value={value}
+							onChange={(e) => setValue(e.target.value)}
+						/>
+						<button
+							type="submit"
+							className="p-2 bg-amber-500 rounded-full text-white hover:bg-amber-600 transition-colors"
+						>
+							<Search className="w-4 h-4" />
 						</button>
 					</div>
-				</div>
+				</form>
 
 				{/* Right Navigation */}
 				<div className="flex items-center gap-1 md:gap-4">
