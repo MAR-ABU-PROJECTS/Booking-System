@@ -1,4 +1,5 @@
 import axios, { AxiosRequestHeaders } from "axios";
+import {getSession} from "../lib/action"
 export const BASE_URL = "/";
 
 const axiosInstance = axios.create({
@@ -7,7 +8,10 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use(async (config) => {
-  const token = '';
+  const session = await getSession()
+  
+  const token = session?.token;
+
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
