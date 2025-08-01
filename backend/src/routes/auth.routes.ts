@@ -1,25 +1,26 @@
+import { UserStatus } from '@prisma/client';
 // MAR ABU PROJECTS SERVICES LLC - Authentication Routes
-import { Router } from 'express'
-import { body, validationResult } from 'express-validator'
-import { authService, requireAuth } from '../services/authservice'
-import { asyncHandler } from '../middlewares/error.middleware'
-import { AppError } from '../middlewares/error.middleware'
-import { auditLog } from '../middlewares/logger.middleware'
+import { Router } from "express";
+import { body, validationResult } from "express-validator";
+import { authService, requireAuth } from "../services/authservice";
+import { asyncHandler } from "../middlewares/error.middleware";
+import { AppError } from "../middlewares/error.middleware";
+import { auditLog } from "../middlewares/logger.middleware";
 
-const router = Router()
+const router = Router();
 
 // Validation middleware
 const validate = (req: any, res: any, next: any) => {
-  const errors = validationResult(req)
+  const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      message: 'Validation failed',
+      message: "Validation failed",
       errors: errors.array(),
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
 // ===============================
 // AUTHENTICATION ROUTES
@@ -217,28 +218,36 @@ router.post(
  */
 
 router.post(
-  '/login',
+  "/login",
   [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
-    body('password').notEmpty().withMessage('Password required'),
+    body("email")
+      .isEmail()
+      .normalizeEmail()
+      .withMessage("Valid email required"),
+    body("password").notEmpty().withMessage("Password required"),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { email, password } = req.body
-    const result = await authService.login(email, password)
+    const { email, password } = req.body;
+    const result = await authService.login(email, password);
 
-    auditLog('USER_LOGIN', result.user.id, {
-      email: result.user.email,
-      role: result.user.role,
-    }, req.ip)
+    auditLog(
+      "USER_LOGIN",
+      result.user.id,
+      {
+        email: result.user.email,
+        role: result.user.role,
+      },
+      req.ip
+    );
 
     res.json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: result,
-    })
+    });
   })
-)
+);
 
 /**
  * @route   POST /api/v1/auth/refresh
@@ -292,34 +301,36 @@ router.post(
  */
 
 router.post(
-  '/refresh',
-  [
-    body('refreshToken').notEmpty().withMessage('Refresh token required'),
-  ],
+  "/refresh",
+  [body("refreshToken").notEmpty().withMessage("Refresh token required")],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { refreshToken } = req.body
-    
+    const { refreshToken } = req.body;
+
     try {
-      const payload = authService.verifyToken(refreshToken)
-      const user = await authService.getUserById(payload.userId)
-      
+      const payload = authService.verifyToken(refreshToken);
+      const user = await authService.getUserById(payload.userId);
+
       if (!user) {
-        throw new AppError('User not found', 401)
+        throw new AppError("User not found", 401);
       }
 
-      const result = await authService.refreshToken(refreshToken)
+      if (user.status !== UserStatus.ACTIVE) {
+        throw new AppError("User account is not active", 403)
+      }
+
+      const result = await authService.refreshToken(refreshToken);
 
       res.json({
         success: true,
-        message: 'Token refreshed successfully',
+        message: "Token refreshed successfully",
         data: result,
-      })
+      });
     } catch (error) {
-      throw new AppError('Invalid refresh token', 401)
+      throw new AppError("Invalid refresh token", 401);
     }
   })
-)
+);
 
 /**
  * @route   POST /api/v1/auth/verify-email
@@ -356,21 +367,26 @@ router.post(
  */
 
 router.post(
-  '/verify-email',
-  requireAuth(),
+  "/verify-email",
+  requireAuth({ allowPending: true }),
   asyncHandler(async (req: any, res: any) => {
-    await authService.verifyEmail(req.user.id)
+    await authService.verifyEmail(req.user.id);
 
-    auditLog('EMAIL_VERIFIED', req.user.id, {
-      email: req.user.email,
-    }, req.ip)
+    auditLog(
+      "EMAIL_VERIFIED",
+      req.user.id,
+      {
+        email: req.user.email,
+      },
+      req.ip
+    );
 
     res.json({
       success: true,
-      message: 'Email verified successfully',
-    })
+      message: "Email verified successfully",
+    });
   })
-)
+);
 
 /**
  * @route   POST /api/v1/auth/forgot-password
@@ -418,30 +434,35 @@ router.post(
  */
 
 router.post(
-  '/forgot-password',
+  "/forgot-password",
   [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
+    body("email")
+      .isEmail()
+      .normalizeEmail()
+      .withMessage("Valid email required"),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { email } = req.body
-    
+    const { email } = req.body;
+
     try {
-      await authService.forgotPassword(email)
-      
+      await authService.forgotPassword(email);
+
       res.json({
         success: true,
-        message: 'If an account exists with this email, you will receive password reset instructions.',
-      })
+        message:
+          "If an account exists with this email, you will receive password reset instructions.",
+      });
     } catch (error) {
       // Don't reveal if email exists or not for security
       res.json({
         success: true,
-        message: 'If an account exists with this email, you will receive password reset instructions.',
-      })
+        message:
+          "If an account exists with this email, you will receive password reset instructions.",
+      });
     }
   })
-)
+);
 
 /**
  * @route   POST /api/v1/auth/reset-password
@@ -493,27 +514,32 @@ router.post(
  */
 
 router.post(
-  '/reset-password',
+  "/reset-password",
   [
-    body('token').notEmpty().withMessage('Reset token required'),
-    body('password')
+    body("token").notEmpty().withMessage("Reset token required"),
+    body("password")
       .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number and special character'),
+      .withMessage("Password must be at least 8 characters")
+      .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+      )
+      .withMessage(
+        "Password must contain uppercase, lowercase, number and special character"
+      ),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { token, password } = req.body
-    
-    await authService.resetPassword(token, password)
-    
+    const { token, password } = req.body;
+
+    await authService.resetPassword(token, password);
+
     res.json({
       success: true,
-      message: 'Password reset successful. Please login with your new password.',
-    })
+      message:
+        "Password reset successful. Please login with your new password.",
+    });
   })
-)
+);
 
 /**
  * @route   POST /api/v1/auth/logout
@@ -550,21 +576,26 @@ router.post(
  */
 
 router.post(
-  '/logout',
+  "/logout",
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
-    await authService.logout(req.user.id)
+    await authService.logout(req.user.id);
 
-    auditLog('USER_LOGOUT', req.user.id, {
-      email: req.user.email,
-    }, req.ip)
+    auditLog(
+      "USER_LOGOUT",
+      req.user.id,
+      {
+        email: req.user.email,
+      },
+      req.ip
+    );
 
     res.json({
       success: true,
-      message: 'Logout successful',
-    })
+      message: "Logout successful",
+    });
   })
-)
+);
 
 /**
  * @route   GET /api/v1/auth/me
@@ -613,15 +644,15 @@ router.post(
  */
 
 router.get(
-  '/me',
+  "/me",
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
     res.json({
       success: true,
       data: req.user,
-    })
+    });
   })
-)
+);
 
 /**
  * @route   PUT /api/v1/auth/profile
@@ -698,30 +729,46 @@ router.get(
  */
 
 router.put(
-  '/profile',
+  "/profile",
   requireAuth(),
   [
-    body('firstName').optional().trim().notEmpty().withMessage('First name required'),
-    body('lastName').optional().trim().notEmpty().withMessage('Last name required'),
-    body('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
-    body('avatar').optional().isURL().withMessage('Valid avatar URL required'),
+    body("firstName")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("First name required"),
+    body("lastName")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Last name required"),
+    body("phone")
+      .optional()
+      .isMobilePhone("any")
+      .withMessage("Valid phone number required"),
+    body("avatar").optional().isURL().withMessage("Valid avatar URL required"),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const updatedUser = await authService.updateProfile(req.user.id, req.body)
+    const updatedUser = await authService.updateProfile(req.user.id, req.body);
 
-    auditLog('PROFILE_UPDATED', req.user.id, {
-      email: req.user.email,
-      changes: req.body,
-    }, req.ip)
+    auditLog(
+      "PROFILE_UPDATED",
+      req.user.id,
+      {
+        email: req.user.email,
+        changes: req.body,
+      },
+      req.ip
+    );
 
     res.json({
       success: true,
-      message: 'Profile updated successfully',
+      message: "Profile updated successfully",
       data: updatedUser,
-    })
+    });
   })
-)
+);
 
 /**
  * @route   PUT /api/v1/auth/change-password
@@ -773,31 +820,40 @@ router.put(
  *         description: Unauthorized
  */
 router.put(
-  '/change-password',
+  "/change-password",
   requireAuth(),
   [
-    body('currentPassword').notEmpty().withMessage('Current password required'),
-    body('newPassword')
+    body("currentPassword").notEmpty().withMessage("Current password required"),
+    body("newPassword")
       .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number and special character'),
+      .withMessage("Password must be at least 8 characters")
+      .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+      )
+      .withMessage(
+        "Password must contain uppercase, lowercase, number and special character"
+      ),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { currentPassword, newPassword } = req.body
-    
-    await authService.changePassword(req.user.id, currentPassword, newPassword)
+    const { currentPassword, newPassword } = req.body;
 
-    auditLog('PASSWORD_CHANGED', req.user.id, {
-      email: req.user.email,
-    }, req.ip)
+    await authService.changePassword(req.user.id, currentPassword, newPassword);
+
+    auditLog(
+      "PASSWORD_CHANGED",
+      req.user.id,
+      {
+        email: req.user.email,
+      },
+      req.ip
+    );
 
     res.json({
       success: true,
-      message: 'Password changed successfully',
-    })
+      message: "Password changed successfully",
+    });
   })
-)
+);
 
-export default router
+export default router;

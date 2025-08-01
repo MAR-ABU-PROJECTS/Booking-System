@@ -18,7 +18,7 @@ import bcryptjs from "bcryptjs";
 const router = Router();
 
 // All routes require admin role
-router.use(requireAuth(UserRole.ADMIN));
+router.use(requireAuth({ role: UserRole.ADMIN }));
 
 // Validation middleware
 const validate = (req: any, res: any, next: any) => {
@@ -1314,7 +1314,7 @@ router.get(
 
 router.get(
   "/settings",
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
     const settings = await prisma.systemSetting.findMany({
       orderBy: { key: "asc" },
@@ -1390,7 +1390,7 @@ router.get(
 
 router.put(
   "/settings",
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN }),
   [
     body("settings").isArray(),
     body("settings.*.key").notEmpty(),
