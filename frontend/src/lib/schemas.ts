@@ -31,10 +31,6 @@ export const homePageBookingSchema = z.object({
 	}),
 });
 
-// Max file size: 5MB
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf"];
-
 export const bookingDetailsSchema = z
 	.object({
 		// Booking Dates
@@ -118,4 +114,18 @@ export const BookSchema = z.object({
 	adults: z.number().min(1, "Atleast 1 adult"),
 	children: z.number().min(0),
 	infants: z.number().min(0),
+});
+
+export const SignUpSchema = z.object({
+	firstName: z.string().min(1, "First name is required"),
+	lastName: z.string().min(1, "Last name is required"),
+	email: z.email("Invalid email address"),
+	phone: z.string().min(10, "Phone number is required"),
+	password: z.string().min(1, "Password is required"),
+	role: z.string().min(1, "role is required"),
+});
+
+export const LogInSchema = z.object({
+	email: z.email("Invalid email address"),
+	password: z.string().min(1, "Password is required"),
 });

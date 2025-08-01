@@ -205,7 +205,7 @@ const Header = () => {
 
 						{/* Floating CTA Button */}
 						<motion.a
-							href="/property"
+							href="/properties"
 							className="mt-8"
 							initial={{ opacity: 0, y: 30 }}
 							animate={{ opacity: 1, y: 0 }}

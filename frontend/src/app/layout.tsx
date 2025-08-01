@@ -4,7 +4,7 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
-import ReduxProvider from "../providers/reduxprovider";
+import AppProviders from "../providers/AppProviders";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Premium Accommodations Across Nigeria",
@@ -38,7 +38,7 @@ export default function RootLayout({
 				/>
 			</head>
 			<body className="antialiased">
-				<ReduxProvider>{children}</ReduxProvider>
+				<AppProviders>{children}</AppProviders>
 			</body>
 		</html>
 	);
