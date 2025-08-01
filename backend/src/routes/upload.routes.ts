@@ -198,7 +198,7 @@ router.post(
  */
 router.post(
   '/images/property/:propertyId',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   imageUpload.array('images', 20),
   [
     param('propertyId').isString(),
@@ -222,7 +222,7 @@ router.post(
 
     // Check authorization
     const isOwner = property.hostId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN
 
     if (!isOwner && !isAdmin) {
       throw new AppError('Not authorized to upload images for this property', 403)
@@ -429,7 +429,7 @@ router.get(
     // Regular users can only see their own media
     if (req.user.role === UserRole.CUSTOMER) {
       where.uploadedBy = req.user.id
-    } else if (req.user.role === UserRole.PROPERTY_HOST) {
+    } else if (req.user.role === UserRole.ADMIN) {
       where.OR = [
         { uploadedBy: req.user.id },
         { entityType: 'PROPERTY', entity: { hostId: req.user.id } },
@@ -500,7 +500,7 @@ router.delete(
 
     // Check authorization
     const isOwner = media.uploadedBy === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN
 
     if (!isOwner && !isAdmin) {
       throw new AppError('Not authorized to delete this file', 403)
@@ -571,7 +571,7 @@ router.put(
 
     // Check authorization
     const isOwner = media.uploadedBy === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN
 
     if (!isOwner && !isAdmin) {
       throw new AppError('Not authorized to update this file', 403)
@@ -633,7 +633,7 @@ router.post(
       }
 
       const isOwner = property.hostId === req.user.id
-      const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+      const isAdmin = req.user.role === UserRole.ADMIN
 
       if (!isOwner && !isAdmin) {
         throw new AppError('Not authorized to reorder media for this property', 403)
@@ -681,7 +681,7 @@ router.get(
     // Regular users can only see their own stats
     if (req.user.role === UserRole.CUSTOMER) {
       where.uploadedBy = req.user.id
-    } else if (req.user.role === UserRole.PROPERTY_HOST) {
+    } else if (req.user.role === UserRole.ADMIN) {
       where.uploadedBy = req.user.id
     }
 

@@ -362,30 +362,35 @@ router.get(
  * @access  Admin only
  */
 router.post(
-  '/broadcast',
-  requireAuth(UserRole.ADMIN),
+  "/broadcast",
+  requireAuth({ role: UserRole.ADMIN }),
   [
-    body('title').trim().notEmpty().withMessage('Notification title required'),
-    body('message').trim().notEmpty().withMessage('Notification message required'),
-    body('type').isIn(Object.values(NotificationType)).withMessage('Invalid notification type'),
-    body('userRole').optional().isIn(Object.values(UserRole)),
-    body('urgent').optional().isBoolean(),
+    body("title").trim().notEmpty().withMessage("Notification title required"),
+    body("message")
+      .trim()
+      .notEmpty()
+      .withMessage("Notification message required"),
+    body("type")
+      .isIn(Object.values(NotificationType))
+      .withMessage("Invalid notification type"),
+    body("userRole").optional().isIn(Object.values(UserRole)),
+    body("urgent").optional().isBoolean(),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { title, message, type, userRole, urgent } = req.body
+    const { title, message, type, userRole, urgent } = req.body;
 
     // Get target users
-    const whereClause: any = { status: 'ACTIVE' }
-    if (userRole) whereClause.role = userRole
+    const whereClause: any = { status: "ACTIVE" };
+    if (userRole) whereClause.role = userRole;
 
     const users = await prisma.user.findMany({
       where: whereClause,
       select: { id: true },
-    })
+    });
 
     // Create notifications for all target users
-    const notifications = users.map(user => ({
+    const notifications = users.map((user) => ({
       userId: user.id,
       type,
       title,
@@ -395,18 +400,23 @@ router.post(
         broadcast: true,
         sentBy: req.user.id,
       },
-    }))
+    }));
 
     await prisma.notification.createMany({
       data: notifications,
-    })
+    });
 
-    auditLog('BROADCAST_NOTIFICATION_SENT', req.user.id, {
-      title,
-      type,
-      userRole,
-      recipientCount: users.length,
-    }, req.ip)
+    auditLog(
+      "BROADCAST_NOTIFICATION_SENT",
+      req.user.id,
+      {
+        title,
+        type,
+        userRole,
+        recipientCount: users.length,
+      },
+      req.ip
+    );
 
     res.status(201).json({
       success: true,
@@ -417,9 +427,9 @@ router.post(
         message,
         type,
       },
-    })
+    });
   })
-)
+);
 
 /**
  * @route   GET /api/v1/notifications/admin/stats
@@ -427,8 +437,8 @@ router.post(
  * @access  Admin only
  */
 router.get(
-  '/admin/stats',
-  requireAuth(UserRole.ADMIN),
+  "/admin/stats",
+  requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
     const [
       totalNotifications,
@@ -439,12 +449,12 @@ router.get(
       prisma.notification.count(),
       prisma.notification.count({ where: { read: false } }),
       prisma.notification.groupBy({
-        by: ['type'],
+        by: ["type"],
         _count: { type: true },
       }),
       prisma.notification.findMany({
         take: 10,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           user: {
             select: {
@@ -455,26 +465,34 @@ router.get(
           },
         },
       }),
-    ])
+    ]);
 
-    const typeDistribution = notificationsByType.reduce((acc, item) => {
-      acc[item.type] = item._count.type
-      return acc
-    }, {} as Record<string, number>)
+    const typeDistribution = notificationsByType.reduce(
+      (acc, item) => {
+        acc[item.type] = item._count.type;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     res.json({
       success: true,
       data: {
         totalNotifications,
         unreadNotifications,
-        readRate: totalNotifications > 0 
-          ? ((totalNotifications - unreadNotifications) / totalNotifications * 100).toFixed(1)
-          : 0,
+        readRate:
+          totalNotifications > 0
+            ? (
+                ((totalNotifications - unreadNotifications) /
+                  totalNotifications) *
+                100
+              ).toFixed(1)
+            : 0,
         typeDistribution,
         recentActivity,
       },
-    })
+    });
   })
-)
+);
 
 export default router

@@ -72,7 +72,7 @@ router.get(
  */
 router.put(
   '/system',
-  requireAuth(UserRole.SUPER_ADMIN),
+  requireAuth(UserRole.ADMIN),
   [
     body('settings').isArray().withMessage('Settings array required'),
     body('settings.*.key').notEmpty().withMessage('Setting key required'),
@@ -307,7 +307,7 @@ router.get(
  */
 router.put(
   '/payment',
-  requireAuth(UserRole.SUPER_ADMIN),
+  requireAuth(UserRole.ADMIN),
   [
     body('paystackEnabled').optional().isBoolean(),
     body('flutterwaveEnabled').optional().isBoolean(),
@@ -405,7 +405,7 @@ router.get(
  */
 router.put(
   '/email',
-  requireAuth(UserRole.SUPER_ADMIN),
+  requireAuth(UserRole.ADMIN),
   [
     body('emailEnabled').optional().isBoolean(),
     body('smtpHost').optional().isString(),
@@ -602,7 +602,7 @@ router.put(
  */
 router.post(
   '/maintenance',
-  requireAuth(UserRole.SUPER_ADMIN),
+  requireAuth(UserRole.ADMIN),
   [
     body('enabled').isBoolean().withMessage('Maintenance mode status required'),
     body('message').optional().isString(),
@@ -656,7 +656,7 @@ router.post(
  */
 router.get(
   '/backup',
-  requireAuth(UserRole.SUPER_ADMIN),
+  requireAuth(UserRole.ADMIN),
   asyncHandler(async (req: any, res: any) => {
     // Get backup-related settings
     const backupSettings = await prisma.setting.findMany({

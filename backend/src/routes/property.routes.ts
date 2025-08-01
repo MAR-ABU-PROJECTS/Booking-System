@@ -294,24 +294,27 @@ router.get(
  * @access  Property Host
  */
 router.get(
-  '/my-properties',
-  requireAuth(UserRole.PROPERTY_HOST),
+  "/my-properties",
+  requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
     const {
       page = 1,
       limit = 20,
       status,
-      sortBy = 'createdAt',
-      order = 'desc',
-    } = req.query
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
 
-    const { page: validPage, limit: validLimit } = validatePagination(page, limit)
+    const { page: validPage, limit: validLimit } = validatePagination(
+      page,
+      limit
+    );
 
-    const where: any = { hostId: req.user.id }
-    if (status) where.status = status
+    const where: any = { hostId: req.user.id };
+    if (status) where.status = status;
 
-    const orderBy: any = {}
-    orderBy[sortBy] = order
+    const orderBy: any = {};
+    orderBy[sortBy] = order;
 
     const [properties, total] = await Promise.all([
       prisma.property.findMany({
@@ -333,14 +336,15 @@ router.get(
         },
       }),
       prisma.property.count({ where }),
-    ])
+    ]);
 
     // Calculate average ratings and stats
-    const propertiesWithStats = properties.map(property => {
-      const ratings = property.reviews.map(r => r.rating)
-      const averageRating = ratings.length > 0 
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-        : 0
+    const propertiesWithStats = properties.map((property) => {
+      const ratings = property.reviews.map((r) => r.rating);
+      const averageRating =
+        ratings.length > 0
+          ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+          : 0;
 
       return {
         ...property,
@@ -348,10 +352,10 @@ router.get(
         reviewCount: property._count.reviews,
         bookingCount: property._count.bookings,
         reviews: undefined,
-      }
-    })
+      };
+    });
 
-    const pagination = calculatePagination(validPage, validLimit, total)
+    const pagination = calculatePagination(validPage, validLimit, total);
 
     res.json({
       success: true,
@@ -359,9 +363,9 @@ router.get(
         properties: propertiesWithStats,
         pagination,
       },
-    })
+    });
   })
-)
+);
 
 /**
  * @route   POST /api/v1/properties
@@ -369,27 +373,37 @@ router.get(
  * @access  Property Host
  */
 router.post(
-  '/',
-  requireAuth(UserRole.PROPERTY_HOST),
+  "/",
+  requireAuth({ role: UserRole.ADMIN }),
   [
-    body('name').trim().notEmpty().withMessage('Property name required'),
-    body('description').trim().notEmpty().withMessage('Description required'),
-    body('type').isIn(Object.values(PropertyType)).withMessage('Invalid property type'),
-    body('address').trim().notEmpty().withMessage('Address required'),
-    body('city').trim().notEmpty().withMessage('City required'),
-    body('state').trim().notEmpty().withMessage('State required'),
-    body('zipCode').trim().notEmpty().withMessage('Zip code required'),
-    body('country').trim().notEmpty().withMessage('Country required'),
-    body('latitude').isFloat().withMessage('Valid latitude required'),
-    body('longitude').isFloat().withMessage('Valid longitude required'),
-    body('bedrooms').isInt({ min: 0 }).withMessage('Valid bedroom count required'),
-    body('bathrooms').isInt({ min: 0 }).withMessage('Valid bathroom count required'),
-    body('maxGuests').isInt({ min: 1 }).withMessage('Valid guest count required'),
-    body('baseRate').isFloat({ min: 0 }).withMessage('Valid base rate required'),
-    body('cleaningFee').optional().isFloat({ min: 0 }),
-    body('amenities').isArray().withMessage('Amenities must be an array'),
-    body('houseRules').optional().isArray(),
-    body('images').isArray().withMessage('Images must be an array'),
+    body("name").trim().notEmpty().withMessage("Property name required"),
+    body("description").trim().notEmpty().withMessage("Description required"),
+    body("type")
+      .isIn(Object.values(PropertyType))
+      .withMessage("Invalid property type"),
+    body("address").trim().notEmpty().withMessage("Address required"),
+    body("city").trim().notEmpty().withMessage("City required"),
+    body("state").trim().notEmpty().withMessage("State required"),
+    body("zipCode").trim().notEmpty().withMessage("Zip code required"),
+    body("country").trim().notEmpty().withMessage("Country required"),
+    body("latitude").isFloat().withMessage("Valid latitude required"),
+    body("longitude").isFloat().withMessage("Valid longitude required"),
+    body("bedrooms")
+      .isInt({ min: 0 })
+      .withMessage("Valid bedroom count required"),
+    body("bathrooms")
+      .isInt({ min: 0 })
+      .withMessage("Valid bathroom count required"),
+    body("maxGuests")
+      .isInt({ min: 1 })
+      .withMessage("Valid guest count required"),
+    body("baseRate")
+      .isFloat({ min: 0 })
+      .withMessage("Valid base rate required"),
+    body("cleaningFee").optional().isFloat({ min: 0 }),
+    body("amenities").isArray().withMessage("Amenities must be an array"),
+    body("houseRules").optional().isArray(),
+    body("images").isArray().withMessage("Images must be an array"),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
@@ -397,7 +411,7 @@ router.post(
       ...req.body,
       hostId: req.user.id,
       status: PropertyStatus.PENDING, // Requires admin approval
-    }
+    };
 
     const property = await prisma.property.create({
       data: propertyData,
@@ -410,33 +424,39 @@ router.post(
           },
         },
       },
-    })
+    });
 
     // Create notification for admin
     await prisma.notification.create({
       data: {
         userId: req.user.id, // This would be admin ID in real implementation
-        type: 'PROPERTY_SUBMITTED',
-        title: 'New Property Submitted',
+        type: "PROPERTY_SUBMITTED",
+        title: "New Property Submitted",
         message: `${property.host.firstName} ${property.host.lastName} submitted a new property: ${property.name}`,
         metadata: {
           propertyId: property.id,
         },
       },
-    })
+    });
 
-    auditLog('PROPERTY_CREATED', req.user.id, {
-      propertyId: property.id,
-      propertyName: property.name,
-    }, req.ip)
+    auditLog(
+      "PROPERTY_CREATED",
+      req.user.id,
+      {
+        propertyId: property.id,
+        propertyName: property.name,
+      },
+      req.ip
+    );
 
     res.status(201).json({
       success: true,
-      message: 'Property created successfully. It will be reviewed by our team.',
+      message:
+        "Property created successfully. It will be reviewed by our team.",
       data: property,
-    })
+    });
   })
-)
+);
 
 /**
  * @route   PUT /api/v1/properties/:id
@@ -444,54 +464,59 @@ router.post(
  * @access  Property Host (owner), Admin
  */
 router.put(
-  '/:id',
-  requireAuth(UserRole.PROPERTY_HOST),
+  "/:id",
+  requireAuth({ role: UserRole.ADMIN }),
   [
-    param('id').isString(),
-    body('name').optional().trim().notEmpty(),
-    body('description').optional().trim().notEmpty(),
-    body('type').optional().isIn(Object.values(PropertyType)),
-    body('baseRate').optional().isFloat({ min: 0 }),
-    body('cleaningFee').optional().isFloat({ min: 0 }),
-    body('amenities').optional().isArray(),
-    body('houseRules').optional().isArray(),
-    body('images').optional().isArray(),
+    param("id").isString(),
+    body("name").optional().trim().notEmpty(),
+    body("description").optional().trim().notEmpty(),
+    body("type").optional().isIn(Object.values(PropertyType)),
+    body("baseRate").optional().isFloat({ min: 0 }),
+    body("cleaningFee").optional().isFloat({ min: 0 }),
+    body("amenities").optional().isArray(),
+    body("houseRules").optional().isArray(),
+    body("images").optional().isArray(),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
     const property = await prisma.property.findUnique({
       where: { id: req.params.id },
-    })
+    });
 
     if (!property) {
-      throw new AppError('Property not found', 404)
+      throw new AppError("Property not found", 404);
     }
 
     // Check ownership or admin role
-    const isOwner = property.hostId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isOwner = property.hostId === req.user.id;
+    const isAdmin = req.user.role === UserRole.ADMIN;
 
     if (!isOwner && !isAdmin) {
-      throw new AppError('Not authorized to update this property', 403)
+      throw new AppError("Not authorized to update this property", 403);
     }
 
     const updatedProperty = await prisma.property.update({
       where: { id: req.params.id },
       data: req.body,
-    })
+    });
 
-    auditLog('PROPERTY_UPDATED', req.user.id, {
-      propertyId: req.params.id,
-      changes: req.body,
-    }, req.ip)
+    auditLog(
+      "PROPERTY_UPDATED",
+      req.user.id,
+      {
+        propertyId: req.params.id,
+        changes: req.body,
+      },
+      req.ip
+    );
 
     res.json({
       success: true,
-      message: 'Property updated successfully',
+      message: "Property updated successfully",
       data: updatedProperty,
-    })
+    });
   })
-)
+);
 
 /**
  * @route   DELETE /api/v1/properties/:id
@@ -499,8 +524,8 @@ router.put(
  * @access  Property Host (owner), Admin
  */
 router.delete(
-  '/:id',
-  requireAuth(UserRole.PROPERTY_HOST),
+  "/:id",
+  requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
     const property = await prisma.property.findUnique({
       where: { id: req.params.id },
@@ -508,45 +533,50 @@ router.delete(
         bookings: {
           where: {
             status: {
-              in: ['PENDING', 'APPROVED'],
+              in: ["PENDING", "APPROVED"],
             },
           },
         },
       },
-    })
+    });
 
     if (!property) {
-      throw new AppError('Property not found', 404)
+      throw new AppError("Property not found", 404);
     }
 
     // Check ownership or admin role
-    const isOwner = property.hostId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isOwner = property.hostId === req.user.id;
+    const isAdmin = req.user.role === UserRole.ADMIN;
 
     if (!isOwner && !isAdmin) {
-      throw new AppError('Not authorized to delete this property', 403)
+      throw new AppError("Not authorized to delete this property", 403);
     }
 
     // Check for active bookings
     if (property.bookings.length > 0) {
-      throw new AppError('Cannot delete property with active bookings', 400)
+      throw new AppError("Cannot delete property with active bookings", 400);
     }
 
     await prisma.property.delete({
       where: { id: req.params.id },
-    })
+    });
 
-    auditLog('PROPERTY_DELETED', req.user.id, {
-      propertyId: req.params.id,
-      propertyName: property.name,
-    }, req.ip)
+    auditLog(
+      "PROPERTY_DELETED",
+      req.user.id,
+      {
+        propertyId: req.params.id,
+        propertyName: property.name,
+      },
+      req.ip
+    );
 
     res.json({
       success: true,
-      message: 'Property deleted successfully',
-    })
+      message: "Property deleted successfully",
+    });
   })
-)
+);
 
 /**
  * @route   GET /api/v1/properties/:id/bookings
@@ -554,40 +584,43 @@ router.delete(
  * @access  Property Host (owner), Admin
  */
 router.get(
-  '/:id/bookings',
-  requireAuth(UserRole.PROPERTY_HOST),
+  "/:id/bookings",
+  requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
     const property = await prisma.property.findUnique({
       where: { id: req.params.id },
-    })
+    });
 
     if (!property) {
-      throw new AppError('Property not found', 404)
+      throw new AppError("Property not found", 404);
     }
 
     // Check ownership or admin role
-    const isOwner = property.hostId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isOwner = property.hostId === req.user.id;
+    const isAdmin = req.user.role === UserRole.ADMIN;
 
     if (!isOwner && !isAdmin) {
-      throw new AppError('Not authorized to view these bookings', 403)
+      throw new AppError("Not authorized to view these bookings", 403);
     }
 
     const {
       page = 1,
       limit = 20,
       status,
-      sortBy = 'createdAt',
-      order = 'desc',
-    } = req.query
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
 
-    const { page: validPage, limit: validLimit } = validatePagination(page, limit)
+    const { page: validPage, limit: validLimit } = validatePagination(
+      page,
+      limit
+    );
 
-    const where: any = { propertyId: req.params.id }
-    if (status) where.status = status
+    const where: any = { propertyId: req.params.id };
+    if (status) where.status = status;
 
-    const orderBy: any = {}
-    orderBy[sortBy] = order
+    const orderBy: any = {};
+    orderBy[sortBy] = order;
 
     const [bookings, total] = await Promise.all([
       prisma.booking.findMany({
@@ -608,9 +641,9 @@ router.get(
         },
       }),
       prisma.booking.count({ where }),
-    ])
+    ]);
 
-    const pagination = calculatePagination(validPage, validLimit, total)
+    const pagination = calculatePagination(validPage, validLimit, total);
 
     res.json({
       success: true,
@@ -618,8 +651,8 @@ router.get(
         bookings,
         pagination,
       },
-    })
+    });
   })
-)
+);
 
 export default router

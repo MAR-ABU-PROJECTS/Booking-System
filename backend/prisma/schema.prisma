@@ -77,10 +77,12 @@ model Property {
   address               String
   city                  String
   state                 String
+  zipCode               String?
   country               String                  @default("Nigeria")
   latitude              Float?
   longitude             Float?
-  
+  adminNotes            String?
+
   // Property details
   bedrooms              Int
   bathrooms             Int
@@ -312,6 +314,7 @@ model Review {
   rating              Int       // 1-5 stars
   title               String?
   comment             String?
+  adminNotes          String?
   
   // Detailed ratings
   cleanliness         Int?      // Renamed for consistency
@@ -323,6 +326,8 @@ model Review {
   
   // Moderation
   approved            Boolean   @default(true) // Changed default to true
+  approvedAt          DateTime?
+  approvedBy          String?
   featured            Boolean   @default(false)
   flagged             Boolean   @default(false) // NEW
   flagReason          String?   // NEW
@@ -488,9 +493,7 @@ model SystemSetting {
 
 enum UserRole {
   CUSTOMER
-  PROPERTY_HOST
   ADMIN
-  SUPER_ADMIN
 }
 
 enum UserStatus {
@@ -575,6 +578,8 @@ enum NotificationType {
   REVIEW_RECEIVED      // NEW
   REVIEW_RESPONSE      // NEW
   REVIEW_REQUEST
+  REVIEW_APPROVED
+  REVIEW_REJECTED
   PROPERTY_APPROVED    // NEW
   PROPERTY_SUBMITTED
   PROPERTY_REJECTED    // NEW
