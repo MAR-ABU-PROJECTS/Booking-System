@@ -100,7 +100,8 @@ const getDateRange = (period: string) => {
  */
 router.get(
   "/overview",
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN })
+,
   [
     query("period")
       .optional()
@@ -454,7 +455,8 @@ router.get(
 
 router.get(
   "/bookings",
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN })
+,
   [
     query("period")
       .optional()
@@ -757,7 +759,8 @@ router.get(
 
 router.get(
   "/revenue",
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN })
+,
   [
     query("period")
       .optional()
@@ -1024,7 +1027,8 @@ router.get(
  */
 router.get(
   "/properties",
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN })
+,
   [
     query("period")
       .optional()
@@ -1258,7 +1262,8 @@ router.get(
  */
 router.get(
   "/export",
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN })
+,
   [
     query("type")
       .isIn(["bookings", "revenue", "properties"])

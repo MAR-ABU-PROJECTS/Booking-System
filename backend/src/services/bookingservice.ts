@@ -330,11 +330,11 @@ export class BookingService {
       // Create booking
       const booking = await prisma.booking.create({
         data: {
-          bookingNumber,
+          bookingCode,
           customerId,
           propertyId,
-          checkIn: new Date(checkIn),
-          checkOut: new Date(checkOut),
+          checkInDate: new Date(checkIn),
+          checkOutDate: new Date(checkOut),
           nights,
           adults,
           children,
@@ -348,9 +348,9 @@ export class BookingService {
           cleaningFee: pricing.cleaningFee,
           serviceFee: pricing.serviceFee,
           taxes: pricing.taxes,
-          discounts: pricing.discounts,
-          totalAmount: pricing.totalAmount,
-          status: BookingStatus.PENDING_APPROVAL,
+          discount: pricing.discounts,
+          total: pricing.totalAmount,
+          status: BookingStatus.PENDING,
           paymentStatus: PaymentStatus.PENDING,
         },
         include: {
@@ -381,9 +381,9 @@ export class BookingService {
 
       // Log audit
       await this.logAudit(customerId, "CREATE", "Booking", booking.id, {
-        bookingNumber: booking.bookingNumber,
+        bookingNumber: booking.bookingCode,
         propertyName: booking.property.name,
-        totalAmount: booking.totalAmount,
+        totalAmount: booking.total,
       });
 
       // Send notifications (implement notification service)
@@ -636,9 +636,9 @@ export class BookingService {
         validatedData.adults
       ) {
         const checkIn =
-          validatedData.checkIn || existingBooking.checkIn.toISOString();
+          validatedData.checkIn || existingBooking.checkInDate.toISOString();
         const checkOut =
-          validatedData.checkOut || existingBooking.checkOut.toISOString();
+          validatedData.checkOut || existingBooking.checkOutDate.toISOString();
         const adults = validatedData.adults || existingBooking.adults;
 
         const pricing = await this.calculatePricing(
@@ -754,7 +754,7 @@ export class BookingService {
 
       switch (validatedAction.action) {
         case "approve":
-          if (booking.status !== BookingStatus.PENDING_APPROVAL) {
+          if (booking.status !== BookingStatus.PENDING) {
             throw new Error("Booking is not pending approval");
           }
           updateData.status = BookingStatus.APPROVED;
@@ -763,7 +763,7 @@ export class BookingService {
           break;
 
         case "reject":
-          if (booking.status !== BookingStatus.PENDING_APPROVAL) {
+          if (booking.status !== BookingStatus.PENDING) {
             throw new Error("Booking is not pending approval");
           }
           updateData.status = BookingStatus.CANCELLED;
@@ -899,12 +899,12 @@ export class BookingService {
       where: {
         propertyId,
         AND: [
-          { checkIn: { lt: checkOutDate } },
-          { checkOut: { gt: checkInDate } },
+          { checkInDate: { lt: checkOutDate } },
+          { checkOutDate: { gt: checkInDate } },
           {
             status: {
               in: [
-                BookingStatus.PENDING_APPROVAL,
+                BookingStatus.PENDING,
                 BookingStatus.APPROVED,
                 BookingStatus.CONFIRMED,
                 BookingStatus.CHECKED_IN,
@@ -948,17 +948,17 @@ export class BookingService {
     // Get the latest booking number for this year
     const latestBooking = await prisma.booking.findFirst({
       where: {
-        bookingNumber: {
+        bookingCode: {
           startsWith: `${prefix}${year}`,
         },
       },
       orderBy: { createdAt: "desc" },
-      select: { bookingNumber: true },
+      select: { bookingCode: true },
     });
 
     let sequence = 1;
     if (latestBooking) {
-      const lastSequence = parseInt(latestBooking.bookingNumber.slice(-6));
+      const lastSequence = parseInt(latestBooking.bookingCode.slice(-6));
       sequence = lastSequence + 1;
     }
 
@@ -987,7 +987,7 @@ export class BookingService {
             ],
           },
         },
-        _sum: { totalAmount: true },
+        _sum: { total: true },
       }),
       prisma.booking.groupBy({
         by: ["status"],
@@ -1005,8 +1005,8 @@ export class BookingService {
     );
 
     return {
-      totalRevenue: revenueResult._sum.totalAmount || 0,
-      pendingApprovals: statusMap[BookingStatus.PENDING_APPROVAL] || 0,
+      totalRevenue: revenueResult._sum.total || 0,
+      pendingApprovals: statusMap[BookingStatus.PENDING] || 0,
       activeBookings:
         (statusMap[BookingStatus.CONFIRMED] || 0) +
         (statusMap[BookingStatus.CHECKED_IN] || 0),

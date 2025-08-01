@@ -27,14 +27,10 @@ const createBookingSchema = z.object({
 });
 
 const searchBookingsSchema = z.object({
-  page: z.number().int().min(1).default(1),
-  limit: z.number().int().min(1).max(100).default(20),
-  status: z
-    .enum(Object.values(BookingStatus) as [string, ...string[]])
-    .optional(),
-  paymentStatus: z
-    .enum(Object.values(PaymentStatus) as [string, ...string[]])
-    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  status: z.nativeEnum(BookingStatus).optional(),
+  paymentStatus: z.nativeEnum(PaymentStatus).optional(),
   propertyId: z.string().optional(),
   customerId: z.string().optional(),
   bookingCode: z.string().optional(),
@@ -90,7 +86,7 @@ const calculateBookingCosts = (
  */
 /**
  * @swagger
- * /api/v1/bookings:
+ * /bookings:
  *   get:
  *     summary: Get bookings with filters
  *     description: Retrieve a list of bookings with optional filters based on user role. Customers see their own, hosts see bookings for their properties, and admins can see all.
@@ -185,119 +181,64 @@ const calculateBookingCosts = (
  *       401:
  *         description: Unauthorized
  */
-
 router.get(
   "/",
-  requireAuth(),
+  requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
-    try {
-      const filters = searchBookingsSchema.parse(req.query);
-      const { page, limit, ...where } = filters;
+    const parsed = searchBookingsSchema.parse(req.query);
+    const {
+      page,
+      limit,
+      status,
+      paymentStatus,
+      propertyId,
+      customerId,
+      bookingCode,
+      guestEmail,
+      checkInFrom,
+      checkInTo,
+    } = parsed;
 
-      // Build where clause based on user role
-      const whereClause: any = {};
+    const whereClause: any = {};
 
-      // Regular users can only see their own bookings
-      if (req.user.role === UserRole.CUSTOMER) {
-        whereClause.customerId = req.user.id;
-      } else if (req.user.role === UserRole.ADMIN) {
-        // Property hosts can see bookings for their properties
-        whereClause.property = {
-          hostId: req.user.id,
-        };
-      }
-
-      // Apply filters
-      if (where.status) whereClause.status = where.status;
-      if (where.paymentStatus) whereClause.paymentStatus = where.paymentStatus;
-      if (where.propertyId) whereClause.propertyId = where.propertyId;
-      if (where.customerId && req.user.role === UserRole.ADMIN) {
-        whereClause.customerId = where.customerId;
-      }
-      if (where.bookingCode) {
-        whereClause.bookingCode = {
-          contains: where.bookingCode,
-          mode: "insensitive",
-        };
-      }
-      if (where.guestEmail) {
-        whereClause.guestEmail = {
-          contains: where.guestEmail,
-          mode: "insensitive",
-        };
-      }
-      if (where.checkInFrom || where.checkInTo) {
-        whereClause.checkIn = {};
-        if (where.checkInFrom)
-          whereClause.checkIn.gte = new Date(where.checkInFrom);
-        if (where.checkInTo)
-          whereClause.checkIn.lte = new Date(where.checkInTo);
-      }
-
-      // Execute query
-      const [bookings, total] = await Promise.all([
-        prisma.booking.findMany({
-          where: whereClause,
-          orderBy: { createdAt: "desc" },
-          skip: (page - 1) * limit,
-          take: limit,
-          include: {
-            property: {
-              select: {
-                id: true,
-                name: true,
-                type: true,
-                city: true,
-                images: true,
-                host: {
-                  select: {
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                  },
-                },
-              },
-            },
-            customer: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                avatar: true,
-              },
-            },
-            receipts: {
-              orderBy: { uploadedAt: "desc" },
-            },
-            review: true,
-          },
-        }),
-        prisma.booking.count({ where: whereClause }),
-      ]);
-
-      res.json({
-        success: true,
-        data: {
-          bookings,
-          pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit),
-          },
-        },
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({
-          success: false,
-          message: "Validation failed",
-          errors: error.errors,
-        });
-      }
-      throw error;
+    if (status) whereClause.status = status;
+    if (paymentStatus) whereClause.paymentStatus = paymentStatus;
+    if (propertyId) whereClause.propertyId = propertyId;
+    if (customerId) whereClause.customerId = customerId;
+    if (bookingCode) whereClause.bookingCode = bookingCode;
+    if (guestEmail) whereClause.guestEmail = guestEmail;
+    if (checkInFrom || checkInTo) {
+      whereClause.checkInDate = {};
+      if (checkInFrom) whereClause.checkInDate.gte = new Date(checkInFrom);
+      if (checkInTo) whereClause.checkInDate.lte = new Date(checkInTo);
     }
+
+    const bookings = await prisma.booking.findMany({
+      where: whereClause,
+      include: {
+        customer: true,
+        property: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    const total = await prisma.booking.count({ where: whereClause });
+
+    res.json({
+      status: "success",
+      message: "Bookings fetched successfully",
+      data: bookings,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   })
 );
 
@@ -308,7 +249,7 @@ router.get(
  */
 /**
  * @swagger
- * /api/v1/bookings/{id}:
+ * /bookings/{id}:
  *   get:
  *     summary: Get booking details
  *     description: Get a single booking by ID. Access is restricted to booking owner, property host, or admin.
@@ -384,11 +325,9 @@ router.get(
 
     // Check authorization
     const isOwner = booking.customerId === req.user.id;
-    const isHost = booking.property.hostId === req.user.id;
-    const isAdmin =
-      req.user.role === UserRole.ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN;
 
-    if (!isOwner && !isHost && !isAdmin) {
+    if (!isOwner && !isAdmin) {
       throw new AppError("Not authorized to view this booking", 403);
     }
 
@@ -400,13 +339,13 @@ router.get(
 );
 
 /**
- * @route   POST /api/v1/bookings
+ * @route   POST /api/v1/create-bookings
  * @desc    Create new booking
  * @access  Protected
  */
 /**
  * @swagger
- * /api/v1/bookings:
+ * /create-bookings:
  *   post:
  *     summary: Create a new booking
  *     tags:
@@ -665,7 +604,7 @@ router.post(
  */
 /**
  * @swagger
- * /api/v1/bookings/{id}/status:
+ * /bookings/{id}/status:
  *   patch:
  *     summary: Update booking status (approve/reject/cancel)
  *     tags:
@@ -727,7 +666,7 @@ router.post(
  */
 router.patch(
   "/:id/status",
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN }),
   [
     param("id").isString(),
     body("status").isIn([
@@ -767,8 +706,7 @@ router.patch(
 
     // Check authorization
     const isHost = booking.property.hostId === req.user.id;
-    const isAdmin =
-      req.user.role === UserRole.ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN;
 
     if (!isHost && !isAdmin) {
       throw new AppError("Not authorized to update this booking", 403);
@@ -844,7 +782,7 @@ router.patch(
  */
 /**
  * @swagger
- * /api/v1/bookings/{id}/cancel:
+ * /bookings/{id}/cancel:
  *   post:
  *     summary: Cancel a booking
  *     description: Allows a booking owner to cancel a booking if it is still pending or approved.
@@ -995,7 +933,7 @@ router.post(
  */
 /**
  * @swagger
- * /api/v1/bookings/{id}/invoice:
+ * /bookings/{id}/invoice:
  *   get:
  *     summary: Get booking invoice
  *     description: Retrieve an invoice for a specific booking. Only the booking owner, the property host, or an admin can access this invoice.
@@ -1101,8 +1039,7 @@ router.get(
     // Check authorization
     const isOwner = booking.customerId === req.user.id;
     const isHost = booking.property.hostId === req.user.id;
-    const isAdmin =
-      req.user.role === UserRole.ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN;
 
     if (!isOwner && !isHost && !isAdmin) {
       throw new AppError("Not authorized to view this invoice", 403);

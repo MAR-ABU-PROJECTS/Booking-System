@@ -1,41 +1,25 @@
 // MAR ABU PROJECTS SERVICES LLC - Email Service (Extended)
-import nodemailer from 'nodemailer'
-import { logger } from '../middlewares/logger.middleware'
-import { APP_CONSTANTS } from '../utils/constants'
+// import nodemailer from 'nodemailer'
+import { Resend } from "resend";
+import { logger } from "../middlewares/logger.middleware";
+import { APP_CONSTANTS } from "../utils/constants";
 
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+interface EmailAttachment {
+  filename: string;
+  content: string | Buffer;
+}
 interface EmailOptions {
-  to: string
-  subject: string
-  html: string
-  attachments?: Array<{
-    filename: string
-    path?: string
-    content?: Buffer
-  }>
+  to: string;
+  subject: string;
+  html: string;
+  attachments?: EmailAttachment[];
 }
 
 export class EmailService {
-  private transporter: nodemailer.Transporter;
-
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || "smtp.gmail.com",
-      port: parseInt(process.env.EMAIL_PORT || "587"),
-      secure: process.env.EMAIL_SECURE === "true",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    // Verify connection configuration
-    this.transporter.verify((error, success) => {
-      if (error) {
-        logger.error("Email service error:", error);
-      } else {
-        logger.info("Email service ready");
-      }
-    });
+    logger.info("Resend Email service ready");
   }
 
   /**
@@ -43,15 +27,32 @@ export class EmailService {
    */
   async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
-      const info = await this.transporter.sendMail({
-        from: `"${APP_CONSTANTS.COMPANY.NAME}" <${process.env.EMAIL_USER}>`,
-        ...options,
+      const response = await resend.emails.send({
+        from: `"${APP_CONSTANTS.COMPANY.NAME}" <${process.env.EMAIL_FROM}>`,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        attachments: options.attachments?.map((att) => {
+          if (!att.content) {
+            throw new Error(
+              `Attachment content is missing for file: ${att.filename}`
+            );
+          }
+
+          return {
+            filename: att.filename,
+            content: Buffer.isBuffer(att.content)
+              ? att.content.toString("base64")
+              : Buffer.from(att.content).toString("base64"),
+          };
+        }),
       });
 
       logger.info("Email sent successfully", {
-        messageId: info.messageId,
         to: options.to,
+        messageId: response?.data?.id,
       });
+
       return true;
     } catch (error) {
       logger.error("Failed to send email", { error, to: options.to });
@@ -702,4 +703,4 @@ export class EmailService {
 }
 
 // Export singleton instance
-export const emailService = new EmailService()
+export const emailService = new EmailService();

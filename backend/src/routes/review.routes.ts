@@ -432,17 +432,17 @@ router.delete(
  * @access  Admin only
  */
 router.put(
-  '/:id/approve',
-  requireAuth(UserRole.ADMIN),
+  "/:id/approve",
+  requireAuth({ role: UserRole.ADMIN }),
   [
-    param('id').isString(),
-    body('approved').isBoolean().withMessage('Approved status required'),
-    body('adminNotes').optional().isString(),
-    body('featured').optional().isBoolean(),
+    param("id").isString(),
+    body("approved").isBoolean().withMessage("Approved status required"),
+    body("adminNotes").optional().isString(),
+    body("featured").optional().isBoolean(),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { approved, adminNotes, featured } = req.body
+    const { approved, adminNotes, featured } = req.body;
 
     const review = await prisma.review.findUnique({
       where: { id: req.params.id },
@@ -460,10 +460,10 @@ router.put(
           },
         },
       },
-    })
+    });
 
     if (!review) {
-      throw new AppError('Review not found', 404)
+      throw new AppError("Review not found", 404);
     }
 
     const updatedReview = await prisma.review.update({
@@ -475,49 +475,51 @@ router.put(
         approvedAt: approved ? new Date() : null,
         approvedBy: approved ? req.user.id : null,
       },
-    })
+    });
 
     // Create notification for customer
     await prisma.notification.create({
       data: {
         userId: review.customerId,
-        type: approved ? 'REVIEW_APPROVED' : 'REVIEW_REJECTED',
-        title: approved ? 'Review Approved' : 'Review Rejected',
-        message: approved 
+        type: approved ? "REVIEW_APPROVED" : "REVIEW_REJECTED",
+        title: approved ? "Review Approved" : "Review Rejected",
+        message: approved
           ? `Your review for ${review.property.name} has been approved and published.`
-          : `Your review for ${review.property.name} has been rejected.${adminNotes ? ` Reason: ${adminNotes}` : ''}`,
+          : `Your review for ${review.property.name} has been rejected.${adminNotes ? ` Reason: ${adminNotes}` : ""}`,
         metadata: {
           reviewId: review.id,
           approved,
         },
       },
-    })
+    });
 
     // Send email notification
-    await emailService.sendReviewStatusUpdate(
-      review.customer.email,
-      {
-        customerName: `${review.customer.firstName} ${review.customer.lastName}`,
-        propertyName: review.property.name,
-        approved,
-        adminNotes,
-      }
-    )
-
-    auditLog('REVIEW_STATUS_UPDATED', req.user.id, {
-      reviewId: req.params.id,
+    await emailService.sendReviewStatusUpdate(review.customer.email, {
+      customerName: `${review.customer.firstName} ${review.customer.lastName}`,
+      propertyName: review.property.name,
       approved,
       adminNotes,
-      featured,
-    }, req.ip)
+    });
+
+    auditLog(
+      "REVIEW_STATUS_UPDATED",
+      req.user.id,
+      {
+        reviewId: req.params.id,
+        approved,
+        adminNotes,
+        featured,
+      },
+      req.ip
+    );
 
     res.json({
       success: true,
-      message: `Review ${approved ? 'approved' : 'rejected'} successfully`,
+      message: `Review ${approved ? "approved" : "rejected"} successfully`,
       data: updatedReview,
-    })
+    });
   })
-)
+);
 
 /**
  * @route   GET /api/v1/reviews/pending
@@ -525,15 +527,15 @@ router.put(
  * @access  Admin only
  */
 router.get(
-  '/pending',
-  requireAuth(UserRole.ADMIN),
+  "/pending",
+  requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
     const {
       page = 1,
       limit = 20,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-    } = req.query
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
 
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
@@ -566,7 +568,7 @@ router.get(
         },
       }),
       prisma.review.count({ where: { approved: false } }),
-    ])
+    ]);
 
     res.json({
       success: true,
@@ -579,9 +581,9 @@ router.get(
           pages: Math.ceil(total / parseInt(limit)),
         },
       },
-    })
+    });
   })
-)
+);
 
 /**
  * @route   GET /api/v1/reviews/property/:propertyId/stats

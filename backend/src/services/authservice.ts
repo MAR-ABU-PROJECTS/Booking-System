@@ -16,7 +16,7 @@ export const registerSchema = z.object({
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   phone: z.string().optional(),
-  role: z.nativeEnum(UserRole).optional(),
+  // role: z.nativeEnum(UserRole).optional(),
 });
 
 export const loginSchema = z.object({
@@ -146,7 +146,7 @@ export class AuthService {
           lastName: validatedData.lastName,
           password: hashedPassword,
           phone: validatedData.phone,
-          role: validatedData.role || UserRole.CUSTOMER,
+          role: UserRole.CUSTOMER,
           status: UserStatus.PENDING_VERIFICATION,
         },
         select: {
@@ -654,7 +654,7 @@ export const authService = new AuthService();
 /**
  * Authentication middleware
  */
-export function requireAuth(requiredRole?: UserRole) {
+export function requireAuth(options?: { allowPending?: boolean; role?: UserRole }) {
   return async (req: any, res: any, next: any) => {
     try {
       const authHeader = req.headers.authorization;
@@ -672,15 +672,20 @@ export function requireAuth(requiredRole?: UserRole) {
       // Get user data
       const user = await authService.getUserById(payload.userId);
 
-      if (!user || user.status !== UserStatus.ACTIVE) {
+      if (!user) {
         return res.status(401).json({
           success: false,
-          message: "User not found or inactive",
+          message: "User not found",
         });
       }
 
       // Check role permission if required
-      if (requiredRole && !authService.hasPermission(user.role, requiredRole)) {
+      const allowedStatuses: UserStatus[] = [UserStatus.ACTIVE];
+      if (options?.allowPending) {
+        allowedStatuses.push(UserStatus.PENDING_VERIFICATION);
+      }
+
+      if (options?.role && !authService.hasPermission(user.role, options.role)) {
         return res.status(403).json({
           success: false,
           message: "Unauthorized permissions",
