@@ -404,7 +404,7 @@ router.get(
           favorites: favoriteProperties,
         },
       })
-    } else if (userRole === UserRole.PROPERTY_HOST) {
+    } else if (userRole === UserRole.ADMIN) {
       // Property host dashboard
       const [properties, bookings, earnings, reviews] = await Promise.all([
         prisma.property.findMany({

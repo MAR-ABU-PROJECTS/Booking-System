@@ -295,7 +295,7 @@ router.get(
  */
 router.get(
   '/my-properties',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   asyncHandler(async (req: any, res: any) => {
     const {
       page = 1,
@@ -370,7 +370,7 @@ router.get(
  */
 router.post(
   '/',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     body('name').trim().notEmpty().withMessage('Property name required'),
     body('description').trim().notEmpty().withMessage('Description required'),
@@ -445,7 +445,7 @@ router.post(
  */
 router.put(
   '/:id',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     param('id').isString(),
     body('name').optional().trim().notEmpty(),
@@ -469,7 +469,7 @@ router.put(
 
     // Check ownership or admin role
     const isOwner = property.hostId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN
 
     if (!isOwner && !isAdmin) {
       throw new AppError('Not authorized to update this property', 403)
@@ -500,7 +500,7 @@ router.put(
  */
 router.delete(
   '/:id',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   asyncHandler(async (req: any, res: any) => {
     const property = await prisma.property.findUnique({
       where: { id: req.params.id },
@@ -521,7 +521,7 @@ router.delete(
 
     // Check ownership or admin role
     const isOwner = property.hostId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN
 
     if (!isOwner && !isAdmin) {
       throw new AppError('Not authorized to delete this property', 403)
@@ -555,7 +555,7 @@ router.delete(
  */
 router.get(
   '/:id/bookings',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   asyncHandler(async (req: any, res: any) => {
     const property = await prisma.property.findUnique({
       where: { id: req.params.id },
@@ -567,7 +567,7 @@ router.get(
 
     // Check ownership or admin role
     const isOwner = property.hostId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN
 
     if (!isOwner && !isAdmin) {
       throw new AppError('Not authorized to view these bookings', 403)

@@ -200,7 +200,7 @@ router.get(
       // Regular users can only see their own bookings
       if (req.user.role === UserRole.CUSTOMER) {
         whereClause.customerId = req.user.id;
-      } else if (req.user.role === UserRole.PROPERTY_HOST) {
+      } else if (req.user.role === UserRole.ADMIN) {
         // Property hosts can see bookings for their properties
         whereClause.property = {
           hostId: req.user.id,
@@ -386,8 +386,7 @@ router.get(
     const isOwner = booking.customerId === req.user.id;
     const isHost = booking.property.hostId === req.user.id;
     const isAdmin =
-      req.user.role === UserRole.ADMIN ||
-      req.user.role === UserRole.SUPER_ADMIN;
+      req.user.role === UserRole.ADMIN
 
     if (!isOwner && !isHost && !isAdmin) {
       throw new AppError("Not authorized to view this booking", 403);
@@ -728,7 +727,7 @@ router.post(
  */
 router.patch(
   "/:id/status",
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   [
     param("id").isString(),
     body("status").isIn([
@@ -769,8 +768,7 @@ router.patch(
     // Check authorization
     const isHost = booking.property.hostId === req.user.id;
     const isAdmin =
-      req.user.role === UserRole.ADMIN ||
-      req.user.role === UserRole.SUPER_ADMIN;
+      req.user.role === UserRole.ADMIN
 
     if (!isHost && !isAdmin) {
       throw new AppError("Not authorized to update this booking", 403);
@@ -1104,8 +1102,7 @@ router.get(
     const isOwner = booking.customerId === req.user.id;
     const isHost = booking.property.hostId === req.user.id;
     const isAdmin =
-      req.user.role === UserRole.ADMIN ||
-      req.user.role === UserRole.SUPER_ADMIN;
+      req.user.role === UserRole.ADMIN
 
     if (!isOwner && !isHost && !isAdmin) {
       throw new AppError("Not authorized to view this invoice", 403);

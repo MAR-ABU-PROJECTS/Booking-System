@@ -68,7 +68,7 @@ const validate = (req: any, res: any, next: any) => {
  *                 example: "+1234567890"
  *               role:
  *                 type: string
- *                 enum: [CUSTOMER, PROPERTY_HOST]
+ *                 enum: [CUSTOMER, ADMIN]
  *                 example: CUSTOMER
  *     responses:
  *       201:
@@ -125,7 +125,7 @@ router.post(
       .withMessage("Valid phone number required"),
     body("role")
       .optional()
-      .isIn(["CUSTOMER", "PROPERTY_HOST", "ADMIN", "SUPER_ADMIN"])
+      .isIn(["CUSTOMER", "ADMIN"])
       .withMessage("Invalid role"),
   ],
   validate,

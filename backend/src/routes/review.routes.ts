@@ -161,7 +161,7 @@ router.get(
 
       const isOwner = review.customerId === req.user.id
       const isHost = review.property.hostId === req.user.id
-      const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+      const isAdmin = req.user.role === UserRole.ADMIN
 
       if (!isOwner && !isHost && !isAdmin) {
         throw new AppError('Review not found', 404)
@@ -401,7 +401,7 @@ router.delete(
 
     // Check authorization
     const isOwner = review.customerId === req.user.id
-    const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.SUPER_ADMIN
+    const isAdmin = req.user.role === UserRole.ADMIN
 
     if (!isOwner && !isAdmin) {
       throw new AppError('Not authorized to delete this review', 403)

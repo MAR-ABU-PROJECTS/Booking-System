@@ -244,7 +244,7 @@ router.get(
  */
 router.get(
   '/host',
-  requireAuth(UserRole.PROPERTY_HOST),
+  requireAuth(UserRole.ADMIN),
   asyncHandler(async (req: any, res: any) => {
     const hostId = req.user.id
     const { today, thisWeek, thisMonth, thisYear } = getDateRanges()
@@ -755,7 +755,7 @@ router.get(
         )
         break
 
-      case UserRole.PROPERTY_HOST:
+      case UserRole.ADMIN:
         // Host quick actions
         const pendingBookings = await prisma.booking.count({
           where: {
