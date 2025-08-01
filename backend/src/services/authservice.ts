@@ -16,7 +16,7 @@ export const registerSchema = z.object({
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   phone: z.string().optional(),
-  // role: z.nativeEnum(UserRole).optional(),
+  role: z.nativeEnum(UserRole).optional(),
 });
 
 export const loginSchema = z.object({
@@ -146,7 +146,7 @@ export class AuthService {
           lastName: validatedData.lastName,
           password: hashedPassword,
           phone: validatedData.phone,
-          role: UserRole.CUSTOMER,
+          role: validatedData.role || UserRole.CUSTOMER,
           status: UserStatus.PENDING_VERIFICATION,
         },
         select: {
@@ -222,7 +222,7 @@ export class AuthService {
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            // lastLoginAt: new Date() // Commented out until DB migration
+            lastLoginAt: new Date() // Commented out until DB migration
           },
         });
       } catch (updateError) {
