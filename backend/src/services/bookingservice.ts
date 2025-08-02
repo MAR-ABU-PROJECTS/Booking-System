@@ -4,6 +4,8 @@ import {
   BookingStatus,
   PaymentStatus,
   UserRole,
+  ReceiptStatus,
+  PaymentMethod,
 } from "@prisma/client";
 import { z } from "zod";
 
@@ -83,33 +85,38 @@ export const bookingActionSchema = z.object({
 // ===============================
 export interface BookingWithDetails {
   id: string;
-  bookingNumber: string;
-  checkIn: Date;
-  checkOut: Date;
+  bookingCode: string;
+  checkInDate: Date;
+  checkOutDate: Date;
   nights: number;
   adults: number;
   children: number;
+  infants?: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
   baseAmount: number;
   cleaningFee: number;
   serviceFee: number;
   taxes: number;
-  discounts: number;
-  totalAmount: number;
+  discount: number;
+  total: number;
   paidAmount: number;
+  currency: string;
   guestName: string;
   guestEmail: string;
   guestPhone: string;
   guestAddress: string | null;
   specialRequests: string | null;
   arrivalTime: string | null;
+  source?: string | null;
   cancellationReason: string | null;
-  cancellationDate: Date | null;
+  cancelledAt: Date | null;
+  cancelledBy: string | null;
   refundAmount: number | null;
   adminNotes: string | null;
   approvedBy: string | null;
   approvedAt: Date | null;
+  completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   customer: {
@@ -135,15 +142,26 @@ export interface BookingWithDetails {
       lastName: string;
       email: string;
     };
+    hostId: string;
   };
   receipts: Array<{
     id: string;
     fileName: string;
     fileUrl: string;
     amount: number;
-    status: string;
+    status: ReceiptStatus;
     uploadedAt: Date;
   }>;
+  payment?: {
+    id: string;
+    status: PaymentStatus;
+    amount: number;
+    method: PaymentMethod;
+  };
+  review?: {
+    id: string;
+    rating: number;
+  };
 }
 
 export interface BookingSearchResult {
@@ -319,7 +337,7 @@ export class BookingService {
       );
 
       // Generate booking number
-      const bookingNumber = await this.generateBookingNumber();
+      const bookingCode = await this.generateBookingNumber();
 
       // Calculate nights
       const nights = Math.ceil(
@@ -434,6 +452,20 @@ export class BookingService {
         },
         receipts: {
           orderBy: { uploadedAt: "desc" },
+          select: {
+            id: true,
+            fileName: true,
+            fileUrl: true,
+            amount: true,
+            status: true,
+            uploadedAt: true,
+          },
+        },
+        review: {
+          select: {
+            id: true,
+            rating: true,
+          },
         },
       },
     });
@@ -798,7 +830,7 @@ export class BookingService {
 
         case "cancel":
           if (
-            [BookingStatus.COMPLETED, BookingStatus.CANCELLED].includes(
+            (["COMPLETED", "CANCELLED"] as BookingStatus[]).includes(
               booking.status
             )
           ) {

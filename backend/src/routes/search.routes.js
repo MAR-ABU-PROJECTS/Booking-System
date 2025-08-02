@@ -1,3 +1,4 @@
+"use strict";
 // // MAR ABU PROJECTS SERVICES LLC - Search and Filter Routes
 // import { Router } from 'express'
 // import { query, validationResult } from 'express-validator'
@@ -7,9 +8,7 @@
 // import { AppError } from '../middlewares/error.middleware'
 // import { prisma } from '../server'
 // import { validatePagination, calculatePagination } from '../utils/helpers'
-
 // const router = Router()
-
 // // Validation middleware
 // const validate = (req: any, res: any, next: any) => {
 //   const errors = validationResult(req)
@@ -22,11 +21,9 @@
 //   }
 //   next()
 // }
-
 // // ===============================
 // // PROPERTY SEARCH ROUTES
 // // ===============================
-
 // /**
 //  * @route   GET /api/v1/search/properties
 //  * @desc    Advanced property search with filters
@@ -81,14 +78,11 @@
 //       longitude,
 //       radius = 50, // km
 //     } = req.query
-
 //     const { page: validPage, limit: validLimit } = validatePagination(page, limit)
-
 //     // Build where clause
 //     const where: any = {
 //       status: PropertyStatus.ACTIVE,
 //     }
-
 //     // Text search
 //     if (q) {
 //       where.OR = [
@@ -98,25 +92,21 @@
 //         { address: { contains: q, mode: 'insensitive' } },
 //       ]
 //     }
-
 //     // Location filters
 //     if (city) where.city = { contains: city, mode: 'insensitive' }
 //     if (state) where.state = { contains: state, mode: 'insensitive' }
 //     if (country) where.country = { contains: country, mode: 'insensitive' }
-
 //     // Property filters
 //     if (type) where.type = type
 //     if (bedrooms) where.bedrooms = { gte: parseInt(bedrooms) }
 //     if (bathrooms) where.bathrooms = { gte: parseInt(bathrooms) }
 //     if (maxGuests) where.maxGuests = { gte: parseInt(maxGuests) }
-
 //     // Price range
 //     if (minPrice || maxPrice) {
 //       where.baseRate = {}
 //       if (minPrice) where.baseRate.gte = parseFloat(minPrice)
 //       if (maxPrice) where.baseRate.lte = parseFloat(maxPrice)
 //     }
-
 //     // Amenities filter
 //     if (amenities) {
 //       const amenityList = amenities.split(',').map((a: string) => a.trim())
@@ -124,7 +114,6 @@
 //         hasEvery: amenityList,
 //       }
 //     }
-
 //     // Availability filter
 //     if (checkIn && checkOut) {
 //       where.NOT = {
@@ -141,14 +130,12 @@
 //         },
 //       }
 //     }
-
 //     // Geographic search
 //     let distanceFilter = {}
 //     if (latitude && longitude) {
 //       const lat = parseFloat(latitude)
 //       const lng = parseFloat(longitude)
 //       const radiusInDegrees = parseFloat(radius) / 111 // Rough conversion km to degrees
-
 //       distanceFilter = {
 //         latitude: {
 //           gte: lat - radiusInDegrees,
@@ -161,7 +148,6 @@
 //       }
 //       Object.assign(where, distanceFilter)
 //     }
-
 //     // Build order by clause
 //     let orderBy: any = {}
 //     switch (sortBy) {
@@ -185,7 +171,6 @@
 //         orderBy = { createdAt: 'desc' }
 //         break
 //     }
-
 //     // Execute search
 //     const [properties, total, facets] = await Promise.all([
 //       prisma.property.findMany({
@@ -245,14 +230,12 @@
 //         }),
 //       ]),
 //     ])
-
 //     // Process properties with calculated fields
 //     const processedProperties = properties.map(property => {
 //       const ratings = property.reviews.map(r => r.rating)
 //       const averageRating = ratings.length > 0 
 //         ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
 //         : 0
-
 //       // Calculate distance if lat/lng provided
 //       let distance = null
 //       if (latitude && longitude) {
@@ -260,7 +243,6 @@
 //         const lng1 = parseFloat(longitude)
 //         const lat2 = property.latitude
 //         const lng2 = property.longitude
-
 //         if (lat2 && lng2) {
 //           // Haversine formula
 //           const R = 6371 // Earth's radius in km
@@ -273,7 +255,6 @@
 //           distance = R * c
 //         }
 //       }
-
 //       return {
 //         ...property,
 //         averageRating: Math.round(averageRating * 10) / 10,
@@ -286,7 +267,6 @@
 //         _count: undefined,
 //       }
 //     })
-
 //     // Apply sorting that requires calculated fields
 //     if (sortBy === 'rating') {
 //       processedProperties.sort((a, b) => {
@@ -308,10 +288,8 @@
 //           : a.popularityScore - b.popularityScore
 //       })
 //     }
-
 //     const [cities, types, priceRange] = facets
 //     const pagination = calculatePagination(validPage, validLimit, total)
-
 //     res.json({
 //       success: true,
 //       data: {
@@ -346,7 +324,6 @@
 //     })
 //   })
 // )
-
 // /**
 //  * @route   GET /api/v1/search/suggestions
 //  * @desc    Get search suggestions for autocomplete
@@ -361,12 +338,10 @@
 //   validate,
 //   asyncHandler(async (req: any, res: any) => {
 //     const { q, type = 'all' } = req.query
-
 //     const suggestions: any = {
 //       cities: [],
 //       properties: [],
 //     }
-
 //     if (type === 'cities' || type === 'all') {
 //       // City suggestions
 //       const cities = await prisma.property.groupBy({
@@ -383,14 +358,12 @@
 //         orderBy: { _count: { city: 'desc' } },
 //         take: 5,
 //       })
-
 //       suggestions.cities = cities.map(city => ({
 //         text: `${city.city}, ${city.state}, ${city.country}`,
 //         type: 'city',
 //         count: city._count.city,
 //       }))
 //     }
-
 //     if (type === 'properties' || type === 'all') {
 //       // Property suggestions
 //       const properties = await prisma.property.findMany({
@@ -412,7 +385,6 @@
 //         },
 //         take: 5,
 //       })
-
 //       suggestions.properties = properties.map(property => ({
 //         id: property.id,
 //         text: property.name,
@@ -423,14 +395,12 @@
 //         image: property.images?.[0] || null,
 //       }))
 //     }
-
 //     res.json({
 //       success: true,
 //       data: suggestions,
 //     })
 //   })
 // )
-
 // /**
 //  * @route   GET /api/v1/search/filters
 //  * @desc    Get available filters for search
@@ -455,7 +425,6 @@
 //         orderBy: { _count: { city: 'desc' } },
 //         take: 50,
 //       }),
-
 //       // Property types
 //       prisma.property.groupBy({
 //         by: ['type'],
@@ -463,7 +432,6 @@
 //         _count: { type: true },
 //         orderBy: { _count: { type: 'desc' } },
 //       }),
-
 //       // Price range
 //       prisma.property.aggregate({
 //         where: { status: PropertyStatus.ACTIVE },
@@ -471,7 +439,6 @@
 //         _max: { baseRate: true },
 //         _avg: { baseRate: true },
 //       }),
-
 //       // Common amenities
 //       prisma.$queryRaw`
 //         SELECT 
@@ -484,7 +451,6 @@
 //         ORDER BY count DESC
 //         LIMIT 20
 //       `,
-
 //       // Bedroom options
 //       prisma.property.groupBy({
 //         by: ['bedrooms'],
@@ -492,7 +458,6 @@
 //         _count: { bedrooms: true },
 //         orderBy: { bedrooms: 'asc' },
 //       }),
-
 //       // Bathroom options
 //       prisma.property.groupBy({
 //         by: ['bathrooms'],
@@ -501,7 +466,6 @@
 //         orderBy: { bathrooms: 'asc' },
 //       }),
 //     ])
-
 //     res.json({
 //       success: true,
 //       data: {
@@ -552,7 +516,6 @@
 //     })
 //   })
 // )
-
 // /**
 //  * @route   GET /api/v1/search/popular
 //  * @desc    Get popular destinations and properties
@@ -583,7 +546,6 @@
 //         ORDER BY booking_count DESC, property_count DESC
 //         LIMIT 8
 //       `,
-
 //       // Featured properties (high rated with recent bookings)
 //       prisma.property.findMany({
 //         where: {
@@ -617,7 +579,6 @@
 //           createdAt: 'desc',
 //         },
 //       }),
-
 //       // Trending searches (mock data - would be based on search analytics)
 //       Promise.resolve([
 //         { query: 'Lagos Apartments', count: 1250 },
@@ -627,14 +588,12 @@
 //         { query: 'Ibadan Villas', count: 420 },
 //       ]),
 //     ])
-
 //     // Process featured properties
 //     const processedFeatured = featuredProperties.map(property => {
 //       const ratings = property.reviews.map(r => r.rating)
 //       const averageRating = ratings.length > 0 
 //         ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
 //         : 0
-
 //       return {
 //         id: property.id,
 //         name: property.name,
@@ -648,7 +607,6 @@
 //         bookingCount: property._count.bookings,
 //       }
 //     })
-
 //     res.json({
 //       success: true,
 //       data: {
@@ -666,7 +624,6 @@
 //     })
 //   })
 // )
-
 // /**
 //  * @route   POST /api/v1/search/save
 //  * @desc    Save search query for user
@@ -684,9 +641,7 @@
 //     if (!req.user) {
 //       throw new AppError('Authentication required to save searches', 401)
 //     }
-
 //     const { name, query: searchQuery } = req.body
-
 //     const savedSearch = await prisma.savedSearch.create({
 //       data: {
 //         userId: req.user.id,
@@ -695,7 +650,6 @@
 //         resultCount: 0, // Could be populated from the actual search
 //       },
 //     })
-
 //     res.status(201).json({
 //       success: true,
 //       message: 'Search saved successfully',
@@ -703,7 +657,6 @@
 //     })
 //   })
 // )
-
 // /**
 //  * @route   GET /api/v1/search/saved
 //  * @desc    Get user's saved searches
@@ -716,17 +669,14 @@
 //     if (!req.user) {
 //       throw new AppError('Authentication required to view saved searches', 401)
 //     }
-
 //     const savedSearches = await prisma.savedSearch.findMany({
 //       where: { userId: req.user.id },
 //       orderBy: { createdAt: 'desc' },
 //     })
-
 //     res.json({
 //       success: true,
 //       data: savedSearches,
 //     })
 //   })
 // )
-
 // export default router

@@ -45,7 +45,7 @@ const getDateRanges = () => {
  */
 router.get(
   '/customer',
-  requireAuth(UserRole.CUSTOMER),
+  requireAuth({ role: UserRole.CUSTOMER }),
   asyncHandler(async (req: any, res: any) => {
     const userId = req.user.id
     const { thisMonth, thisYear } = getDateRanges()
@@ -141,7 +141,7 @@ router.get(
           customerId: userId,
           status: BookingStatus.COMPLETED,
           checkOutDate: { lt: new Date() },
-          review: { none: {} },
+          review: null,
         },
         orderBy: { checkOutDate: 'desc' },
         take: 5,
@@ -244,7 +244,7 @@ router.get(
  */
 router.get(
   '/host',
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
     const hostId = req.user.id
     const { today, thisWeek, thisMonth, thisYear } = getDateRanges()
@@ -488,7 +488,7 @@ router.get(
  */
 router.get(
   '/admin',
-  requireAuth(UserRole.ADMIN),
+  requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
     const { today, yesterday, thisWeek, thisMonth, thisYear } = getDateRanges()
 
@@ -743,7 +743,7 @@ router.get(
           where: {
             customerId: req.user.id,
             status: BookingStatus.COMPLETED,
-            review: { none: {} },
+            review: null,
           },
         })
 

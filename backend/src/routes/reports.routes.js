@@ -1,3 +1,4 @@
+"use strict";
 // // MAR ABU PROJECTS SERVICES LLC - Report Generation Routes
 // import { Router } from 'express'
 // import { query, body, validationResult } from 'express-validator'
@@ -11,9 +12,7 @@
 // import PDFDocument from 'pdfkit'
 // import Excel from 'exceljs'
 // import path from 'path'
-
 // const router = Router()
-
 // // Validation middleware
 // const validate = (req: any, res: any, next: any) => {
 //   const errors = validationResult(req)
@@ -26,12 +25,10 @@
 //   }
 //   next()
 // }
-
 // // Helper function to get date range
 // const getDateRange = (startDate?: string, endDate?: string, period?: string) => {
 //   let start: Date
 //   let end: Date = new Date()
-
 //   if (startDate && endDate) {
 //     start = new Date(startDate)
 //     end = new Date(endDate)
@@ -63,14 +60,11 @@
 //   } else {
 //     start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000)
 //   }
-
 //   return { start, end }
 // }
-
 // // ===============================
 // // BOOKING REPORTS
 // // ===============================
-
 // /**
 //  * @route   GET /api/v1/reports/bookings
 //  * @desc    Generate booking reports
@@ -101,9 +95,7 @@
 //       status,
 //       hostId,
 //     } = req.query;
-
 //     const { start, end } = getDateRange(startDate, endDate, period);
-
 //     // Build where clause
 //     const where: any = {
 //       createdAt: {
@@ -111,17 +103,14 @@
 //         lte: end,
 //       },
 //     };
-
 //     // Apply filters based on user role
 //     if (req.user.role === UserRole.ADMIN) {
 //       where.property = { hostId: req.user.id };
 //     } else if (hostId && req.user.role === UserRole.ADMIN) {
 //       where.property = { hostId };
 //     }
-
 //     if (propertyId) where.propertyId = propertyId;
 //     if (status) where.status = status;
-
 //     // Get booking data
 //     const [bookings, summary] = await Promise.all([
 //       prisma.booking.findMany({
@@ -168,7 +157,6 @@
 //         _sum: { total: true },
 //       }),
 //     ]);
-
 //     // Calculate summary
 //     const totalBookings = summary.reduce(
 //       (sum, item) => sum + item._count.status,
@@ -180,7 +168,6 @@
 //     );
 //     const averageBookingValue =
 //       totalBookings > 0 ? totalRevenue / totalBookings : 0;
-
 //     const statusBreakdown = summary.reduce(
 //       (acc, item) => {
 //         acc[item.status] = {
@@ -191,7 +178,6 @@
 //       },
 //       {} as Record<string, any>
 //     );
-
 //     const reportData = {
 //       meta: {
 //         title: "Booking Report",
@@ -231,7 +217,6 @@
 //         completeAt: booking.completedAt,
 //       })),
 //     };
-
 //     auditLog(
 //       "BOOKING_REPORT_GENERATED",
 //       req.user.id,
@@ -243,7 +228,6 @@
 //       },
 //       req.ip
 //     );
-
 //     if (format === "json") {
 //       res.json({
 //         success: true,
@@ -256,11 +240,9 @@
 //     }
 //   })
 // );
-
 // // ===============================
 // // REVENUE REPORTS
 // // ===============================
-
 // /**
 //  * @route   GET /api/v1/reports/revenue
 //  * @desc    Generate revenue reports
@@ -293,9 +275,7 @@
 //       propertyId,
 //       hostId,
 //     } = req.query;
-
 //     const { start, end } = getDateRange(startDate, endDate, period);
-
 //     // Build where clause
 //     const where: any = {
 //       paymentStatus: PaymentStatus.PAID,
@@ -304,19 +284,15 @@
 //         lte: end,
 //       },
 //     };
-
 //     // Apply filters based on user role
 //     if (req.user.role === UserRole.ADMIN) {
 //       where.property = { hostId: req.user.id };
 //     } else if (hostId && req.user.role === UserRole.ADMIN) {
 //       where.property = { hostId };
 //     }
-
 //     if (propertyId) where.propertyId = propertyId;
-
 //     // Get revenue data
 //     let revenueData: any[] = [];
-
 //     if (groupBy === "day") {
 //       revenueData = await prisma.$queryRaw`
 //         SELECT 
@@ -376,7 +352,6 @@
 //         _avg: { total: true },
 //         orderBy: { _sum: { total: "desc" } },
 //       });
-
 //       // Get property details
 //       const propertyIds = propertyRevenue.map((p) => p.propertyId);
 //       const properties = await prisma.property.findMany({
@@ -394,7 +369,6 @@
 //           },
 //         },
 //       });
-
 //       revenueData = propertyRevenue.map((revenue) => {
 //         const property = properties.find((p) => p.id === revenue.propertyId);
 //         return {
@@ -414,7 +388,6 @@
 //         };
 //       });
 //     }
-
 //     // Calculate summary
 //     const totalRevenue = await prisma.booking.aggregate({
 //       where,
@@ -427,7 +400,6 @@
 //       _count: true,
 //       _avg: { total: true },
 //     });
-
 //     const reportData = {
 //       meta: {
 //         title: "Revenue Report",
@@ -447,7 +419,6 @@
 //       },
 //       data: revenueData,
 //     };
-
 //     auditLog(
 //       "REVENUE_REPORT_GENERATED",
 //       req.user.id,
@@ -460,7 +431,6 @@
 //       },
 //       req.ip
 //     );
-
 //     if (format === "json") {
 //       res.json({
 //         success: true,
@@ -472,11 +442,9 @@
 //     }
 //   })
 // );
-
 // // ===============================
 // // PROPERTY PERFORMANCE REPORTS
 // // ===============================
-
 // /**
 //  * @route   GET /api/v1/reports/property-performance
 //  * @desc    Generate property performance reports
@@ -503,22 +471,17 @@
 //       propertyId,
 //       hostId,
 //     } = req.query;
-
 //     const { start, end } = getDateRange(startDate, endDate, period);
-
 //     // Build where clause for properties
 //     const propertyWhere: any = {
 //       status: PropertyStatus.ACTIVE,
 //     };
-
 //     if (req.user.role === UserRole.ADMIN) {
 //       propertyWhere.hostId = req.user.id;
 //     } else if (hostId && req.user.role === UserRole.ADMIN) {
 //       propertyWhere.hostId = hostId;
 //     }
-
 //     if (propertyId) propertyWhere.id = propertyId;
-
 //     // Get property performance data
 //     const properties = await prisma.property.findMany({
 //       where: propertyWhere,
@@ -574,7 +537,6 @@
 //         },
 //       },
 //     });
-
 //     // Process property performance data
 //     const performanceData = properties.map((property) => {
 //       const totalBookings = property.bookings.length;
@@ -589,7 +551,6 @@
 //       const totalRevenue = property.bookings
 //         .filter((b) => b.paymentStatus === PaymentStatus.PAID)
 //         .reduce((sum, b) => sum + b.total, 0);
-
 //       const totalNights = property.bookings.reduce(
 //         (sum, b) => sum + b.nights,
 //         0
@@ -598,23 +559,19 @@
 //         (sum, b) => sum + b.adults + (b.children || 0),
 //         0
 //       );
-
 //       const ratings = property.reviews.map((r) => r.rating);
 //       const avgRating =
 //         ratings.length > 0
 //           ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
 //           : 0;
-
 //       // Calculate occupancy rate (simplified)
 //       const daysInPeriod = Math.ceil(
 //         (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
 //       );
 //       const occupancyRate = (totalNights / daysInPeriod) * 100;
-
 //       // Calculate conversion rate
 //       const conversionRate =
 //         totalBookings > 0 ? (confirmedBookings / totalBookings) * 100 : 0;
-
 //       return {
 //         propertyId: property.id,
 //         propertyName: property.name,
@@ -645,7 +602,6 @@
 //         },
 //       };
 //     });
-
 //     // Sort by performance score (revenue + rating)
 //     performanceData.sort((a, b) => {
 //       const scoreA =
@@ -654,7 +610,6 @@
 //         b.metrics.totalRevenue * 0.7 + b.metrics.avgRating * 1000 * 0.3;
 //       return scoreB - scoreA;
 //     });
-
 //     const reportData = {
 //       meta: {
 //         title: "Property Performance Report",
@@ -688,7 +643,6 @@
 //       },
 //       data: performanceData,
 //     };
-
 //     auditLog(
 //       "PROPERTY_PERFORMANCE_REPORT_GENERATED",
 //       req.user.id,
@@ -700,7 +654,6 @@
 //       },
 //       req.ip
 //     );
-
 //     if (format === "json") {
 //       res.json({
 //         success: true,
@@ -712,11 +665,9 @@
 //     }
 //   })
 // );
-
 // // ===============================
 // // CUSTOMER REPORTS
 // // ===============================
-
 // /**
 //  * @route   GET /api/v1/reports/customers
 //  * @desc    Generate customer analysis reports
@@ -741,9 +692,7 @@
 //       format = "json",
 //       segment = "all",
 //     } = req.query;
-
 //     const { start, end } = getDateRange(startDate, endDate, period);
-
 //     // Get customer data
 //     const customers = await prisma.user.findMany({
 //       where: {
@@ -770,7 +719,6 @@
 //         },
 //       },
 //     });
-
 //     // Process customer data
 //     const customerData = customers.map((customer) => {
 //       const totalSpent = customer.bookings.reduce((sum, b) => sum + b.total, 0);
@@ -781,18 +729,15 @@
 //         customer.bookings.length > 0
 //           ? totalSpent / customer.bookings.length
 //           : 0;
-
 //       const ratings = customer.reviews.map((r) => r.rating);
 //       const avgRating =
 //         ratings.length > 0
 //           ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
 //           : 0;
-
 //       // Determine customer segment
 //       let customerSegment = "new";
 //       if (totalSpent > 100000) customerSegment = "vip";
 //       else if (customer.bookings.length > 1) customerSegment = "returning";
-
 //       return {
 //         customerId: customer.id,
 //         firstName: customer.firstName,
@@ -815,13 +760,11 @@
 //         },
 //       };
 //     });
-
 //     // Filter by segment if specified
 //     const filteredData =
 //       segment === "all"
 //         ? customerData
 //         : customerData.filter((c) => c.segment === segment);
-
 //     const reportData = {
 //       meta: {
 //         title: "Customer Analysis Report",
@@ -849,7 +792,6 @@
 //       },
 //       data: filteredData,
 //     };
-
 //     auditLog(
 //       "CUSTOMER_REPORT_GENERATED",
 //       req.user.id,
@@ -861,7 +803,6 @@
 //       },
 //       req.ip
 //     );
-
 //     if (format === "json") {
 //       res.json({
 //         success: true,
@@ -873,20 +814,16 @@
 //     }
 //   })
 // );
-
 // // ===============================
 // // HELPER FUNCTION FOR FILE GENERATION
 // // ===============================
-
 // async function generateFileReport(data: any, format: string, fileName: string, res: any) {
 //   const uploadsDir = path.join(process.cwd(), 'uploads', 'reports')
-  
 //   // Ensure directory exists
 //   const fs = require('fs')
 //   if (!fs.existsSync(uploadsDir)) {
 //     fs.mkdirSync(uploadsDir, { recursive: true })
 //   }
-
 //   switch (format) {
 //     case 'csv':
 //       await generateCSVReport(data, fileName, uploadsDir, res)
@@ -901,85 +838,66 @@
 //       throw new AppError('Unsupported format', 400)
 //   }
 // }
-
 // async function generateCSVReport(data: any, fileName: string, uploadsDir: string, res: any) {
 //   const filePath = path.join(uploadsDir, `${fileName}.csv`)
-  
 //   if (data.data.length > 0) {
 //     const csvWriter = createObjectCsvWriter({
 //       path: filePath,
 //       header: Object.keys(data.data[0]).map(key => ({ id: key, title: key })),
 //     })
-    
 //     await csvWriter.writeRecords(data.data)
 //   }
-
 //   res.setHeader('Content-Type', 'text/csv')
 //   res.setHeader('Content-Disposition', `attachment; filename="${fileName}.csv"`)
 //   res.sendFile(filePath)
 // }
-
 // async function generateExcelReport(data: any, fileName: string, uploadsDir: string, res: any) {
 //   const filePath = path.join(uploadsDir, `${fileName}.xlsx`)
 //   const workbook = new Excel.Workbook()
-  
 //   // Summary sheet
 //   const summarySheet = workbook.addWorksheet('Summary')
 //   summarySheet.addRow(['Report Title', data.meta.title])
 //   summarySheet.addRow(['Generated At', data.meta.generatedAt])
 //   summarySheet.addRow(['Generated By', data.meta.generatedBy])
 //   summarySheet.addRow([]) // Empty row
-  
 //   // Add summary data
 //   Object.entries(data.summary).forEach(([key, value]) => {
 //     summarySheet.addRow([key, value])
 //   })
-
 //   // Data sheet
 //   if (data.data.length > 0) {
 //     const dataSheet = workbook.addWorksheet('Data')
 //     const headers = Object.keys(data.data[0])
 //     dataSheet.addRow(headers)
-    
 //     data.data.forEach((row: any) => {
 //       dataSheet.addRow(headers.map(header => row[header]))
 //     })
 //   }
-
 //   await workbook.xlsx.writeFile(filePath)
-  
 //   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 //   res.setHeader('Content-Disposition', `attachment; filename="${fileName}.xlsx"`)
 //   res.sendFile(filePath)
 // }
-
 // async function generatePDFReport(data: any, fileName: string, uploadsDir: string, res: any) {
 //   const filePath = path.join(uploadsDir, `${fileName}.pdf`)
 //   const doc = new PDFDocument()
-  
 //   doc.pipe(require('fs').createWriteStream(filePath))
-  
 //   // Header
 //   doc.fontSize(20).text(data.meta.title, 50, 50)
 //   doc.fontSize(12).text(`Generated: ${data.meta.generatedAt}`, 50, 80)
 //   doc.text(`Generated by: ${data.meta.generatedBy}`, 50, 100)
-  
 //   // Summary
 //   doc.fontSize(16).text('Summary', 50, 140)
 //   let yPosition = 160
-  
 //   Object.entries(data.summary).forEach(([key, value]) => {
 //     doc.fontSize(12).text(`${key}: ${value}`, 50, yPosition)
 //     yPosition += 20
 //   })
-  
 //   doc.end()
-  
 //   res.setHeader('Content-Type', 'application/pdf')
 //   res.setHeader('Content-Disposition', `attachment; filename="${fileName}.pdf"`)
 //   res.sendFile(filePath)
 // }
-
 // /**
 //  * @route   GET /api/v1/reports/available
 //  * @desc    Get available report types
@@ -1019,17 +937,14 @@
 //         formats: ['json', 'csv', 'excel', 'pdf'],
 //       },
 //     ]
-
 //     // Filter reports based on user role
 //     const availableReports = reports.filter(report => 
 //       report.access.includes(req.user.role)
 //     )
-
 //     res.json({
 //       success: true,
 //       data: availableReports,
 //     })
 //   })
 // )
-
 // export default router

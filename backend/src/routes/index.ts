@@ -8,16 +8,16 @@ import adminRoutes from './admin.routes'
 import userRoutes from './user.routes'
 import propertyRoutes from './property.routes'
 import bookingRoutes from './booking.routes'
-import paymentRoutes from './payment.routes'
+// import paymentRoutes from './payment.routes'
 import reviewRoutes from './review.routes'
 import notificationRoutes from './notification.routes'
 import receiptRoutes from './receipt.routes'
-import uploadRoutes from './upload.routes'
-import searchRoutes from './search.routes'
+// import uploadRoutes from './upload.routes'
+// import searchRoutes from './search.routes'
 import analyticsRoutes from './analytics.routes'
 import dashboardRoutes from './dashboard.routes'
-import reportsRoutes from './reports.routes'
-import settingsRoutes from './settings.routes'
+// import reportsRoutes from './reports.routes'
+// import settingsRoutes from './settings.routes'
 
 const router = Router()
 
@@ -202,7 +202,7 @@ router.use('/properties', propertyRoutes)
 router.use('/bookings', bookingRoutes)
 
 // Payment routes with specific rate limiting
-router.use('/payments', paymentLimiter, paymentRoutes)
+// router.use('/payments', paymentLimiter, paymentRoutes)
 
 // Review routes
 router.use('/reviews', reviewRoutes)
@@ -214,10 +214,10 @@ router.use('/notifications', notificationRoutes)
 router.use('/receipts', receiptRoutes)
 
 // Upload routes with specific rate limiting
-router.use('/uploads', uploadLimiter, uploadRoutes)
+// router.use('/uploads', uploadLimiter, uploadRoutes)
 
 // Search routes
-router.use('/search', searchRoutes)
+// router.use('/search', searchRoutes)
 
 // Analytics routes
 router.use('/analytics', analyticsRoutes)
@@ -226,10 +226,10 @@ router.use('/analytics', analyticsRoutes)
 router.use('/dashboard', dashboardRoutes)
 
 // Reports routes
-router.use('/reports', reportsRoutes)
+// router.use('/reports', reportsRoutes)
 
 // Settings routes
-router.use('/settings', settingsRoutes)
+// router.use('/settings', settingsRoutes)
 
 // Admin routes (should be last for security)
 router.use('/admin', adminRoutes)
