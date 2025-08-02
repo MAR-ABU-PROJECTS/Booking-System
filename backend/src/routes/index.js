@@ -12,16 +12,16 @@ const admin_routes_1 = __importDefault(require("./admin.routes"));
 const user_routes_1 = __importDefault(require("./user.routes"));
 const property_routes_1 = __importDefault(require("./property.routes"));
 const booking_routes_1 = __importDefault(require("./booking.routes"));
-const payment_routes_1 = __importDefault(require("./payment.routes"));
+// import paymentRoutes from './payment.routes'
 const review_routes_1 = __importDefault(require("./review.routes"));
 const notification_routes_1 = __importDefault(require("./notification.routes"));
 const receipt_routes_1 = __importDefault(require("./receipt.routes"));
-const upload_routes_1 = __importDefault(require("./upload.routes"));
-const search_routes_1 = __importDefault(require("./search.routes"));
+// import uploadRoutes from './upload.routes'
+// import searchRoutes from './search.routes'
 const analytics_routes_1 = __importDefault(require("./analytics.routes"));
 const dashboard_routes_1 = __importDefault(require("./dashboard.routes"));
-const reports_routes_1 = __importDefault(require("./reports.routes"));
-const settings_routes_1 = __importDefault(require("./settings.routes"));
+// import reportsRoutes from './reports.routes'
+// import settingsRoutes from './settings.routes'
 const router = (0, express_1.Router)();
 // ===============================
 // RATE LIMITING
@@ -189,7 +189,7 @@ router.use('/properties', property_routes_1.default);
 // Booking routes
 router.use('/bookings', booking_routes_1.default);
 // Payment routes with specific rate limiting
-router.use('/payments', paymentLimiter, payment_routes_1.default);
+// router.use('/payments', paymentLimiter, paymentRoutes)
 // Review routes
 router.use('/reviews', review_routes_1.default);
 // Notification routes
@@ -197,17 +197,17 @@ router.use('/notifications', notification_routes_1.default);
 // Receipt routes
 router.use('/receipts', receipt_routes_1.default);
 // Upload routes with specific rate limiting
-router.use('/uploads', uploadLimiter, upload_routes_1.default);
+// router.use('/uploads', uploadLimiter, uploadRoutes)
 // Search routes
-router.use('/search', search_routes_1.default);
+// router.use('/search', searchRoutes)
 // Analytics routes
 router.use('/analytics', analytics_routes_1.default);
 // Dashboard routes
 router.use('/dashboard', dashboard_routes_1.default);
 // Reports routes
-router.use('/reports', reports_routes_1.default);
+// router.use('/reports', reportsRoutes)
 // Settings routes
-router.use('/settings', settings_routes_1.default);
+// router.use('/settings', settingsRoutes)
 // Admin routes (should be last for security)
 router.use('/admin', admin_routes_1.default);
 // ===============================

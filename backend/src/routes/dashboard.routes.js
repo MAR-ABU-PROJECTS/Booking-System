@@ -47,7 +47,7 @@ const getDateRanges = () => {
  * @desc    Get customer dashboard data
  * @access  Customer
  */
-router.get('/customer', (0, authservice_1.requireAuth)(client_1.UserRole.CUSTOMER), (0, error_middleware_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/customer', (0, authservice_1.requireAuth)({ role: client_1.UserRole.CUSTOMER }), (0, error_middleware_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.user.id;
     const { thisMonth, thisYear } = getDateRanges();
     const [totalBookings, upcomingBookings, recentBookings, favoriteProperties, reviewsToWrite, totalSpent, memberSince, loyaltyPoints,] = yield Promise.all([
@@ -128,7 +128,7 @@ router.get('/customer', (0, authservice_1.requireAuth)(client_1.UserRole.CUSTOME
                 customerId: userId,
                 status: client_1.BookingStatus.COMPLETED,
                 checkOutDate: { lt: new Date() },
-                review: { none: {} },
+                review: null,
             },
             orderBy: { checkOutDate: 'desc' },
             take: 5,
@@ -211,7 +211,7 @@ router.get('/customer', (0, authservice_1.requireAuth)(client_1.UserRole.CUSTOME
  * @desc    Get property host dashboard data
  * @access  Property Host
  */
-router.get('/host', (0, authservice_1.requireAuth)(client_1.UserRole.ADMIN), (0, error_middleware_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/host', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const hostId = req.user.id;
     const { today, thisWeek, thisMonth, thisYear } = getDateRanges();
     const [properties, totalBookings, pendingBookings, recentBookings, earnings, monthlyEarnings, upcomingCheckIns, recentReviews, occupancyRate,] = yield Promise.all([
@@ -419,7 +419,7 @@ router.get('/host', (0, authservice_1.requireAuth)(client_1.UserRole.ADMIN), (0,
  * @desc    Get admin dashboard data
  * @access  Admin
  */
-router.get('/admin', (0, authservice_1.requireAuth)(client_1.UserRole.ADMIN), (0, error_middleware_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/admin', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { today, yesterday, thisWeek, thisMonth, thisYear } = getDateRanges();
     const [userStats, propertyStats, bookingStats, revenueStats, dailyMetrics, pendingApprovals, systemHealth, topPerformers,] = yield Promise.all([
         // User statistics
@@ -641,7 +641,7 @@ router.get('/quick-actions', (0, authservice_1.requireAuth)(), (0, error_middlew
                 where: {
                     customerId: req.user.id,
                     status: client_1.BookingStatus.COMPLETED,
-                    review: { none: {} },
+                    review: null,
                 },
             });
             actions.push({ type: 'search', label: 'Search Properties', count: 0, priority: 'high' }, { type: 'bookings', label: 'My Bookings', count: upcomingBookings, priority: 'medium' }, { type: 'reviews', label: 'Write Reviews', count: pendingReviews, priority: 'low' }, { type: 'favorites', label: 'My Favorites', count: 0, priority: 'low' });

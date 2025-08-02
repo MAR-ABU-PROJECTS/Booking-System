@@ -112,8 +112,13 @@ class PropertyService {
                 // Create property with amenities
                 const { amenities } = validatedData, propertyFields = __rest(validatedData, ["amenities"]);
                 const property = yield prisma.property.create({
-                    data: Object.assign(Object.assign({}, propertyFields), { hostId, amenities: {
-                            create: amenities,
+                    data: Object.assign(Object.assign({}, propertyFields), { hostId, currency: "NGN", propertyAmenities: {
+                            create: amenities.map(amenity => ({
+                                name: amenity.name,
+                                category: amenity.category,
+                                icon: amenity.icon,
+                                description: amenity.description
+                            })),
                         } }),
                     include: {
                         host: {
@@ -124,10 +129,10 @@ class PropertyService {
                                 email: true,
                             },
                         },
-                        images: {
+                        propertyImages: {
                             orderBy: { order: "asc" },
                         },
-                        amenities: true,
+                        propertyAmenities: true,
                     },
                 });
                 // Log audit
@@ -164,10 +169,10 @@ class PropertyService {
                             email: true,
                         },
                     },
-                    images: {
+                    propertyImages: {
                         orderBy: { order: "asc" },
                     },
-                    amenities: true,
+                    propertyAmenities: true,
                     reviews: {
                         where: { approved: true },
                         select: { rating: true },
@@ -210,10 +215,7 @@ class PropertyService {
                 const updatedProperty = yield prisma.property.update({
                     where: { id: propertyId },
                     data: Object.assign(Object.assign({}, propertyFields), (amenities && {
-                        amenities: {
-                            deleteMany: {},
-                            create: amenities,
-                        },
+                        amenities: amenities.map(a => a.name),
                     })),
                     include: {
                         host: {
@@ -224,10 +226,10 @@ class PropertyService {
                                 email: true,
                             },
                         },
-                        images: {
+                        propertyImages: {
                             orderBy: { order: "asc" },
                         },
-                        amenities: true,
+                        propertyAmenities: true,
                     },
                 });
                 // Log audit
@@ -263,7 +265,7 @@ class PropertyService {
                 where: {
                     propertyId,
                     status: {
-                        in: ["PENDING_APPROVAL", "APPROVED", "CONFIRMED", "CHECKED_IN"],
+                        in: ["PENDING", "APPROVED", "CONFIRMED", "CHECKED_IN"],
                     },
                 },
             });
@@ -391,11 +393,11 @@ class PropertyService {
                                     email: true,
                                 },
                             },
-                            images: {
+                            propertyImages: {
                                 where: { isMain: true },
                                 take: 1,
                             },
-                            amenities: true,
+                            propertyAmenities: true,
                             reviews: {
                                 where: { approved: true },
                                 select: { rating: true },
@@ -452,10 +454,10 @@ class PropertyService {
                             email: true,
                         },
                     },
-                    images: {
+                    propertyImages: {
                         orderBy: { order: "asc" },
                     },
-                    amenities: true,
+                    propertyAmenities: true,
                     reviews: {
                         where: { approved: true },
                         select: { rating: true },
@@ -549,16 +551,16 @@ class PropertyService {
                 where: {
                     propertyId,
                     AND: [
-                        { checkIn: { lt: checkOutDate } },
-                        { checkOut: { gt: checkInDate } },
+                        { checkInDate: { lt: checkOutDate } },
+                        { checkOutDate: { gt: checkInDate } },
                         {
                             status: {
-                                in: ["PENDING_APPROVAL", "APPROVED", "CONFIRMED", "CHECKED_IN"],
+                                in: ["PENDING", "APPROVED", "CONFIRMED", "CHECKED_IN"],
                             },
                         },
                     ],
                 },
-                select: { checkIn: true, checkOut: true },
+                select: { checkInDate: true, checkOutDate: true },
             });
             if (existingBookings.length > 0) {
                 return { available: false };
@@ -636,8 +638,8 @@ class PropertyService {
                 prisma.booking.aggregate({
                     where: Object.assign({ propertyId }, (Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })),
                     _count: { id: true },
-                    _sum: { totalAmount: true, nights: true },
-                    _avg: { totalAmount: true },
+                    _sum: { total: true, nights: true },
+                    _avg: { total: true },
                 }),
                 // Revenue by month
                 prisma.booking.groupBy({
@@ -645,7 +647,7 @@ class PropertyService {
                     where: Object.assign({ propertyId, status: {
                             in: ["CONFIRMED", "CHECKED_IN", "CHECKED_OUT", "COMPLETED"],
                         } }, (Object.keys(dateFilter).length > 0 && { createdAt: dateFilter })),
-                    _sum: { totalAmount: true },
+                    _sum: { total: true },
                     _count: { id: true },
                 }),
                 // Review statistics
@@ -658,8 +660,8 @@ class PropertyService {
             return {
                 bookings: {
                     total: bookingStats._count.id || 0,
-                    totalRevenue: bookingStats._sum.totalAmount || 0,
-                    averageBookingValue: bookingStats._avg.totalAmount || 0,
+                    totalRevenue: bookingStats._sum.total || 0,
+                    averageBookingValue: bookingStats._avg.total || 0,
                     totalNights: bookingStats._sum.nights || 0,
                 },
                 reviews: {

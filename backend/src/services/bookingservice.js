@@ -180,7 +180,7 @@ class BookingService {
                 // Calculate pricing
                 const pricing = yield this.calculatePricing(propertyId, checkIn, checkOut, adults);
                 // Generate booking number
-                const bookingNumber = yield this.generateBookingNumber();
+                const bookingCode = yield this.generateBookingNumber();
                 // Calculate nights
                 const nights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) /
                     (1000 * 60 * 60 * 24));
@@ -284,6 +284,20 @@ class BookingService {
                     },
                     receipts: {
                         orderBy: { uploadedAt: "desc" },
+                        select: {
+                            id: true,
+                            fileName: true,
+                            fileUrl: true,
+                            amount: true,
+                            status: true,
+                            uploadedAt: true,
+                        },
+                    },
+                    review: {
+                        select: {
+                            id: true,
+                            rating: true,
+                        },
                     },
                 },
             });
@@ -568,7 +582,7 @@ class BookingService {
                         }, 1000);
                         break;
                     case "cancel":
-                        if ([client_1.BookingStatus.COMPLETED, client_1.BookingStatus.CANCELLED].includes(booking.status)) {
+                        if (["COMPLETED", "CANCELLED"].includes(booking.status)) {
                             throw new Error("Cannot cancel completed or already cancelled booking");
                         }
                         updateData.status = client_1.BookingStatus.CANCELLED;
