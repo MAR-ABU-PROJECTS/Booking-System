@@ -4,8 +4,8 @@
   "main": "server.ts",
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "build": "rimraf dist && tsc || true",
-    "start": "node dist/server.ts",
+    "build": "rimraf dist && tsc --noEmitOnError",
+    "start": "node dist/server.js",
     "render-build": "npm install && npm run build && prisma generate",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
