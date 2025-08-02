@@ -1,3 +1,4 @@
+"use strict";
 // // MAR ABU PROJECTS SERVICES LLC - Payment Processing Routes
 // import { Router } from 'express'
 // import { body, param, validationResult } from 'express-validator'
@@ -10,9 +11,7 @@
 // import { emailService } from '../services/emailservice'
 // // import { paystackService } from '../services/paystackservice'
 // // import { flutterwaveService } from '../services/flutterwaveservice'
-
 // const router = Router()
-
 // // Validation middleware
 // const validate = (req: any, res: any, next: any) => {
 //   const errors = validationResult(req)
@@ -25,11 +24,9 @@
 //   }
 //   next()
 // }
-
 // // ===============================
 // // PAYMENT INITIATION
 // // ===============================
-
 // /**
 //  * @route   POST /api/v1/payments/initialize
 //  * @desc    Initialize payment for a booking
@@ -46,7 +43,6 @@
 //   validate,
 //   asyncHandler(async (req: any, res: any) => {
 //     const { bookingId, paymentMethod, currency = 'NGN' } = req.body
-
 //     // Get booking details
 //     const booking = await prisma.booking.findUnique({
 //       where: { id: bookingId },
@@ -66,29 +62,23 @@
 //         },
 //       },
 //     })
-
 //     if (!booking) {
 //       throw new AppError('Booking not found', 404)
 //     }
-
 //     // Check if user owns the booking
 //     if (booking.customerId !== req.user.id) {
 //       throw new AppError('Not authorized to pay for this booking', 403)
 //     }
-
 //     // Check if booking is approved
 //     if (booking.status !== BookingStatus.APPROVED) {
 //       throw new AppError('Booking must be approved before payment', 400)
 //     }
-
 //     // Check if already paid
 //     if (booking.paymentStatus === PaymentStatus.PAID) {
 //       throw new AppError('Booking is already paid', 400)
 //     }
-
 //     // Generate payment reference
 //     const paymentReference = `MAR_${bookingId}_${Date.now()}`
-
 //     // Create payment record
 //     const payment = await prisma.payment.create({
 //       data: {
@@ -106,9 +96,7 @@
 //         },
 //       },
 //     })
-
 //     let paymentData: any = {}
-
 //     try {
 //       // Initialize payment with selected provider
 //       switch (paymentMethod) {
@@ -126,7 +114,6 @@
 //             },
 //           })
 //           break
-
 //         case PaymentMethod.FLUTTERWAVE:
 //           paymentData = await flutterwaveService.initializePayment({
 //             tx_ref: paymentReference,
@@ -148,7 +135,6 @@
 //             },
 //           })
 //           break
-
 //         case PaymentMethod.BANK_TRANSFER:
 //           paymentData = {
 //             payment_url: null,
@@ -167,11 +153,9 @@
 //             ],
 //           }
 //           break
-
 //         default:
 //           throw new AppError('Payment method not supported', 400)
 //       }
-
 //       // Update payment with provider response
 //       await prisma.payment.update({
 //         where: { id: payment.id },
@@ -180,7 +164,6 @@
 //           providerResponse: paymentData,
 //         },
 //       })
-
 //       auditLog('PAYMENT_INITIALIZED', req.user.id, {
 //         paymentId: payment.id,
 //         bookingId,
@@ -188,7 +171,6 @@
 //         paymentMethod,
 //         reference: paymentReference,
 //       }, req.ip)
-
 //       res.status(201).json({
 //         success: true,
 //         message: 'Payment initialized successfully',
@@ -210,16 +192,13 @@
 //         where: { id: payment.id },
 //         data: { status: PaymentStatus.FAILED },
 //       })
-
 //       throw new AppError('Failed to initialize payment', 500)
 //     }
 //   })
 // )
-
 // // ===============================
 // // PAYMENT VERIFICATION
 // // ===============================
-
 // /**
 //  * @route   POST /api/v1/payments/verify/:reference
 //  * @desc    Verify payment status
@@ -230,7 +209,6 @@
 //   requireAuth(),
 //   asyncHandler(async (req: any, res: any) => {
 //     const { reference } = req.params
-
 //     const payment = await prisma.payment.findUnique({
 //       where: { paymentReference: reference },
 //       include: {
@@ -260,29 +238,23 @@
 //         },
 //       },
 //     })
-
 //     if (!payment) {
 //       throw new AppError('Payment not found', 404)
 //     }
-
 //     // Check if user is authorized
 //     if (payment.booking.customerId !== req.user.id && req.user.role !== UserRole.ADMIN) {
 //       throw new AppError('Not authorized to verify this payment', 403)
 //     }
-
 //     let verificationResult: any = {}
-
 //     try {
 //       // Verify payment with provider
 //       switch (payment.paymentMethod) {
 //         case PaymentMethod.PAYSTACK:
 //           verificationResult = await paystackService.verifyPayment(reference)
 //           break
-
 //         case PaymentMethod.FLUTTERWAVE:
 //           verificationResult = await flutterwaveService.verifyPayment(reference)
 //           break
-
 //         case PaymentMethod.BANK_TRANSFER:
 //           // Bank transfer verification is done manually by admin
 //           if (req.user.role !== UserRole.ADMIN) {
@@ -290,15 +262,12 @@
 //           }
 //           verificationResult = { status: 'success', data: { status: 'successful' } }
 //           break
-
 //         default:
 //           throw new AppError('Payment method not supported for verification', 400)
 //       }
-
 //       const isSuccessful = verificationResult.status === 'success' && 
 //                           (verificationResult.data.status === 'successful' || 
 //                            verificationResult.data.status === 'success')
-
 //       if (isSuccessful) {
 //         // Update payment status
 //         await prisma.payment.update({
@@ -309,7 +278,6 @@
 //             providerResponse: verificationResult,
 //           },
 //         })
-
 //         // Update booking payment status
 //         await prisma.booking.update({
 //           where: { id: payment.bookingId },
@@ -319,7 +287,6 @@
 //             paidAt: new Date(),
 //           },
 //         })
-
 //         // Create notifications
 //         await Promise.all([
 //           // Notify customer
@@ -351,7 +318,6 @@
 //             },
 //           }),
 //         ])
-
 //         // Send email confirmations
 //         await Promise.all([
 //           emailService.sendPaymentConfirmation(
@@ -375,7 +341,6 @@
 //             }
 //           ),
 //         ])
-
 //         auditLog('PAYMENT_VERIFIED', req.user.id, {
 //           paymentId: payment.id,
 //           bookingId: payment.bookingId,
@@ -383,7 +348,6 @@
 //           reference,
 //           status: 'successful',
 //         }, req.ip)
-
 //         res.json({
 //           success: true,
 //           message: 'Payment verified successfully',
@@ -411,35 +375,29 @@
 //             providerResponse: verificationResult,
 //           },
 //         })
-
 //         auditLog('PAYMENT_FAILED', req.user.id, {
 //           paymentId: payment.id,
 //           bookingId: payment.bookingId,
 //           reference,
 //           reason: verificationResult.data?.gateway_response || 'Payment failed',
 //         }, req.ip)
-
 //         throw new AppError('Payment verification failed', 400)
 //       }
 //     } catch (error) {
 //       if (error instanceof AppError) {
 //         throw error
 //       }
-
 //       await prisma.payment.update({
 //         where: { id: payment.id },
 //         data: { status: PaymentStatus.FAILED },
 //       })
-
 //       throw new AppError('Payment verification failed', 500)
 //     }
 //   })
 // )
-
 // // ===============================
 // // PAYMENT WEBHOOK HANDLERS
 // // ===============================
-
 // /**
 //  * @route   POST /api/v1/payments/webhook/paystack
 //  * @desc    Handle Paystack webhook
@@ -450,23 +408,18 @@
 //   asyncHandler(async (req: any, res: any) => {
 //     const signature = req.headers['x-paystack-signature']
 //     const body = JSON.stringify(req.body)
-
 //     // Verify webhook signature
 //     const isValid = paystackService.verifyWebhookSignature(body, signature)
 //     if (!isValid) {
 //       throw new AppError('Invalid webhook signature', 400)
 //     }
-
 //     const { event, data } = req.body
-
 //     if (event === 'charge.success') {
 //       const reference = data.reference
-      
 //       const payment = await prisma.payment.findUnique({
 //         where: { paymentReference: reference },
 //         include: { booking: true },
 //       })
-
 //       if (payment && payment.status === PaymentStatus.PENDING) {
 //         // Update payment status
 //         await prisma.payment.update({
@@ -477,7 +430,6 @@
 //             providerResponse: data,
 //           },
 //         })
-
 //         // Update booking
 //         await prisma.booking.update({
 //           where: { id: payment.bookingId },
@@ -487,7 +439,6 @@
 //             paidAt: new Date(),
 //           },
 //         })
-
 //         auditLog('WEBHOOK_PAYMENT_SUCCESS', 'system', {
 //           paymentId: payment.id,
 //           bookingId: payment.bookingId,
@@ -496,11 +447,9 @@
 //         }, req.ip)
 //       }
 //     }
-
 //     res.status(200).json({ success: true })
 //   })
 // )
-
 // /**
 //  * @route   POST /api/v1/payments/webhook/flutterwave
 //  * @desc    Handle Flutterwave webhook
@@ -510,23 +459,18 @@
 //   '/webhook/flutterwave',
 //   asyncHandler(async (req: any, res: any) => {
 //     const signature = req.headers['verif-hash']
-    
 //     // Verify webhook signature
 //     const isValid = flutterwaveService.verifyWebhookSignature(req.body, signature)
 //     if (!isValid) {
 //       throw new AppError('Invalid webhook signature', 400)
 //     }
-
 //     const { event, data } = req.body
-
 //     if (event === 'charge.completed' && data.status === 'successful') {
 //       const reference = data.tx_ref
-      
 //       const payment = await prisma.payment.findUnique({
 //         where: { paymentReference: reference },
 //         include: { booking: true },
 //       })
-
 //       if (payment && payment.status === PaymentStatus.PENDING) {
 //         // Update payment status
 //         await prisma.payment.update({
@@ -537,7 +481,6 @@
 //             providerResponse: data,
 //           },
 //         })
-
 //         // Update booking
 //         await prisma.booking.update({
 //           where: { id: payment.bookingId },
@@ -547,7 +490,6 @@
 //             paidAt: new Date(),
 //           },
 //         })
-
 //         auditLog('WEBHOOK_PAYMENT_SUCCESS', 'system', {
 //           paymentId: payment.id,
 //           bookingId: payment.bookingId,
@@ -556,15 +498,12 @@
 //         }, req.ip)
 //       }
 //     }
-
 //     res.status(200).json({ success: true })
 //   })
 // )
-
 // // ===============================
 // // PAYMENT MANAGEMENT
 // // ===============================
-
 // /**
 //  * @route   GET /api/v1/payments
 //  * @desc    Get payment history
@@ -581,21 +520,17 @@
 //       paymentMethod,
 //       bookingId,
 //     } = req.query
-
 //     // Build where clause
 //     const where: any = {}
-
 //     // Regular users can only see their own payments
 //     if (req.user.role === UserRole.CUSTOMER) {
 //       where.booking = { customerId: req.user.id }
 //     } else if (req.user.role === UserRole.ADMIN) {
 //       where.booking = { property: { hostId: req.user.id } }
 //     }
-
 //     if (status) where.status = status
 //     if (paymentMethod) where.paymentMethod = paymentMethod
 //     if (bookingId) where.bookingId = bookingId
-
 //     const [payments, total] = await Promise.all([
 //       prisma.payment.findMany({
 //         where,
@@ -626,7 +561,6 @@
 //       }),
 //       prisma.payment.count({ where }),
 //     ])
-
 //     res.json({
 //       success: true,
 //       data: {
@@ -641,7 +575,6 @@
 //     })
 //   })
 // )
-
 // /**
 //  * @route   GET /api/v1/payments/:id
 //  * @desc    Get payment details
@@ -673,27 +606,22 @@
 //         },
 //       },
 //     })
-
 //     if (!payment) {
 //       throw new AppError('Payment not found', 404)
 //     }
-
 //     // Check authorization
 //     const isCustomer = payment.booking.customerId === req.user.id
 //     const isHost = payment.booking.property.hostId === req.user.id
 //     const isAdmin = req.user.role === UserRole.ADMIN
-
 //     if (!isCustomer && !isHost && !isAdmin) {
 //       throw new AppError('Not authorized to view this payment', 403)
 //     }
-
 //     res.json({
 //       success: true,
 //       data: payment,
 //     })
 //   })
 // )
-
 // /**
 //  * @route   POST /api/v1/payments/:id/refund
 //  * @desc    Process refund
@@ -709,7 +637,6 @@
 //   validate,
 //   asyncHandler(async (req: any, res: any) => {
 //     const { amount, reason } = req.body
-
 //     const payment = await prisma.payment.findUnique({
 //       where: { id: req.params.id },
 //       include: {
@@ -726,21 +653,16 @@
 //         },
 //       },
 //     })
-
 //     if (!payment) {
 //       throw new AppError('Payment not found', 404)
 //     }
-
 //     if (payment.status !== PaymentStatus.PAID) {
 //       throw new AppError('Can only refund successful payments', 400)
 //     }
-
 //     const refundAmount = amount || payment.amount
-
 //     if (refundAmount > payment.amount) {
 //       throw new AppError('Refund amount cannot exceed payment amount', 400)
 //     }
-
 //     // Create refund record
 //     const refund = await prisma.refund.create({
 //       data: {
@@ -751,7 +673,6 @@
 //         status: 'PROCESSING',
 //       },
 //     })
-
 //     // Process refund with payment provider
 //     let refundResult: any = {}
 //     try {
@@ -762,19 +683,16 @@
 //             refundAmount * 100
 //           )
 //           break
-
 //         case PaymentMethod.FLUTTERWAVE:
 //           refundResult = await flutterwaveService.refundPayment(
 //             payment.providerReference!,
 //             refundAmount
 //           )
 //           break
-
 //         default:
 //           // For bank transfers, mark as manual refund
 //           refundResult = { status: 'success', message: 'Manual refund required' }
 //       }
-
 //       // Update refund status
 //       await prisma.refund.update({
 //         where: { id: refund.id },
@@ -784,7 +702,6 @@
 //           providerResponse: refundResult,
 //         },
 //       })
-
 //       // Notify customer
 //       await prisma.notification.create({
 //         data: {
@@ -799,7 +716,6 @@
 //           },
 //         },
 //       })
-
 //       // Send email notification
 //       await emailService.sendRefundNotification(
 //         payment.booking.customer.email,
@@ -810,14 +726,12 @@
 //           reason,
 //         }
 //       )
-
 //       auditLog('REFUND_PROCESSED', req.user.id, {
 //         refundId: refund.id,
 //         paymentId: payment.id,
 //         amount: refundAmount,
 //         reason,
 //       }, req.ip)
-
 //       res.json({
 //         success: true,
 //         message: 'Refund processed successfully',
@@ -829,10 +743,8 @@
 //         where: { id: refund.id },
 //         data: { status: 'FAILED' },
 //       })
-
 //       throw new AppError('Failed to process refund', 500)
 //     }
 //   })
 // )
-
 // export default router

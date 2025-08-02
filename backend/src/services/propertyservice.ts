@@ -107,21 +107,37 @@ export interface PropertyWithDetails {
   address: string;
   city: string;
   state: string;
+  zipCode: string | null;
   country: string;
   latitude: number | null;
   longitude: number | null;
+  adminNotes: string | null;
   bedrooms: number;
   bathrooms: number;
   maxGuests: number;
   size: number | null;
+  floor: number | null;
+  buildingName: string | null;
   baseRate: number;
   weekendPremium: number | null;
+  monthlyDiscount: number | null;
   cleaningFee: number | null;
   securityDeposit: number | null;
+  serviceFee: number | null;
+  currency: string | null;
   minStay: number;
   maxStay: number;
   checkInTime: string;
   checkOutTime: string;
+  cancellationPolicy: string | null;
+  houseRules: string | null;
+  amenities: string[];
+  features: string[];
+  rules: string[];
+  images: string[];
+  featuredImage: string | null;
+  isActive: boolean;
+  deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   host: {
@@ -130,18 +146,19 @@ export interface PropertyWithDetails {
     lastName: string;
     email: string;
   };
-  images: Array<{
+  propertyImages?: Array<{
     id: string;
     url: string;
     title: string | null;
     isMain: boolean;
     order: number;
   }>;
-  amenities: Array<{
+  propertyAmenities?: Array<{
     id: string;
     name: string;
     category: string;
     icon: string | null;
+    description: string | null;
   }>;
   averageRating?: number;
   reviewCount?: number;
@@ -170,8 +187,14 @@ export class PropertyService {
         data: {
           ...propertyFields,
           hostId,
-          amenities: {
-            create: amenities,
+          currency: "NGN",
+          propertyAmenities: {
+            create: amenities.map(amenity => ({
+              name: amenity.name,
+              category: amenity.category,
+              icon: amenity.icon,
+              description: amenity.description
+            })),
           },
         },
         include: {
@@ -183,10 +206,10 @@ export class PropertyService {
               email: true,
             },
           },
-          images: {
+          propertyImages: {
             orderBy: { order: "asc" },
           },
-          amenities: true,
+          propertyAmenities: true,
         },
       });
 
@@ -230,10 +253,10 @@ export class PropertyService {
             email: true,
           },
         },
-        images: {
+        propertyImages: {
           orderBy: { order: "asc" },
         },
-        amenities: true,
+        propertyAmenities: true,
         reviews: {
           where: { approved: true },
           select: { rating: true },
@@ -295,10 +318,7 @@ export class PropertyService {
         data: {
           ...propertyFields,
           ...(amenities && {
-            amenities: {
-              deleteMany: {},
-              create: amenities,
-            },
+            amenities: amenities.map(a => a.name),
           }),
         },
         include: {
@@ -310,10 +330,10 @@ export class PropertyService {
               email: true,
             },
           },
-          images: {
+          propertyImages: {
             orderBy: { order: "asc" },
           },
-          amenities: true,
+          propertyAmenities: true,
         },
       });
 
@@ -364,7 +384,7 @@ export class PropertyService {
       where: {
         propertyId,
         status: {
-          in: ["PENDING_APPROVAL", "APPROVED", "CONFIRMED", "CHECKED_IN"],
+          in: ["PENDING", "APPROVED", "CONFIRMED", "CHECKED_IN"],
         },
       },
     });
@@ -513,11 +533,11 @@ export class PropertyService {
                 email: true,
               },
             },
-            images: {
+            propertyImages: {
               where: { isMain: true },
               take: 1,
             },
-            amenities: true,
+            propertyAmenities: true,
             reviews: {
               where: { approved: true },
               select: { rating: true },
@@ -587,10 +607,10 @@ export class PropertyService {
             email: true,
           },
         },
-        images: {
+        propertyImages: {
           orderBy: { order: "asc" },
         },
-        amenities: true,
+        propertyAmenities: true,
         reviews: {
           where: { approved: true },
           select: { rating: true },
@@ -721,16 +741,16 @@ export class PropertyService {
       where: {
         propertyId,
         AND: [
-          { checkIn: { lt: checkOutDate } },
-          { checkOut: { gt: checkInDate } },
+          { checkInDate: { lt: checkOutDate } },
+          { checkOutDate: { gt: checkInDate } },
           {
             status: {
-              in: ["PENDING_APPROVAL", "APPROVED", "CONFIRMED", "CHECKED_IN"],
+              in: ["PENDING", "APPROVED", "CONFIRMED", "CHECKED_IN"],
             },
           },
         ],
       },
-      select: { checkIn: true, checkOut: true },
+      select: { checkInDate: true, checkOutDate: true },
     });
 
     if (existingBookings.length > 0) {
@@ -833,8 +853,8 @@ export class PropertyService {
           ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter }),
         },
         _count: { id: true },
-        _sum: { totalAmount: true, nights: true },
-        _avg: { totalAmount: true },
+        _sum: { total: true, nights: true },
+        _avg: { total: true },
       }),
 
       // Revenue by month
@@ -847,7 +867,7 @@ export class PropertyService {
           },
           ...(Object.keys(dateFilter).length > 0 && { createdAt: dateFilter }),
         },
-        _sum: { totalAmount: true },
+        _sum: { total: true },
         _count: { id: true },
       }),
 
@@ -866,8 +886,8 @@ export class PropertyService {
     return {
       bookings: {
         total: bookingStats._count.id || 0,
-        totalRevenue: bookingStats._sum.totalAmount || 0,
-        averageBookingValue: bookingStats._avg.totalAmount || 0,
+        totalRevenue: bookingStats._sum.total || 0,
+        averageBookingValue: bookingStats._avg.total || 0,
         totalNights: bookingStats._sum.nights || 0,
       },
       reviews: {

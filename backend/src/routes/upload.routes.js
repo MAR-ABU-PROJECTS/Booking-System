@@ -1,3 +1,4 @@
+"use strict";
 // // MAR ABU PROJECTS SERVICES LLC - File Upload and Media Management Routes
 // import { Router } from 'express'
 // import { body, param, query, validationResult } from 'express-validator'
@@ -13,9 +14,7 @@
 // import sharp from 'sharp'
 // import fs from 'fs/promises'
 // import { APP_CONSTANTS } from '../utils/constants'
-
 // const router = Router()
-
 // // Configure multer for different file types
 // const createStorage = (destination: string) => multer.diskStorage({
 //   destination: (req, file, cb) => {
@@ -26,7 +25,6 @@
 //     cb(null, uniqueName)
 //   },
 // })
-
 // // Image upload configuration
 // const imageUpload = multer({
 //   storage: createStorage('uploads/images'),
@@ -42,7 +40,6 @@
 //     }
 //   },
 // })
-
 // // Document upload configuration
 // const documentUpload = multer({
 //   storage: createStorage('uploads/documents'),
@@ -58,7 +55,6 @@
 //     }
 //   },
 // })
-
 // // General file upload configuration
 // const fileUpload = multer({
 //   storage: createStorage('uploads/files'),
@@ -67,7 +63,6 @@
 //     files: 5,
 //   },
 // })
-
 // // Validation middleware
 // const validate = (req: any, res: any, next: any) => {
 //   const errors = validationResult(req)
@@ -80,7 +75,6 @@
 //   }
 //   next()
 // }
-
 // // Helper function to resize and optimize images
 // const processImage = async (inputPath: string, outputPath: string, options: any = {}) => {
 //   const {
@@ -89,7 +83,6 @@
 //     quality = 80,
 //     format = 'jpeg',
 //   } = options
-
 //   await sharp(inputPath)
 //     .resize(width, height, {
 //       fit: 'inside',
@@ -98,11 +91,9 @@
 //     .jpeg({ quality })
 //     .toFile(outputPath)
 // }
-
 // // ===============================
 // // IMAGE UPLOAD ROUTES
 // // ===============================
-
 // /**
 //  * @route   POST /api/v1/uploads/images
 //  * @desc    Upload multiple images
@@ -116,22 +107,18 @@
 //     if (!req.files || req.files.length === 0) {
 //       throw new AppError('No images uploaded', 400)
 //     }
-
 //     const uploadedImages = []
-
 //     try {
 //       for (const file of req.files) {
 //         // Create optimized versions
 //         const originalPath = file.path
 //         const optimizedPath = path.join(path.dirname(originalPath), `opt_${file.filename}`)
 //         const thumbnailPath = path.join(path.dirname(originalPath), `thumb_${file.filename}`)
-
 //         // Process images
 //         await Promise.all([
 //           processImage(originalPath, optimizedPath, { width: 1200, height: 800, quality: 80 }),
 //           processImage(originalPath, thumbnailPath, { width: 300, height: 200, quality: 70 }),
 //         ])
-
 //         // Save to database
 //         const image = await prisma.media.create({
 //           data: {
@@ -151,7 +138,6 @@
 //             },
 //           },
 //         })
-
 //         uploadedImages.push({
 //           id: image.id,
 //           fileName: file.filename,
@@ -162,16 +148,13 @@
 //           thumbnailUrl: `/uploads/images/thumb_${file.filename}`,
 //           uploadedAt: image.createdAt,
 //         })
-
 //         // Delete original file after processing
 //         await fs.unlink(originalPath)
 //       }
-
 //       auditLog('IMAGES_UPLOADED', req.user.id, {
 //         imageCount: uploadedImages.length,
 //         totalSize: req.files.reduce((sum: number, file: any) => sum + file.size, 0),
 //       }, req.ip)
-
 //       res.status(201).json({
 //         success: true,
 //         message: `${uploadedImages.length} images uploaded successfully`,
@@ -190,7 +173,6 @@
 //     }
 //   })
 // )
-
 // /**
 //  * @route   POST /api/v1/uploads/images/property/:propertyId
 //  * @desc    Upload images for a property
@@ -206,42 +188,33 @@
 //   validate,
 //   asyncHandler(async (req: any, res: any) => {
 //     const { propertyId } = req.params
-
 //     if (!req.files || req.files.length === 0) {
 //       throw new AppError('No images uploaded', 400)
 //     }
-
 //     // Check property ownership
 //     const property = await prisma.property.findUnique({
 //       where: { id: propertyId },
 //     })
-
 //     if (!property) {
 //       throw new AppError('Property not found', 404)
 //     }
-
 //     // Check authorization
 //     const isOwner = property.hostId === req.user.id
 //     const isAdmin = req.user.role === UserRole.ADMIN
-
 //     if (!isOwner && !isAdmin) {
 //       throw new AppError('Not authorized to upload images for this property', 403)
 //     }
-
 //     const uploadedImages = []
-
 //     try {
 //       for (const file of req.files) {
 //         // Process image
 //         const originalPath = file.path
 //         const optimizedPath = path.join(path.dirname(originalPath), `opt_${file.filename}`)
 //         const thumbnailPath = path.join(path.dirname(originalPath), `thumb_${file.filename}`)
-
 //         await Promise.all([
 //           processImage(originalPath, optimizedPath, { width: 1200, height: 800, quality: 85 }),
 //           processImage(originalPath, thumbnailPath, { width: 300, height: 200, quality: 70 }),
 //         ])
-
 //         // Save to database
 //         const image = await prisma.media.create({
 //           data: {
@@ -263,7 +236,6 @@
 //             },
 //           },
 //         })
-
 //         uploadedImages.push({
 //           id: image.id,
 //           fileName: file.filename,
@@ -273,28 +245,23 @@
 //           thumbnailUrl: `/uploads/images/thumb_${file.filename}`,
 //           uploadedAt: image.createdAt,
 //         })
-
 //         // Delete original file
 //         await fs.unlink(originalPath)
 //       }
-
 //       // Update property images
 //       const currentImages = property.images || []
 //       const newImageUrls = uploadedImages.map(img => img.url)
-      
 //       await prisma.property.update({
 //         where: { id: propertyId },
 //         data: {
 //           images: [...currentImages, ...newImageUrls],
 //         },
 //       })
-
 //       auditLog('PROPERTY_IMAGES_UPLOADED', req.user.id, {
 //         propertyId,
 //         imageCount: uploadedImages.length,
 //         totalSize: req.files.reduce((sum: number, file: any) => sum + file.size, 0),
 //       }, req.ip)
-
 //       res.status(201).json({
 //         success: true,
 //         message: `${uploadedImages.length} images uploaded for property`,
@@ -313,11 +280,9 @@
 //     }
 //   })
 // )
-
 // // ===============================
 // // DOCUMENT UPLOAD ROUTES
 // // ===============================
-
 // /**
 //  * @route   POST /api/v1/uploads/documents
 //  * @desc    Upload documents
@@ -336,10 +301,8 @@
 //     if (!req.files || req.files.length === 0) {
 //       throw new AppError('No documents uploaded', 400)
 //     }
-
 //     const { category = 'OTHER', description } = req.body
 //     const uploadedDocuments = []
-
 //     try {
 //       for (const file of req.files) {
 //         const document = await prisma.media.create({
@@ -357,7 +320,6 @@
 //             },
 //           },
 //         })
-
 //         uploadedDocuments.push({
 //           id: document.id,
 //           fileName: file.filename,
@@ -368,13 +330,11 @@
 //           uploadedAt: document.createdAt,
 //         })
 //       }
-
 //       auditLog('DOCUMENTS_UPLOADED', req.user.id, {
 //         documentCount: uploadedDocuments.length,
 //         category,
 //         totalSize: req.files.reduce((sum: number, file: any) => sum + file.size, 0),
 //       }, req.ip)
-
 //       res.status(201).json({
 //         success: true,
 //         message: `${uploadedDocuments.length} documents uploaded successfully`,
@@ -393,11 +353,9 @@
 //     }
 //   })
 // )
-
 // // ===============================
 // // MEDIA MANAGEMENT ROUTES
 // // ===============================
-
 // /**
 //  * @route   GET /api/v1/uploads/media
 //  * @desc    Get user's uploaded media
@@ -422,10 +380,8 @@
 //       page = 1,
 //       limit = 20,
 //     } = req.query
-
 //     // Build where clause
 //     const where: any = {}
-
 //     // Regular users can only see their own media
 //     if (req.user.role === UserRole.CUSTOMER) {
 //       where.uploadedBy = req.user.id
@@ -435,11 +391,9 @@
 //         { entityType: 'PROPERTY', entity: { hostId: req.user.id } },
 //       ]
 //     }
-
 //     if (type) where.type = type
 //     if (entityType) where.entityType = entityType
 //     if (entityId) where.entityId = entityId
-
 //     const [media, total] = await Promise.all([
 //       prisma.media.findMany({
 //         where,
@@ -458,14 +412,12 @@
 //       }),
 //       prisma.media.count({ where }),
 //     ])
-
 //     const mediaWithUrls = media.map(item => ({
 //       ...item,
 //       url: `/uploads/${item.type.toLowerCase()}s/${item.fileName}`,
 //       thumbnailUrl: item.thumbnailPath ? `/uploads/${item.type.toLowerCase()}s/thumb_${item.fileName}` : null,
 //       optimizedUrl: item.optimizedPath ? `/uploads/${item.type.toLowerCase()}s/opt_${item.fileName}` : null,
 //     }))
-
 //     res.json({
 //       success: true,
 //       data: {
@@ -480,7 +432,6 @@
 //     })
 //   })
 // )
-
 // /**
 //  * @route   DELETE /api/v1/uploads/media/:id
 //  * @desc    Delete media file
@@ -493,19 +444,15 @@
 //     const media = await prisma.media.findUnique({
 //       where: { id: req.params.id },
 //     })
-
 //     if (!media) {
 //       throw new AppError('Media file not found', 404)
 //     }
-
 //     // Check authorization
 //     const isOwner = media.uploadedBy === req.user.id
 //     const isAdmin = req.user.role === UserRole.ADMIN
-
 //     if (!isOwner && !isAdmin) {
 //       throw new AppError('Not authorized to delete this file', 403)
 //     }
-
 //     try {
 //       // Delete files from filesystem
 //       const filesToDelete = [
@@ -513,7 +460,6 @@
 //         media.optimizedPath,
 //         media.thumbnailPath,
 //       ].filter(Boolean)
-
 //       await Promise.all(
 //         filesToDelete.map(async (filePath) => {
 //           try {
@@ -523,18 +469,15 @@
 //           }
 //         })
 //       )
-
 //       // Delete from database
 //       await prisma.media.delete({
 //         where: { id: req.params.id },
 //       })
-
 //       auditLog('MEDIA_DELETED', req.user.id, {
 //         mediaId: req.params.id,
 //         fileName: media.fileName,
 //         type: media.type,
 //       }, req.ip)
-
 //       res.json({
 //         success: true,
 //         message: 'Media file deleted successfully',
@@ -544,7 +487,6 @@
 //     }
 //   })
 // )
-
 // /**
 //  * @route   PUT /api/v1/uploads/media/:id
 //  * @desc    Update media metadata
@@ -564,21 +506,16 @@
 //     const media = await prisma.media.findUnique({
 //       where: { id: req.params.id },
 //     })
-
 //     if (!media) {
 //       throw new AppError('Media file not found', 404)
 //     }
-
 //     // Check authorization
 //     const isOwner = media.uploadedBy === req.user.id
 //     const isAdmin = req.user.role === UserRole.ADMIN
-
 //     if (!isOwner && !isAdmin) {
 //       throw new AppError('Not authorized to update this file', 403)
 //     }
-
 //     const { description, alt, caption, isPrimary } = req.body
-
 //     const updatedMedia = await prisma.media.update({
 //       where: { id: req.params.id },
 //       data: {
@@ -591,12 +528,10 @@
 //         },
 //       },
 //     })
-
 //     auditLog('MEDIA_UPDATED', req.user.id, {
 //       mediaId: req.params.id,
 //       changes: req.body,
 //     }, req.ip)
-
 //     res.json({
 //       success: true,
 //       message: 'Media metadata updated successfully',
@@ -604,7 +539,6 @@
 //     })
 //   })
 // )
-
 // /**
 //  * @route   POST /api/v1/uploads/media/:id/reorder
 //  * @desc    Reorder media files for an entity
@@ -621,25 +555,20 @@
 //   validate,
 //   asyncHandler(async (req: any, res: any) => {
 //     const { mediaIds, entityType, entityId } = req.body
-
 //     // Check authorization based on entity type
 //     if (entityType === 'PROPERTY') {
 //       const property = await prisma.property.findUnique({
 //         where: { id: entityId },
 //       })
-
 //       if (!property) {
 //         throw new AppError('Property not found', 404)
 //       }
-
 //       const isOwner = property.hostId === req.user.id
 //       const isAdmin = req.user.role === UserRole.ADMIN
-
 //       if (!isOwner && !isAdmin) {
 //         throw new AppError('Not authorized to reorder media for this property', 403)
 //       }
 //     }
-
 //     // Update order for each media item
 //     await Promise.all(
 //       mediaIds.map((mediaId: string, index: number) =>
@@ -653,20 +582,17 @@
 //         })
 //       )
 //     )
-
 //     auditLog('MEDIA_REORDERED', req.user.id, {
 //       entityType,
 //       entityId,
 //       mediaCount: mediaIds.length,
 //     }, req.ip)
-
 //     res.json({
 //       success: true,
 //       message: 'Media files reordered successfully',
 //     })
 //   })
 // )
-
 // /**
 //  * @route   GET /api/v1/uploads/stats
 //  * @desc    Get upload statistics
@@ -677,14 +603,12 @@
 //   requireAuth(),
 //   asyncHandler(async (req: any, res: any) => {
 //     const where: any = {}
-
 //     // Regular users can only see their own stats
 //     if (req.user.role === UserRole.CUSTOMER) {
 //       where.uploadedBy = req.user.id
 //     } else if (req.user.role === UserRole.ADMIN) {
 //       where.uploadedBy = req.user.id
 //     }
-
 //     const [
 //       totalFiles,
 //       totalSize,
@@ -716,7 +640,6 @@
 //         },
 //       }),
 //     ])
-
 //     res.json({
 //       success: true,
 //       data: {
@@ -731,5 +654,4 @@
 //     })
 //   })
 // )
-
 // export default router
