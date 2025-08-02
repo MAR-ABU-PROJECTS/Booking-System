@@ -62,7 +62,7 @@ const getDateRange = (period: string) => {
  */
 /**
  * @swagger
- * /api/v1/analytics/overview:
+ * /analytics/overview:
  *   get:
  *     summary: Get analytics overview
  *     tags:
