@@ -13,12 +13,12 @@ export async function getSession() {
 		await cookies(),
 		sessionOptions
 	);
-	if (!session.isLoggedIn) {
-		session.isLoggedIn = defaultSession.isLoggedIn;
-		session.email = defaultSession.email;
-		session.name = defaultSession.name;
-		session.token = defaultSession.token;
-		session.id = defaultSession.id;
+	if (!session.user.isLoggedIn) {
+		session.user.isLoggedIn = defaultSession.user.isLoggedIn;
+		session.user.email = defaultSession.user.email;
+		session.user.name = defaultSession.user.name;
+		session.user.token = defaultSession.user.token;
+		session.user.id = defaultSession.user.id;
 	}
 
 	return session;
@@ -31,11 +31,11 @@ export async function setSession(data: {
 }) {
 	const session = await getSession();
 
-	session.isLoggedIn = true;
-	session.id = data.id;
-	session.name = data.name;
-	session.email = data.email;
-	session.token = data.token;
+	session.user.isLoggedIn = true;
+	session.user.id = data.id;
+	session.user.name = data.name;
+	session.user.email = data.email;
+	session.user.token = data.token;
 
 	await session.save();
 }

@@ -1,12 +1,13 @@
 "use client";
 import { useForm, Controller } from "react-hook-form";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LogInSchema } from "../lib/schemas";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import Link from "next/link";
+import Image from "next/image"
 // import apiService from "../lib/apiService";
 
 const LogIn = () => {
@@ -26,10 +27,12 @@ const LogIn = () => {
 	return (
 		<div className="w-full max-w-xl mx-auto">
 			<div className="mb-6">
-				<img
+				<Image
 					src="/logo/black-logo.png"
 					alt="MAR ABU HOMES"
 					className="h-8 md:h-10 mx-auto mb-5"
+					height={32}
+					width={130}
 				/>
 				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
 					Welcome Back to MAR ABU!
@@ -100,7 +103,7 @@ const LogIn = () => {
 				</form>
 
 				<p className="text-center text-sm mt-5 font-medium">
-					Don't have an account yet?{" "}
+					Don&apos;t have an account yet?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/sign-up">Sign Up</Link>
 					</span>

@@ -1,11 +1,14 @@
+import Image from "next/image";
+
 const AuthBanner = () => {
 	return (
 		<div className="w-full md:flex hidden max-w-1/2 flex-col items-center justify-center relative">
 			{/* Background Image */}
-			<img
+			<Image
 				src="/banner/living-area.JPG"
 				alt="MAR ABU HOMES"
 				className="absolute inset-0 object-cover w-full h-full"
+				fill
 			/>
 
 			{/* Overlay */}

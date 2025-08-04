@@ -1,7 +1,7 @@
 "use client";
 
-import ImageLayout from "@/components/ImageLayout";
-import PropertyCarousel from "@/components/PropertyCarousel";
+import ImageLayout from "../components/ImageLayout";
+import PropertyCarousel from "../components/PropertyCarousel";
 import { useIsMobile } from "../hooks/use-mobile";
 
 interface ImageBlockProps {

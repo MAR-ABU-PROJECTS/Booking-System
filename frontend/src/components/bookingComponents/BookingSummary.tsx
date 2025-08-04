@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import { RootState } from "../../lib/features/store";
 import { useSelector } from "react-redux";
 import { formatCurrency } from "../../lib/utils";
-import PropertyCarousel from "@/components/PropertyCarousel";
+import PropertyCarousel from "../../components/PropertyCarousel";
 
 const BookingSummary = () => {
 	const booking = useSelector((state: RootState) => state.booking);

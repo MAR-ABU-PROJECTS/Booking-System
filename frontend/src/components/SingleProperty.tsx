@@ -1,8 +1,8 @@
 "use client";
 import PropertyImagesGallery from "./PropertyImageGallery";
 import type { Property } from "../lib/type";
-import AvailabilityCalendar from "@/components/AvailabilityCalendar";
-import { Calendar } from "@/components/ui/calendar";
+import AvailabilityCalendar from "../components/AvailabilityCalendar";
+import { Calendar } from "../components/ui/calendar";
 import { useForm, FormProvider, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";

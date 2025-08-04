@@ -1,4 +1,4 @@
-import GuestCounter from "@/components/GuestCounter";
+import GuestCounter from "../components/GuestCounter";
 import { z } from "zod";
 import { useFormContext, Controller } from "react-hook-form";
 import { BookSchema } from "../lib/schemas";

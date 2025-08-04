@@ -4,6 +4,14 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
+import '@fontsource/outfit/100.css';
+import '@fontsource/outfit/200.css';
+import '@fontsource/outfit/300.css';
+import '@fontsource/outfit/400.css';
+import '@fontsource/outfit/500.css';
+import '@fontsource/outfit/600.css';
+import '@fontsource/outfit/700.css';
+import '@fontsource/outfit/800.css';
 import AppProviders from "../providers/AppProviders";
 
 export const metadata: Metadata = {
@@ -22,20 +30,20 @@ export default function RootLayout({
 	return (
 		<html lang="en" className="scroll-smooth">
 			<head>
-				<link rel="preconnect" href="https://fonts.googleapis.com" />
-				<link
+				{/* <link rel="preconnect" href="https://fonts.googleapis.com" /> */}
+				{/* <link
 					rel="preconnect"
 					href="https://fonts.gstatic.com"
 					crossOrigin="anonymous"
-				/>
-				<link
+				/> */}
+				{/* <link
 					href="https://fonts.googleapis.com/css2?family=Gilda+Display&display=swap"
 					rel="stylesheet"
-				/>
-				<link
+				/> */}
+				{/* <link
 					href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..800&display=swap"
 					rel="stylesheet"
-				/>
+				/> */}
 			</head>
 			<body className="antialiased">
 				<AppProviders>{children}</AppProviders>

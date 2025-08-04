@@ -1,6 +1,6 @@
 import React from "react";
 import type { Metadata } from "next";
-import LogIn from "@/components/Login";
+import LogIn from "../../../components/Login";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Log In",

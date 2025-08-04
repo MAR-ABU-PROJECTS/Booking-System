@@ -66,80 +66,80 @@ const MarAbuPropertyTypes = () => {
 	];
 
 	// Featured MAR ABU HOMES apartments
-	const featuredApartments = [
-		{
-			id: "white-stone",
-			name: "WHITE-STONE",
-			type: "Short Let",
-			location: "Victoria Island, Lagos",
-			description:
-				"Elegant luxury apartment with modern curved seating and premium finishes",
-			amenities: [
-				"Premium furnishing",
-				"Smart TV",
-				"Modern lighting",
-				"Spacious living area",
-			],
-			price: "₦85,000/night",
-			rating: 4.9,
-			reviews: 127,
-			image: "white-stone-bg",
-		},
-		{
-			id: "abike-penthouse",
-			name: "ABIKE PENTHOUSE",
-			type: "Short Let",
-			location: "Ikoyi, Lagos",
-			description:
-				"Sophisticated penthouse with contemporary design and premium amenities",
-			amenities: [
-				"Ocean view",
-				"Premium seating",
-				"Modern entertainment",
-				"Luxury finishes",
-			],
-			price: "₦120,000/night",
-			rating: 5.0,
-			reviews: 89,
-			image: "abike-penthouse-bg",
-		},
-		{
-			id: "obudu-villa",
-			name: "OBUDU VILLA",
-			type: "Short Let",
-			location: "Lekki Phase 1, Lagos",
-			description:
-				"Spacious villa with elegant living spaces and modern comfort",
-			amenities: [
-				"Spacious layout",
-				"Premium furniture",
-				"Entertainment center",
-				"Luxury amenities",
-			],
-			price: "₦95,000/night",
-			rating: 4.8,
-			reviews: 156,
-			image: "obudu-villa-bg",
-		},
-		{
-			id: "zircon",
-			name: "ZIRCON",
-			type: "Short Let",
-			location: "Banana Island, Lagos",
-			description:
-				"Premium apartment with sophisticated design and luxury comfort",
-			amenities: [
-				"Designer furniture",
-				"Modern lighting",
-				"Premium finishes",
-				"Elegant decor",
-			],
-			price: "₦110,000/night",
-			rating: 4.9,
-			reviews: 203,
-			image: "zircon-bg",
-		},
-	];
+	// const featuredApartments = [
+	// 	{
+	// 		id: "white-stone",
+	// 		name: "WHITE-STONE",
+	// 		type: "Short Let",
+	// 		location: "Victoria Island, Lagos",
+	// 		description:
+	// 			"Elegant luxury apartment with modern curved seating and premium finishes",
+	// 		amenities: [
+	// 			"Premium furnishing",
+	// 			"Smart TV",
+	// 			"Modern lighting",
+	// 			"Spacious living area",
+	// 		],
+	// 		price: "₦85,000/night",
+	// 		rating: 4.9,
+	// 		reviews: 127,
+	// 		image: "white-stone-bg",
+	// 	},
+	// 	{
+	// 		id: "abike-penthouse",
+	// 		name: "ABIKE PENTHOUSE",
+	// 		type: "Short Let",
+	// 		location: "Ikoyi, Lagos",
+	// 		description:
+	// 			"Sophisticated penthouse with contemporary design and premium amenities",
+	// 		amenities: [
+	// 			"Ocean view",
+	// 			"Premium seating",
+	// 			"Modern entertainment",
+	// 			"Luxury finishes",
+	// 		],
+	// 		price: "₦120,000/night",
+	// 		rating: 5.0,
+	// 		reviews: 89,
+	// 		image: "abike-penthouse-bg",
+	// 	},
+	// 	{
+	// 		id: "obudu-villa",
+	// 		name: "OBUDU VILLA",
+	// 		type: "Short Let",
+	// 		location: "Lekki Phase 1, Lagos",
+	// 		description:
+	// 			"Spacious villa with elegant living spaces and modern comfort",
+	// 		amenities: [
+	// 			"Spacious layout",
+	// 			"Premium furniture",
+	// 			"Entertainment center",
+	// 			"Luxury amenities",
+	// 		],
+	// 		price: "₦95,000/night",
+	// 		rating: 4.8,
+	// 		reviews: 156,
+	// 		image: "obudu-villa-bg",
+	// 	},
+	// 	{
+	// 		id: "zircon",
+	// 		name: "ZIRCON",
+	// 		type: "Short Let",
+	// 		location: "Banana Island, Lagos",
+	// 		description:
+	// 			"Premium apartment with sophisticated design and luxury comfort",
+	// 		amenities: [
+	// 			"Designer furniture",
+	// 			"Modern lighting",
+	// 			"Premium finishes",
+	// 			"Elegant decor",
+	// 		],
+	// 		price: "₦110,000/night",
+	// 		rating: 4.9,
+	// 		reviews: 203,
+	// 		image: "zircon-bg",
+	// 	},
+	// ];
 
 	// Placeholder gradients for demo
 	const getGradient = (color: string) => {
@@ -160,7 +160,7 @@ const MarAbuPropertyTypes = () => {
 				</h2>
 				<p className="text-lg text-gray-600 max-w-3xl mx-auto">
 					Discover our range of premium short-term and executive
-					accommodations across Nigeria's most prestigious locations
+					accommodations across Nigeria&apos;s most prestigious locations
 				</p>
 			</div>
 
@@ -225,7 +225,7 @@ const MarAbuPropertyTypes = () => {
 					Featured Apartments
 				</h3>
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-					{properties.map((apartment, index) => (
+					{properties.map((apartment) => (
 						<motion.div
 							key={apartment.id}
 							className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100"

@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -8,21 +7,18 @@ import {
 	Globe,
 	Menu,
 	User,
-	X,
 	Heart,
 	MessageSquare,
-	LogIn,
 	HelpCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from 'next/image'
 
 type Props = {
 	whiteBg?: boolean;
 };
 const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
-	const pathname = usePathname();
 	const [isScrolled, setIsScrolled] = useState(false);
-	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
 	const router = useRouter();
 
@@ -67,47 +63,37 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 
 				{whiteBg ? (
 					<Link href="/" className="flex items-center">
-						<img
+						<Image
 							src="/logo/black-logo.png"
 							alt="MAR ABU HOMES"
+							height={32}
+							width={130}
 							className="h-8 md:h-10"
 						/>
 					</Link>
 				) : isScrolled ? (
 					<Link href="/" className="flex items-center">
-						<img
+						<Image
 							src="/logo/black-logo.png"
 							alt="MAR ABU HOMES"
 							className="h-8 md:h-10"
+							height={32}
+							width={130}
 						/>
 					</Link>
 				) : (
 					<Link href="/" className="flex items-center">
-						<img
+						<Image
 							src="/logo/logo.png"
 							alt="MAR ABU HOMES"
 							className="h-8 md:h-10"
+							height={32}
+							width={130}
 						/>
 					</Link>
 				)}
 
-				{/* {isScrolled ? (
-					<Link href="/" className="flex items-center">
-						<img
-							src="/logo/black-logo.png"
-							alt="MAR ABU HOMES"
-							className="h-8 md:h-10"
-						/>
-					</Link>
-				) : (
-					<Link href="/" className="flex items-center">
-						<img
-							src="/logo/logo.png"
-							alt="MAR ABU HOMES"
-							className="h-8 md:h-10"
-						/>
-					</Link>
-				)} */}
+			
 
 				{/* Search Bar (Desktop) */}
 				<form

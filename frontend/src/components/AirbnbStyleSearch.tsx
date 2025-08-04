@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
-import GuestCounter from "@/components/GuestCounter";
-import { Calendar } from "@/components/ui/calendar";
+import GuestCounter from "../components/GuestCounter";
+import { Calendar } from "../components/ui/calendar";
 import { useDispatch} from "react-redux";
 import { updateBooking } from "../lib/features/bookingSlice";
 import { useForm, Controller } from "react-hook-form";
@@ -272,7 +272,7 @@ const AirbnbStyleSearch = () => {
 								{activeTab === "checkin" && (
 									<div className="p-6">
 										<h3 className="text-lg font-bold mb-4">
-											When's your trip?
+											When&apos;s your trip?
 										</h3>
 										<div className="bg-gray-100 p-4 rounded-lg text-center mb-4">
 											<p className="text-sm text-gray-600">
@@ -370,7 +370,7 @@ const AirbnbStyleSearch = () => {
 								{activeTab === "who" && (
 									<div className="p-6">
 										<h3 className="text-lg font-bold mb-4">
-											Who's coming?
+											Who&apos;s coming?
 										</h3>
 
 										<div className="space-y-4">
