@@ -23,6 +23,10 @@ import reviewRoutes from "./routes/review.routes";
 import notificationRoutes from "./routes/notification.routes";
 import adminRoutes from "./routes/admin.routes";
 import analyticsRoutes from "./routes/analytics.routes";
+import uploadRoutes from "./routes/upload.routes";
+import searchRoutes from "./routes/search.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
+import paymentRoutes from "./routes/payment.routes";
 
 // Import middleware
 import { errorHandler } from "./middlewares/error.middleware";
@@ -67,11 +71,8 @@ app.use(
 // CORS configuration
 app.use(
   cors({
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      process.env.ADMIN_URL || "http://localhost:3001",
-    ],
-    credentials: true,
+    origin: '*',
+    credentials: false,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
@@ -120,9 +121,6 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 // ===============================
 // API ROUTES
 // ===============================
-// const API_PREFIX = process.env.API_PREFIX || '/api/v1'
-
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check
 app.get("/health", (req, res) => {
@@ -144,6 +142,10 @@ app.use(`/api/v1/reviews`, reviewRoutes);
 app.use(`/api/v1/notifications`, notificationRoutes);
 app.use(`/api/v1/admin`, adminRoutes);
 app.use(`/api/v1/analytics`, analyticsRoutes);
+app.use(`/api/v1/uploads`, uploadRoutes);
+app.use(`/api/v1/search`, searchRoutes);
+app.use(`/api/v1/dashboard`, dashboardRoutes);
+app.use(`/api/v1/payments`, paymentRoutes);
 
 // ===============================
 // ERROR HANDLING
@@ -154,7 +156,8 @@ app.use(errorHandler);
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = process.env.PORT || "5001";
+const PORT = parseInt(process.env.PORT || "5050", 10);
+const HOST = "0.0.0.0";
 
 const startServer = async () => {
   try {
@@ -162,12 +165,12 @@ const startServer = async () => {
     await prisma.$connect();
     console.log("Database connected successfully");
 
-    // Start server
-    app.listen(PORT, () => {
-      console.log(`${process.env.COMPANY_NAME} Server running on port ${PORT}`);
+    // Start server (updated with HOST)
+    app.listen(PORT, HOST, () => {
+      console.log(
+        `${process.env.COMPANY_NAME} Server running on http://${HOST}:${PORT}`
+      );
       console.log(`Environment: ${process.env.NODE_ENV}`);
-      console.log(`Primary Color: ${process.env.PRIMARY_COLOR}`);
-      console.log(`Secondary Color: ${process.env.SECONDARY_COLOR}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);
@@ -192,3 +195,17 @@ process.on("SIGINT", async () => {
 startServer();
 
 export default app;
+
+// console.log("authRoutes:", typeof authRoutes);
+// console.log("userRoutes:", typeof userRoutes);
+// console.log("propertyRoutes:", typeof propertyRoutes);
+// console.log("bookingRoutes:", typeof bookingRoutes);
+// console.log("receiptRoutes:", typeof receiptRoutes);
+// console.log("reviewRoutes:", typeof reviewRoutes);
+// console.log("notificationRoutes:", typeof notificationRoutes);
+// console.log("adminRoutes:", typeof adminRoutes);
+// console.log("analyticsRoutes:", typeof analyticsRoutes);
+// console.log("uploadRoutes:", typeof uploadRoutes);
+// console.log("searchRoutes:", typeof searchRoutes);
+// console.log("dashboardRoutes:", typeof dashboardRoutes);
+// console.log("paymentRoutes:", typeof paymentRoutes);
