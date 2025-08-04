@@ -222,7 +222,7 @@ export class AuthService {
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            lastLoginAt: new Date() // Commented out until DB migration
+            lastLoginAt: new Date(), // Commented out until DB migration
           },
         });
       } catch (updateError) {
@@ -654,7 +654,10 @@ export const authService = new AuthService();
 /**
  * Authentication middleware
  */
-export function requireAuth(options?: { allowPending?: boolean; role?: UserRole }) {
+export function requireAuth(options?: {
+  allowPending?: boolean;
+  role?: UserRole;
+}) {
   return async (req: any, res: any, next: any) => {
     try {
       const authHeader = req.headers.authorization;
@@ -685,7 +688,10 @@ export function requireAuth(options?: { allowPending?: boolean; role?: UserRole 
         allowedStatuses.push(UserStatus.PENDING_VERIFICATION);
       }
 
-      if (options?.role && !authService.hasPermission(user.role, options.role)) {
+      if (
+        options?.role &&
+        !authService.hasPermission(user.role, options.role)
+      ) {
         return res.status(403).json({
           success: false,
           message: "Unauthorized permissions",

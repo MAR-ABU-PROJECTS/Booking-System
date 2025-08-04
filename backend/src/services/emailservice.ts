@@ -700,6 +700,95 @@ export class EmailService {
       html: this.getBaseTemplate(content),
     });
   }
+
+  /**
+   * Send payment confirmation email to customer
+   */
+  async sendPaymentConfirmation(
+    email: string,
+    data: {
+      customerName: string;
+      bookingCode: string;
+      propertyName: string;
+      amount: number;
+      paymentReference: string;
+    }
+  ): Promise<boolean> {
+    const content = `
+      <h2>Payment Confirmed</h2>
+      <p>Dear ${data.customerName},</p>
+      <p>Your payment for booking <strong>${data.bookingCode}</strong> at <strong>${data.propertyName}</strong> has been received and confirmed.</p>
+      <div class="info-box">
+        <p><strong>Amount Paid:</strong> ${data.amount.toLocaleString()}</p>
+        <p><strong>Payment Reference:</strong> ${data.paymentReference}</p>
+      </div>
+      <p>Thank you for your payment. We look forward to hosting you!</p>
+      <a href="${process.env.APP_URL}/bookings/${data.bookingCode}" class="button">View Booking</a>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `Payment Confirmed - ${data.bookingCode}`,
+      html: this.getBaseTemplate(content),
+    });
+  }
+
+  /**
+   * Send payment notification email to host
+   */
+  async sendPaymentNotificationToHost(
+    email: string,
+    data: {
+      hostName: string;
+      customerName: string;
+      bookingCode: string;
+      propertyName: string;
+      amount: number;
+    }
+  ): Promise<boolean> {
+    const content = `
+      <h2>Payment Received</h2>
+      <p>Dear ${data.hostName},</p>
+      <p>A payment has been received for booking <strong>${data.bookingCode}</strong> at <strong>${data.propertyName}</strong>.</p>
+      <div class="info-box">
+        <p><strong>Guest:</strong> ${data.customerName}</p>
+        <p><strong>Amount Paid:</strong> ${data.amount.toLocaleString()}</p>
+      </div>
+      <p>You can view the booking details in your dashboard.</p>
+      <a href="${process.env.APP_URL}/host/bookings/${data.bookingCode}" class="button">View Booking</a>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `Payment Received - ${data.bookingCode}`,
+      html: this.getBaseTemplate(content),
+    });
+  }
+
+  /**
+   * Send a test email to verify email configuration
+   */
+  async sendTestEmail(
+    email: string,
+    data?: { recipientName?: string; testDate?: string; systemName?: string }
+  ): Promise<boolean> {
+    const content = `
+      <h2>Email Test Successful</h2>
+      <p>Hello${data?.recipientName ? ` ${data.recipientName}` : ""},</p>
+      <p>This is a test email from ${data?.systemName || APP_CONSTANTS.COMPANY.NAME}.</p>
+      <div class="info-box">
+        <p><strong>Sent at:</strong> ${data?.testDate || new Date().toLocaleString()}</p>
+        <p><strong>Recipient:</strong> ${email}</p>
+      </div>
+      <p>If you received this email, your email configuration is working correctly!</p>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: "Test Email - Email Configuration Successful",
+      html: this.getBaseTemplate(content),
+    });
+  }
 }
 
 // Export singleton instance
