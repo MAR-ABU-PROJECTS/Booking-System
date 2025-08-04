@@ -195,17 +195,3 @@ process.on("SIGINT", async () => {
 startServer();
 
 export default app;
-
-// console.log("authRoutes:", typeof authRoutes);
-// console.log("userRoutes:", typeof userRoutes);
-// console.log("propertyRoutes:", typeof propertyRoutes);
-// console.log("bookingRoutes:", typeof bookingRoutes);
-// console.log("receiptRoutes:", typeof receiptRoutes);
-// console.log("reviewRoutes:", typeof reviewRoutes);
-// console.log("notificationRoutes:", typeof notificationRoutes);
-// console.log("adminRoutes:", typeof adminRoutes);
-// console.log("analyticsRoutes:", typeof analyticsRoutes);
-// console.log("uploadRoutes:", typeof uploadRoutes);
-// console.log("searchRoutes:", typeof searchRoutes);
-// console.log("dashboardRoutes:", typeof dashboardRoutes);
-// console.log("paymentRoutes:", typeof paymentRoutes);
