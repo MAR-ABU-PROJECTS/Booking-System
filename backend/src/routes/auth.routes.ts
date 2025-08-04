@@ -1,4 +1,4 @@
-import { UserStatus } from '@prisma/client';
+import { UserStatus } from "@prisma/client";
 // MAR ABU PROJECTS SERVICES LLC - Authentication Routes
 import { Router } from "express";
 import { body, validationResult } from "express-validator";
@@ -316,7 +316,7 @@ router.post(
       }
 
       if (user.status !== UserStatus.ACTIVE) {
-        throw new AppError("User account is not active", 403)
+        throw new AppError("User account is not active", 403);
       }
 
       const result = await authService.refreshToken(refreshToken);

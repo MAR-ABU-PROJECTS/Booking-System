@@ -1,28 +1,28 @@
 // MAR ABU PROJECTS SERVICES LLC - Property Routes
-import { Router } from 'express'
-import { body, param, query, validationResult } from 'express-validator'
-import { PropertyType, PropertyStatus, UserRole } from '@prisma/client'
-import { requireAuth, optionalAuth } from '../services/authservice'
-import { asyncHandler } from '../middlewares/error.middleware'
-import { AppError } from '../middlewares/error.middleware'
-import { prisma } from '../server'
-import { auditLog } from '../middlewares/logger.middleware'
-import { validatePagination, calculatePagination } from '../utils/helpers'
+import { Router } from "express";
+import { body, param, query, validationResult } from "express-validator";
+import { PropertyType, PropertyStatus, UserRole } from "@prisma/client";
+import { requireAuth, optionalAuth } from "../services/authservice";
+import { asyncHandler } from "../middlewares/error.middleware";
+import { AppError } from "../middlewares/error.middleware";
+import { prisma } from "../server";
+import { auditLog } from "../middlewares/logger.middleware";
+import { validatePagination, calculatePagination } from "../utils/helpers";
 
-const router = Router()
+const router = Router();
 
 // Validation middleware
 const validate = (req: any, res: any, next: any) => {
-  const errors = validationResult(req)
+  const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      message: 'Validation failed',
+      message: "Validation failed",
       errors: errors.array(),
-    })
+    });
   }
-  next()
-}
+  next();
+};
 
 // ===============================
 // PUBLIC PROPERTY ROUTES
@@ -34,7 +34,7 @@ const validate = (req: any, res: any, next: any) => {
  * @access  Public
  */
 router.get(
-  '/',
+  "/",
   optionalAuth(),
   asyncHandler(async (req: any, res: any) => {
     const {
@@ -48,39 +48,42 @@ router.get(
       bathrooms,
       maxGuests,
       amenities,
-      sortBy = 'createdAt',
-      order = 'desc',
-    } = req.query
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
 
-    const { page: validPage, limit: validLimit } = validatePagination(page, limit)
+    const { page: validPage, limit: validLimit } = validatePagination(
+      page,
+      limit
+    );
 
     // Build where clause
     const where: any = {
       status: PropertyStatus.ACTIVE,
-    }
+    };
 
-    if (city) where.city = { contains: city, mode: 'insensitive' }
-    if (type) where.type = type
-    if (bedrooms) where.bedrooms = { gte: parseInt(bedrooms) }
-    if (bathrooms) where.bathrooms = { gte: parseInt(bathrooms) }
-    if (maxGuests) where.maxGuests = { gte: parseInt(maxGuests) }
+    if (city) where.city = { contains: city, mode: "insensitive" };
+    if (type) where.type = type;
+    if (bedrooms) where.bedrooms = { gte: parseInt(bedrooms) };
+    if (bathrooms) where.bathrooms = { gte: parseInt(bathrooms) };
+    if (maxGuests) where.maxGuests = { gte: parseInt(maxGuests) };
     if (minPrice || maxPrice) {
-      where.baseRate = {}
-      if (minPrice) where.baseRate.gte = parseFloat(minPrice)
-      if (maxPrice) where.baseRate.lte = parseFloat(maxPrice)
+      where.baseRate = {};
+      if (minPrice) where.baseRate.gte = parseFloat(minPrice);
+      if (maxPrice) where.baseRate.lte = parseFloat(maxPrice);
     }
 
     // Handle amenities filter
     if (amenities) {
-      const amenityList = Array.isArray(amenities) ? amenities : [amenities]
+      const amenityList = Array.isArray(amenities) ? amenities : [amenities];
       where.amenities = {
         hasEvery: amenityList,
-      }
+      };
     }
 
     // Build order by clause
-    const orderBy: any = {}
-    orderBy[sortBy] = order
+    const orderBy: any = {};
+    orderBy[sortBy] = order;
 
     const [properties, total] = await Promise.all([
       prisma.property.findMany({
@@ -112,14 +115,15 @@ router.get(
         },
       }),
       prisma.property.count({ where }),
-    ])
+    ]);
 
     // Calculate average ratings
-    const propertiesWithRatings = properties.map(property => {
-      const ratings = property.reviews.map(r => r.rating)
-      const averageRating = ratings.length > 0 
-        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-        : 0
+    const propertiesWithRatings = properties.map((property) => {
+      const ratings = property.reviews.map((r) => r.rating);
+      const averageRating =
+        ratings.length > 0
+          ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+          : 0;
 
       return {
         ...property,
@@ -127,10 +131,10 @@ router.get(
         reviewCount: property._count.reviews,
         bookingCount: property._count.bookings,
         reviews: undefined, // Remove reviews array from response
-      }
-    })
+      };
+    });
 
-    const pagination = calculatePagination(validPage, validLimit, total)
+    const pagination = calculatePagination(validPage, validLimit, total);
 
     res.json({
       success: true,
@@ -138,9 +142,9 @@ router.get(
         properties: propertiesWithRatings,
         pagination,
       },
-    })
+    });
   })
-)
+);
 
 /**
  * @route   GET /api/v1/properties/:id
@@ -148,7 +152,7 @@ router.get(
  * @access  Public
  */
 router.get(
-  '/:id',
+  "/:id",
   optionalAuth(),
   asyncHandler(async (req: any, res: any) => {
     const property = await prisma.property.findUnique({
@@ -170,7 +174,7 @@ router.get(
         },
         reviews: {
           where: { approved: true },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { createdAt: "desc" },
           include: {
             customer: {
               select: {
@@ -184,7 +188,7 @@ router.get(
         bookings: {
           where: {
             status: {
-              in: ['APPROVED', 'PENDING'],
+              in: ["APPROVED", "PENDING"],
             },
           },
           select: {
@@ -193,23 +197,24 @@ router.get(
           },
         },
       },
-    })
+    });
 
     if (!property) {
-      throw new AppError('Property not found', 404)
+      throw new AppError("Property not found", 404);
     }
 
     // Calculate average rating
-    const ratings = property.reviews.map(r => r.rating)
-    const averageRating = ratings.length > 0 
-      ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length 
-      : 0
+    const ratings = property.reviews.map((r) => r.rating);
+    const averageRating =
+      ratings.length > 0
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+        : 0;
 
     // Get unavailable dates
-    const unavailableDates = property.bookings.map(booking => ({
+    const unavailableDates = property.bookings.map((booking) => ({
       checkIn: booking.checkInDate,
       checkOut: booking.checkOutDate,
-    }))
+    }));
 
     const responseData = {
       ...property,
@@ -217,14 +222,14 @@ router.get(
       reviewCount: property.reviews.length,
       unavailableDates,
       hostPropertyCount: property.host._count.hostedProperties,
-    }
+    };
 
     res.json({
       success: true,
       data: responseData,
-    })
+    });
   })
-)
+);
 
 /**
  * @route   GET /api/v1/properties/:id/availability
@@ -232,22 +237,22 @@ router.get(
  * @access  Public
  */
 router.get(
-  '/:id/availability',
+  "/:id/availability",
   [
-    param('id').isString(),
-    query('checkIn').isISO8601(),
-    query('checkOut').isISO8601(),
+    param("id").isString(),
+    query("checkIn").isISO8601(),
+    query("checkOut").isISO8601(),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { checkIn, checkOut } = req.query
+    const { checkIn, checkOut } = req.query;
 
     const property = await prisma.property.findUnique({
       where: { id: req.params.id },
-    })
+    });
 
     if (!property) {
-      throw new AppError('Property not found', 404)
+      throw new AppError("Property not found", 404);
     }
 
     // Check for overlapping bookings
@@ -255,7 +260,7 @@ router.get(
       where: {
         propertyId: req.params.id,
         status: {
-          in: ['PENDING', 'APPROVED'],
+          in: ["PENDING", "APPROVED"],
         },
         OR: [
           {
@@ -268,9 +273,9 @@ router.get(
           },
         ],
       },
-    })
+    });
 
-    const isAvailable = overlappingBookings === 0
+    const isAvailable = overlappingBookings === 0;
 
     res.json({
       success: true,
@@ -280,9 +285,9 @@ router.get(
         checkOut,
         propertyId: req.params.id,
       },
-    })
+    });
   })
-)
+);
 
 // ===============================
 // PROPERTY HOST ROUTES
@@ -655,4 +660,4 @@ router.get(
   })
 );
 
-export default router
+export default router;

@@ -7,7 +7,7 @@ import { asyncHandler } from '../middlewares/error.middleware'
 import { AppError } from '../middlewares/error.middleware'
 import { prisma } from '../server'
 
-const router = Router()
+const router = Router();
 
 // Validation middleware
 const validate = (req: any, res: any, next: any) => {
