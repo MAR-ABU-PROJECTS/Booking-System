@@ -6,8 +6,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LogInSchema } from "../lib/schemas";
 import { Button } from "../components/ui/button";
+import { Checkbox } from "../components/ui/checkbox";
 import Link from "next/link";
-import Image from "next/image"
+import Image from "next/image";
 // import apiService from "../lib/apiService";
 
 const LogIn = () => {
@@ -16,6 +17,7 @@ const LogIn = () => {
 		defaultValues: {
 			email: "",
 			password: "",
+			rememberMe: false,
 		},
 		mode: "onChange",
 	});
@@ -72,7 +74,7 @@ const LogIn = () => {
 						control={form.control}
 						name="password"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5">
+							<div className="grid w-full items-center gap-1.5 mb-2">
 								<Label>
 									Password
 									<span className="text-red-600">*</span>
@@ -90,6 +92,27 @@ const LogIn = () => {
 										{fieldState.error.message}
 									</p>
 								)}
+							</div>
+						)}
+					/>
+
+					<Controller
+						name="rememberMe"
+						control={form.control}
+						render={({ field: { value, onChange, ref } }) => (
+							<div className="flex items-start gap-[10px]">
+								<Checkbox
+									checked={value}
+									onCheckedChange={onChange}
+									ref={ref}
+									className="bg-white border-1 border-black cursor-pointer"
+								/>
+								<Label
+									htmlFor="terms"
+									className="text-[12px] md:text-[14px] text-start"
+								>
+									<p>Remember Me</p>
+								</Label>
 							</div>
 						)}
 					/>
