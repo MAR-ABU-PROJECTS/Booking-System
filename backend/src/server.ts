@@ -72,7 +72,7 @@ app.use(
 app.use(
   cors({
     origin: [
-      "https://localhost:3000",
+      "http://localhost:3000",
       "http://localhost:3001",
       "https://backend-gora.onrender.com",
     ],
