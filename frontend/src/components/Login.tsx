@@ -9,7 +9,6 @@ import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import Link from "next/link";
 import Image from "next/image";
-// import apiService from "../lib/apiService";
 
 const LogIn = () => {
 	const form = useForm<z.infer<typeof LogInSchema>>({

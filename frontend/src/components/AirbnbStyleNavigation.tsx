@@ -10,11 +10,13 @@ import {
 	Heart,
 	MessageSquare,
 	HelpCircle,
+	LogOut,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useSelector } from "react-redux";
 import { RootState } from "../lib/features/store";
+import { logout } from "../lib/action";
 
 type Props = {
 	whiteBg?: boolean;
@@ -53,6 +55,13 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		handleSearch();
+	};
+
+	const handleLogOut = async () => {
+		await logout();
+		setTimeout(() => {
+			window.location.href = "/";
+		}, 1000);
 	};
 
 	return (
@@ -200,6 +209,14 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 													<HelpCircle className="w-5 h-5" />
 													<span>Help Center</span>
 												</Link>
+												<button
+													title="LogOut"
+													className="!cursor-pointer w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+													onClick={handleLogOut}
+												>
+													<LogOut className="w-5 h-5 rotate-180" />
+													<span>Log Out</span>
+												</button>
 											</div>
 										</div>
 									</motion.div>
