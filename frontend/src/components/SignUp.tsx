@@ -8,7 +8,11 @@ import { SignUpSchema } from "../lib/schemas";
 import { Button } from "../components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-// import apiService from "../lib/apiService";
+import { useMutation } from "@tanstack/react-query";
+import { apiService } from "../lib/apiService";
+import { isAxiosError } from "axios";
+import { Loader2 } from "lucide-react";
+import { ToastContainer, toast } from "react-toastify";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -19,14 +23,59 @@ const SignUp = () => {
 			firstName: "",
 			lastName: "",
 			phone: "",
-			role: "customer",
+			role: "CUSTOMER",
 		},
 		mode: "onChange",
 	});
 
-	const onSubmit = (data: z.infer<typeof SignUpSchema>) => {
-		console.log({ data });
-		window.location.href = "/";
+	const mutation = useMutation({
+		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
+			try {
+				const response = await apiService.post("/auth/register", {
+					...formData,
+				});
+				console.log(response);
+				return response;
+			} catch (error) {
+				if (isAxiosError(error)) {
+					console.error(
+						"Axios Error:",
+						error.response?.data?.message || error.message
+					);
+					throw error;
+				} else {
+					console.error("Unexpected Error:", error);
+					throw error;
+				}
+			}
+		},
+
+		onSuccess: (res) => {
+			if (res?.success) {
+			}
+			console.log("Registration successful:", res);
+			console.log({ res });
+		},
+
+		onError: (error) => {
+			if (isAxiosError(error)) {
+				const message =
+					(error.response?.data?.message as string) ||
+					"Something went wrong";
+				console.error("Handled in onError:", message);
+				toast.error(`${message}`, {
+					closeOnClick: false,
+
+					progress: undefined,
+				});
+			} else {
+				console.error("Non-Axios Error:", error);
+			}
+		},
+	});
+
+	const onSubmit = (values: z.infer<typeof SignUpSchema>) => {
+		mutation.mutate(values);
 	};
 	return (
 		<div className="w-full max-w-xl mx-auto">
@@ -175,14 +224,21 @@ const SignUp = () => {
 
 					<Button
 						className="!cursor-pointer w-full mt-8 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
+						disabled={mutation.isPending}
 						type="submit"
 					>
+						{mutation.isPending ? (
+							<Loader2
+								className="animate-spin size-5"
+								strokeWidth={3}
+							/>
+						) : null}
 						Submit
 					</Button>
 				</form>
 
 				<p className="text-center text-sm mt-5 font-medium">
-					Already have an account yet?{" "}
+					Already have an account?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/log-in">Log In</Link>
 					</span>

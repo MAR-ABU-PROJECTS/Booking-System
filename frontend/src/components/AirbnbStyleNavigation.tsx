@@ -12,7 +12,9 @@ import {
 	HelpCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Image from 'next/image'
+import Image from "next/image";
+import { useSelector } from "react-redux";
+import { RootState } from "../lib/features/store";
 
 type Props = {
 	whiteBg?: boolean;
@@ -21,6 +23,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
 	const router = useRouter();
+	const user = useSelector((state: RootState) => state.auth.user);
 
 	// Handle scroll effect
 	useEffect(() => {
@@ -92,8 +95,6 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 						/>
 					</Link>
 				)}
-
-			
 
 				{/* Search Bar (Desktop) */}
 				<form
@@ -167,55 +168,90 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 
 						{/* Profile Dropdown */}
 						<AnimatePresence>
-							{isProfileOpen && (
-								<motion.div
-									className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
-									initial={{ opacity: 0, y: 10 }}
-									animate={{ opacity: 1, y: 0 }}
-									exit={{ opacity: 0, y: 10 }}
-									transition={{ duration: 0.2 }}
-								>
-									<div className="py-2">
-										<div className="font-medium border-b border-gray-100">
-											<Link
-												href="/sign-up"
-												className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors"
-											>
-												Sign up
-											</Link>
-											<Link
-												href="/log-in"
-												className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors"
-											>
-												Log in
-											</Link>
+							{isProfileOpen &&
+								(user?.isLoggedIn ? (
+									<motion.div
+										className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
+										initial={{ opacity: 0, y: 10 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: 10 }}
+										transition={{ duration: 0.2 }}
+									>
+										<div className="py-2">
+											<div>
+												<Link
+													href="/wishlist"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+												>
+													<Heart className="w-5 h-5" />
+													<span>Wishlist</span>
+												</Link>
+												<Link
+													href="/messages"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+												>
+													<MessageSquare className="w-5 h-5" />
+													<span>Messages</span>
+												</Link>
+												<Link
+													href="/help-center"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+												>
+													<HelpCircle className="w-5 h-5" />
+													<span>Help Center</span>
+												</Link>
+											</div>
 										</div>
-										<div>
-											<Link
-												href="/wishlist"
-												className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
-											>
-												<Heart className="w-5 h-5" />
-												<span>Wishlist</span>
-											</Link>
-											<Link
-												href="/messages"
-												className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
-											>
-												<MessageSquare className="w-5 h-5" />
-												<span>Messages</span>
-											</Link>
-											<Link
-												href="/help-center"
-												className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
-											>
-												<HelpCircle className="w-5 h-5" />
-												<span>Help Center</span>
-											</Link>
+									</motion.div>
+								) : (
+									<motion.div
+										className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
+										initial={{ opacity: 0, y: 10 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: 10 }}
+										transition={{ duration: 0.2 }}
+									>
+										<div className="py-2">
+											<div className="font-medium border-b border-gray-100">
+												<Link
+													href="/sign-up"
+													className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+												>
+													Sign up
+												</Link>
+												<Link
+													href="/log-in"
+													className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+												>
+													Log in
+												</Link>
+											</div>
+											<div>
+												<Link
+													href="/wishlist"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+												>
+													<Heart className="w-5 h-5" />
+													<span>Wishlist</span>
+												</Link>
+												<Link
+													href="/messages"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+												>
+													<MessageSquare className="w-5 h-5" />
+													<span>Messages</span>
+												</Link>
+												<Link
+													href="/help-center"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+												>
+													<HelpCircle className="w-5 h-5" />
+													<span>Help Center</span>
+												</Link>
+											</div>
 										</div>
-									</div>
-								</motion.div>
-							)}
+									</motion.div>
+								))}
 						</AnimatePresence>
 					</div>
 				</div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AppProviders from "../providers/AppProviders";
 import "./globals.css";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
@@ -12,7 +13,6 @@ import '@fontsource/outfit/500.css';
 import '@fontsource/outfit/600.css';
 import '@fontsource/outfit/700.css';
 import '@fontsource/outfit/800.css';
-import AppProviders from "../providers/AppProviders";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Premium Accommodations Across Nigeria",
@@ -22,11 +22,12 @@ export const metadata: Metadata = {
 		"luxury accommodations, premium properties, short lets, Nigeria, Lagos, Abuja, Port Harcourt",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+
 	return (
 		<html lang="en" className="scroll-smooth">
 			<head>

@@ -7,6 +7,7 @@ export interface SessionData {
 		email: string;
 		token: string;
 		isLoggedIn: boolean;
+		refreshToken: string;
 	};
 }
 
@@ -17,13 +18,15 @@ export const defaultSession: SessionData = {
 		email: "",
 		token: "",
 		isLoggedIn: false,
+		refreshToken: "",
 	},
 };
 
 export const sessionOptions: SessionOptions = {
 	password: process.env.SECRET_KEY!,
 	cookieName: "mar-abu-session",
-	ttl: 24 * 60 * 60,
+	ttl: 60 * 60 * 5,
+	
 	cookieOptions: {
 		httpOnly: true,
 

@@ -34,7 +34,7 @@ const ImageLayout = ({ images }: Props) => {
 	const ShowAll = () => {
 		return (
 			<button
-				className="!cursor-pointer text-sm font-[500] px-2.5 py-1.5 border border-2 rounded-[9px] bg-white absolute right-7 bottom-5"
+				className="!cursor-pointer text-sm font-[500] px-2.5 py-1.5 border-2 rounded-[9px] bg-white absolute right-7 bottom-5"
 				onClick={() => openModal(0)}
 			>
 				Show All Photos

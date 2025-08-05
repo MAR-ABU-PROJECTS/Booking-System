@@ -1,7 +1,8 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { getSession } from "../lib/action";
 
-export const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+export const BASE_URL =
+	`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1` || "http://localhost:3000/api/v1";
 
 const axiosInstance = axios.create({
 	baseURL: BASE_URL,
