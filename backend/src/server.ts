@@ -23,6 +23,10 @@ import reviewRoutes from "./routes/review.routes";
 import notificationRoutes from "./routes/notification.routes";
 import adminRoutes from "./routes/admin.routes";
 import analyticsRoutes from "./routes/analytics.routes";
+import uploadRoutes from "./routes/upload.routes";
+import searchRoutes from "./routes/search.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
+import paymentRoutes from "./routes/payment.routes";
 
 // Import middleware
 import { errorHandler } from "./middlewares/error.middleware";
@@ -68,8 +72,9 @@ app.use(
 app.use(
   cors({
     origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      process.env.ADMIN_URL || "http://localhost:3001",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://backend-gora.onrender.com",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -120,9 +125,7 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 // ===============================
 // API ROUTES
 // ===============================
-// const API_PREFIX = process.env.API_PREFIX || '/api/v1'
-
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const API_PREFIX = process.env.API_PREFIX || "/api/v1";
 
 // Health check
 app.get("/health", (req, res) => {
@@ -135,15 +138,14 @@ app.get("/health", (req, res) => {
 });
 
 // API routes
-app.use(`/api/v1/auth`, authLimiter, authRoutes);
-app.use(`/api/v1/users`, userRoutes);
-app.use(`/api/v1/properties`, propertyRoutes);
-app.use(`/api/v1/bookings`, bookingRoutes);
-app.use(`/api/v1/receipts`, receiptRoutes);
-app.use(`/api/v1/reviews`, reviewRoutes);
-app.use(`/api/v1/notifications`, notificationRoutes);
-app.use(`/api/v1/admin`, adminRoutes);
-app.use(`/api/v1/analytics`, analyticsRoutes);
+app.use(`${API_PREFIX}/auth`, authLimiter, authRoutes);
+app.use(`${API_PREFIX}/users`, userRoutes);
+app.use(`${API_PREFIX}/properties`, propertyRoutes);
+app.use(`${API_PREFIX}/bookings`, bookingRoutes);
+app.use(`${API_PREFIX}/receipts`, receiptRoutes);
+app.use(`${API_PREFIX}/reviews`, reviewRoutes);
+app.use(`${API_PREFIX}/notifications`, notificationRoutes);
+app.use(`${API_PREFIX}/admin`, adminRoutes);
 
 // ===============================
 // ERROR HANDLING
