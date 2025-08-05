@@ -58,8 +58,8 @@ app.use((0, helmet_1.default)({
 }));
 // CORS configuration
 app.use((0, cors_1.default)({
-    origin: "*",
-    credentials: false,
+    origin: ["https://localhost:3000", 'http://localhost:3001', "https://backend-gora.onrender.com"],
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
@@ -99,7 +99,7 @@ app.use("/uploads", express_1.default.static(path_1.default.join(__dirname, ".."
 // ===============================
 // API ROUTES
 // ===============================
-const API_PREFIX = process.env.API_PREFIX || '/api/v1';
+const API_PREFIX = process.env.API_PREFIX || "/api/v1";
 // Health check
 app.get("/health", (req, res) => {
     res.json({
@@ -126,7 +126,7 @@ app.use(error_middleware_1.errorHandler);
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = process.env.PORT || '5001';
+const PORT = process.env.PORT || "5001";
 const startServer = async () => {
     try {
         // Test database connection

@@ -20,7 +20,7 @@ const options = {
         servers: [
             {
                 url: "https://booking-system-n26e.onrender.com/api/v1",
-                description: "Production server",
+                description: "Development server",
             },
         ],
         components: {

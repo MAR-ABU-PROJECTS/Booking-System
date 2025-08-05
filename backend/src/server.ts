@@ -71,8 +71,12 @@ app.use(
 // CORS configuration
 app.use(
   cors({
-    origin: "*",
-    credentials: false,
+    origin: [
+      "https://localhost:3000",
+      "http://localhost:3001",
+      "https://backend-gora.onrender.com",
+    ],
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
@@ -121,7 +125,7 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 // ===============================
 // API ROUTES
 // ===============================
-const API_PREFIX = process.env.API_PREFIX || '/api/v1'
+const API_PREFIX = process.env.API_PREFIX || "/api/v1";
 
 // Health check
 app.get("/health", (req, res) => {
@@ -134,14 +138,14 @@ app.get("/health", (req, res) => {
 });
 
 // API routes
-app.use(`${API_PREFIX}/auth`, authLimiter, authRoutes)
-app.use(`${API_PREFIX}/users`, userRoutes)
-app.use(`${API_PREFIX}/properties`, propertyRoutes)
-app.use(`${API_PREFIX}/bookings`, bookingRoutes)
-app.use(`${API_PREFIX}/receipts`, receiptRoutes)
-app.use(`${API_PREFIX}/reviews`, reviewRoutes)
-app.use(`${API_PREFIX}/notifications`, notificationRoutes)
-app.use(`${API_PREFIX}/admin`, adminRoutes)
+app.use(`${API_PREFIX}/auth`, authLimiter, authRoutes);
+app.use(`${API_PREFIX}/users`, userRoutes);
+app.use(`${API_PREFIX}/properties`, propertyRoutes);
+app.use(`${API_PREFIX}/bookings`, bookingRoutes);
+app.use(`${API_PREFIX}/receipts`, receiptRoutes);
+app.use(`${API_PREFIX}/reviews`, reviewRoutes);
+app.use(`${API_PREFIX}/notifications`, notificationRoutes);
+app.use(`${API_PREFIX}/admin`, adminRoutes);
 
 // ===============================
 // ERROR HANDLING
@@ -152,7 +156,7 @@ app.use(errorHandler);
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = process.env.PORT || '5001'
+const PORT = process.env.PORT || "5001";
 
 const startServer = async () => {
   try {
@@ -162,11 +166,11 @@ const startServer = async () => {
 
     // Start server
     app.listen(PORT, () => {
-      console.log(`${process.env.COMPANY_NAME} Server running on port ${PORT}`)
-      console.log(`Environment: ${process.env.NODE_ENV}`)
-      console.log(`Primary Color: ${process.env.PRIMARY_COLOR}`)
-      console.log(`Secondary Color: ${process.env.SECONDARY_COLOR}`)
-    })
+      console.log(`${process.env.COMPANY_NAME} Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`Primary Color: ${process.env.PRIMARY_COLOR}`);
+      console.log(`Secondary Color: ${process.env.SECONDARY_COLOR}`);
+    });
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);
