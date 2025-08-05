@@ -71,7 +71,7 @@ app.use(
 // CORS configuration
 app.use(
   cors({
-    origin: '*',
+    origin: "*",
     credentials: false,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
@@ -121,6 +121,7 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 // ===============================
 // API ROUTES
 // ===============================
+const API_PREFIX = process.env.API_PREFIX || '/api/v1'
 
 // Health check
 app.get("/health", (req, res) => {
@@ -133,19 +134,14 @@ app.get("/health", (req, res) => {
 });
 
 // API routes
-app.use(`/api/v1/auth`, authLimiter, authRoutes);
-app.use(`/api/v1/users`, userRoutes);
-app.use(`/api/v1/properties`, propertyRoutes);
-app.use(`/api/v1/bookings`, bookingRoutes);
-app.use(`/api/v1/receipts`, receiptRoutes);
-app.use(`/api/v1/reviews`, reviewRoutes);
-app.use(`/api/v1/notifications`, notificationRoutes);
-app.use(`/api/v1/admin`, adminRoutes);
-app.use(`/api/v1/analytics`, analyticsRoutes);
-app.use(`/api/v1/uploads`, uploadRoutes);
-app.use(`/api/v1/search`, searchRoutes);
-app.use(`/api/v1/dashboard`, dashboardRoutes);
-app.use(`/api/v1/payments`, paymentRoutes);
+app.use(`${API_PREFIX}/auth`, authLimiter, authRoutes)
+app.use(`${API_PREFIX}/users`, userRoutes)
+app.use(`${API_PREFIX}/properties`, propertyRoutes)
+app.use(`${API_PREFIX}/bookings`, bookingRoutes)
+app.use(`${API_PREFIX}/receipts`, receiptRoutes)
+app.use(`${API_PREFIX}/reviews`, reviewRoutes)
+app.use(`${API_PREFIX}/notifications`, notificationRoutes)
+app.use(`${API_PREFIX}/admin`, adminRoutes)
 
 // ===============================
 // ERROR HANDLING
@@ -156,8 +152,7 @@ app.use(errorHandler);
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = parseInt(process.env.PORT || "5050", 10);
-const HOST = "0.0.0.0";
+const PORT = process.env.PORT || '5001'
 
 const startServer = async () => {
   try {
@@ -165,13 +160,13 @@ const startServer = async () => {
     await prisma.$connect();
     console.log("Database connected successfully");
 
-    // Start server (updated with HOST)
-    app.listen(PORT, HOST, () => {
-      console.log(
-        `${process.env.COMPANY_NAME} Server running on http://${HOST}:${PORT}`
-      );
-      console.log(`Environment: ${process.env.NODE_ENV}`);
-    });
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`${process.env.COMPANY_NAME} Server running on port ${PORT}`)
+      console.log(`Environment: ${process.env.NODE_ENV}`)
+      console.log(`Primary Color: ${process.env.PRIMARY_COLOR}`)
+      console.log(`Secondary Color: ${process.env.SECONDARY_COLOR}`)
+    })
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);

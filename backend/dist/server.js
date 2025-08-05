@@ -26,11 +26,6 @@ const receipt_routes_1 = __importDefault(require("./routes/receipt.routes"));
 const review_routes_1 = __importDefault(require("./routes/review.routes"));
 const notification_routes_1 = __importDefault(require("./routes/notification.routes"));
 const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
-const analytics_routes_1 = __importDefault(require("./routes/analytics.routes"));
-const upload_routes_1 = __importDefault(require("./routes/upload.routes"));
-const search_routes_1 = __importDefault(require("./routes/search.routes"));
-const dashboard_routes_1 = __importDefault(require("./routes/dashboard.routes"));
-const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
 // Import middleware
 const error_middleware_1 = require("./middlewares/error.middleware");
 const notfound_middleware_1 = require("./middlewares/notfound.middleware");
@@ -63,7 +58,7 @@ app.use((0, helmet_1.default)({
 }));
 // CORS configuration
 app.use((0, cors_1.default)({
-    origin: '*',
+    origin: "*",
     credentials: false,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
@@ -104,6 +99,7 @@ app.use("/uploads", express_1.default.static(path_1.default.join(__dirname, ".."
 // ===============================
 // API ROUTES
 // ===============================
+const API_PREFIX = process.env.API_PREFIX || '/api/v1';
 // Health check
 app.get("/health", (req, res) => {
     res.json({
@@ -114,19 +110,14 @@ app.get("/health", (req, res) => {
     });
 });
 // API routes
-app.use(`/api/v1/auth`, authLimiter, auth_routes_1.default);
-app.use(`/api/v1/users`, user_routes_1.default);
-app.use(`/api/v1/properties`, property_routes_1.default);
-app.use(`/api/v1/bookings`, booking_routes_1.default);
-app.use(`/api/v1/receipts`, receipt_routes_1.default);
-app.use(`/api/v1/reviews`, review_routes_1.default);
-app.use(`/api/v1/notifications`, notification_routes_1.default);
-app.use(`/api/v1/admin`, admin_routes_1.default);
-app.use(`/api/v1/analytics`, analytics_routes_1.default);
-app.use(`/api/v1/uploads`, upload_routes_1.default);
-app.use(`/api/v1/search`, search_routes_1.default);
-app.use(`/api/v1/dashboard`, dashboard_routes_1.default);
-app.use(`/api/v1/payments`, payment_routes_1.default);
+app.use(`${API_PREFIX}/auth`, authLimiter, auth_routes_1.default);
+app.use(`${API_PREFIX}/users`, user_routes_1.default);
+app.use(`${API_PREFIX}/properties`, property_routes_1.default);
+app.use(`${API_PREFIX}/bookings`, booking_routes_1.default);
+app.use(`${API_PREFIX}/receipts`, receipt_routes_1.default);
+app.use(`${API_PREFIX}/reviews`, review_routes_1.default);
+app.use(`${API_PREFIX}/notifications`, notification_routes_1.default);
+app.use(`${API_PREFIX}/admin`, admin_routes_1.default);
 // ===============================
 // ERROR HANDLING
 // ===============================
@@ -135,17 +126,18 @@ app.use(error_middleware_1.errorHandler);
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = parseInt(process.env.PORT || "5050", 10);
-const HOST = "0.0.0.0";
+const PORT = process.env.PORT || '5001';
 const startServer = async () => {
     try {
         // Test database connection
         await exports.prisma.$connect();
         console.log("Database connected successfully");
-        // Start server (updated with HOST)
-        app.listen(PORT, HOST, () => {
-            console.log(`${process.env.COMPANY_NAME} Server running on http://${HOST}:${PORT}`);
+        // Start server
+        app.listen(PORT, () => {
+            console.log(`${process.env.COMPANY_NAME} Server running on port ${PORT}`);
             console.log(`Environment: ${process.env.NODE_ENV}`);
+            console.log(`Primary Color: ${process.env.PRIMARY_COLOR}`);
+            console.log(`Secondary Color: ${process.env.SECONDARY_COLOR}`);
         });
     }
     catch (error) {

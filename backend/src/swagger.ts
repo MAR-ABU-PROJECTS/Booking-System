@@ -1,5 +1,7 @@
+// MAR ABU PROJECTS SERVICES LLC - Server Configuration
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+import path from "path";
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -11,8 +13,8 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: "http://localhost:5001/api/v1",
-        description: "Development server",
+        url: "https://booking-system-n26e.onrender.com/api/v1",
+        description: "Production server",
       },
     ],
     components: {
@@ -24,13 +26,16 @@ const options: swaggerJsdoc.Options = {
         },
       },
     },
-    security: [
-      {
-        bearerAuth: [],
-      },
-    ],
   },
-  apis: ["./src/routes/**/*.ts"],
+  apis: [
+    // Use absolute paths to avoid issues
+    path.join(
+      __dirname,
+      process.env.NODE_ENV === "production"
+        ? "../dist/routes/**/*.js"
+        : "./routes/**/*.ts"
+    ),
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
