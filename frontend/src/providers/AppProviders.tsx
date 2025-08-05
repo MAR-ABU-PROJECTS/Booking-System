@@ -1,5 +1,4 @@
 "use client";
-
 import { ReactNode } from "react";
 import ReduxProvider from "./reduxprovider";
 import ReactQueryClientProvider from "./QueryClientProvider";
@@ -15,6 +14,8 @@ export default function AppProviders({ children }: Props) {
 		<ReactQueryClientProvider>
 			<ReduxProvider>
 				<ToastContainer
+					closeOnClick={false}
+					closeButton={true}
 					pauseOnHover={false}
 					position="top-right"
 					draggable={false}

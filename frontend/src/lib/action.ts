@@ -2,7 +2,6 @@
 import { getIronSession } from "iron-session";
 import { SessionData, defaultSession, sessionOptions } from "./session";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import { apiService } from "../lib/apiService";
 
@@ -13,7 +12,7 @@ function checkTokenExpiry(token: string): boolean {
 		const now = Date.now() / 1000;
 		return decoded.exp < now;
 	} catch (err) {
-		return true; // Invalid token
+		return true;
 	}
 }
 

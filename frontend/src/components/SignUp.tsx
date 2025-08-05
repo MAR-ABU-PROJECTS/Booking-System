@@ -12,7 +12,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiService } from "../lib/apiService";
 import { isAxiosError } from "axios";
 import { Loader2 } from "lucide-react";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -49,12 +49,19 @@ const SignUp = () => {
 				}
 			}
 		},
-
-		onSuccess: (res) => {
+		onSuccess: async (res) => {
 			if (res?.success) {
+				console.log("Registration successful:", res);
+				const message = res?.message as string
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+				setTimeout(() => {
+					window.location.href = `/verify-email?email=${res?.data?.user?.email}`;
+				}, 1000);
 			}
-			console.log("Registration successful:", res);
-			console.log({ res });
+			
 		},
 
 		onError: (error) => {
