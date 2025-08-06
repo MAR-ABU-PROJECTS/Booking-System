@@ -1,6 +1,6 @@
 import React from "react";
-import Header from "@/components/Header";
-import AirbnbStyleNavigation from "@/components/AirbnbStyleNavigation";
+// import Header from "@/components/Header";
+import AirbnbStyleNavigation from "../../components/AirbnbStyleNavigation";
 
 const page = () => {
 	return (

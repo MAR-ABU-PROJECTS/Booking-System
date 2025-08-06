@@ -147,7 +147,7 @@ const Header = () => {
 							transition={{ duration: 0.8, delay: 0.9 }}
 						>
 							Discover luxury apartments, executive short lets,
-							and premium buildings in Nigeria's most prestigious
+							and premium buildings in Nigeria&apos;s most prestigious
 							locations
 						</motion.p>
 

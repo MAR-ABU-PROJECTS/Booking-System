@@ -130,14 +130,14 @@ const PropertyImageShowcase = () => {
   };
 
   // Placeholder gradient backgrounds for demo
-  const gradients = [
-    "bg-gradient-to-br from-amber-100 to-amber-300",
-    "bg-gradient-to-br from-blue-100 to-blue-300",
-    "bg-gradient-to-br from-green-100 to-green-300",
-    "bg-gradient-to-br from-purple-100 to-purple-300",
-    "bg-gradient-to-br from-red-100 to-red-300",
-    "bg-gradient-to-br from-gray-100 to-gray-300"
-  ];
+  // const gradients = [
+  //   "bg-gradient-to-br from-amber-100 to-amber-300",
+  //   "bg-gradient-to-br from-blue-100 to-blue-300",
+  //   "bg-gradient-to-br from-green-100 to-green-300",
+  //   "bg-gradient-to-br from-purple-100 to-purple-300",
+  //   "bg-gradient-to-br from-red-100 to-red-300",
+  //   "bg-gradient-to-br from-gray-100 to-gray-300"
+  // ];
 
   return (
     <section className="py-12 px-4 mx-auto max-w-7xl">

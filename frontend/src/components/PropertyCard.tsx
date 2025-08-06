@@ -5,6 +5,7 @@ import { Heart, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Property } from "../lib/type";
 import { formatCurrency } from "../lib/utils";
 import Link from "next/link";
+import Image from "next/image"
 
 const PropertyCard = ({
 	id,
@@ -12,11 +13,9 @@ const PropertyCard = ({
 	location,
 	price,
 	rating,
-	reviews,
+
 	images,
-	bed,
-	baths,
-	guests,
+	
 	isSuperhost = false,
 	isNew = false,
 }: Property) => {
@@ -63,17 +62,18 @@ const PropertyCard = ({
 			<div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3">
 				{/* Image */}
 				<div
-					className={`w-full h-full transition-all duration-500 ease-in-out ${
+					className={`w-full h-full transition-all duration-500 ease-in-out relative ${
 						images.length === 0
 							? placeholderImages[currentImageIndex]
 							: ""
 					}`}
 				>
 					{images.length > 0 ? (
-						<img
+						<Image
 							src={images[currentImageIndex]}
 							alt={`Property Image ${currentImageIndex + 1}`}
 							className="w-full h-full object-cover rounded-md"
+							fill
 						/>
 					) : (
 						<span className="text-gray-500 flex items-center justify-center h-full w-full">
@@ -105,7 +105,7 @@ const PropertyCard = ({
 
 				{/* Like Button */}
 				<motion.button
-					className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md"
+					className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md !cursor-pointer"
 					onClick={toggleLike}
 					whileHover={{ scale: 1.1 }}
 					whileTap={{ scale: 0.9 }}

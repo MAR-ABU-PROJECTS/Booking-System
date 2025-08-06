@@ -1,4 +1,5 @@
 import {Loader2} from "lucide-react"
+
 const Loading = () => {
 	return (
 		<div className="h-svh flex justify-center items-center">

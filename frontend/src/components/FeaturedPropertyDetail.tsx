@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import { motion } from "framer-motion";
 import { 
   Star, 
   MapPin, 
@@ -13,13 +12,12 @@ import {
   Utensils, 
   Car,
   Dumbbell,
-  Calendar,
   ChevronDown,
   ChevronUp,
   Share2,
   Heart,
   Waves,
-  ShowerHead
+  
 } from "lucide-react";
 
 const FeaturedPropertyDetail = () => {
@@ -62,16 +60,16 @@ const FeaturedPropertyDetail = () => {
   };
   
   // Calculate total price (simplified for demo)
-  const calculateTotal = () => {
-    if (!checkInDate || !checkOutDate) return property.price;
+  // const calculateTotal = () => {
+  //   if (!checkInDate || !checkOutDate) return property.price;
     
-    // In a real app, you would calculate based on actual dates
-    const basePrice = parseInt(property.price.replace(/[^\d]/g, ""));
-    const nights = 3; // Placeholder - would be calculated from actual dates
-    const total = basePrice * nights;
+  //   // In a real app, you would calculate based on actual dates
+  //   const basePrice = parseInt(property.price.replace(/[^\d]/g, ""));
+  //   const nights = 3; // Placeholder - would be calculated from actual dates
+  //   const total = basePrice * nights;
     
-    return `₦${total.toLocaleString()}`;
-  };
+  //   return `₦${total.toLocaleString()}`;
+  // };
   
   // Placeholder gradients for demo
   const gradients = [

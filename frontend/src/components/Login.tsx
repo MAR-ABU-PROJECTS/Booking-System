@@ -1,13 +1,14 @@
 "use client";
 import { useForm, Controller } from "react-hook-form";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LogInSchema } from "../lib/schemas";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
+import { Checkbox } from "../components/ui/checkbox";
 import Link from "next/link";
-// import apiService from "../lib/apiService";
+import Image from "next/image";
 
 const LogIn = () => {
 	const form = useForm<z.infer<typeof LogInSchema>>({
@@ -15,6 +16,7 @@ const LogIn = () => {
 		defaultValues: {
 			email: "",
 			password: "",
+			rememberMe: false,
 		},
 		mode: "onChange",
 	});
@@ -26,10 +28,12 @@ const LogIn = () => {
 	return (
 		<div className="w-full max-w-xl mx-auto">
 			<div className="mb-6">
-				<img
+				<Image
 					src="/logo/black-logo.png"
 					alt="MAR ABU HOMES"
 					className="h-8 md:h-10 mx-auto mb-5"
+					height={32}
+					width={130}
 				/>
 				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
 					Welcome Back to MAR ABU!
@@ -69,7 +73,7 @@ const LogIn = () => {
 						control={form.control}
 						name="password"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5">
+							<div className="grid w-full items-center gap-1.5 mb-2">
 								<Label>
 									Password
 									<span className="text-red-600">*</span>
@@ -91,6 +95,27 @@ const LogIn = () => {
 						)}
 					/>
 
+					<Controller
+						name="rememberMe"
+						control={form.control}
+						render={({ field: { value, onChange, ref } }) => (
+							<div className="flex items-start gap-[10px]">
+								<Checkbox
+									checked={value}
+									onCheckedChange={onChange}
+									ref={ref}
+									className="bg-white border-1 border-black cursor-pointer"
+								/>
+								<Label
+									htmlFor="terms"
+									className="text-[12px] md:text-[14px] text-start"
+								>
+									<p>Remember Me</p>
+								</Label>
+							</div>
+						)}
+					/>
+
 					<Button
 						className="!cursor-pointer w-full mt-8 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
 						type="submit"
@@ -100,7 +125,7 @@ const LogIn = () => {
 				</form>
 
 				<p className="text-center text-sm mt-5 font-medium">
-					Don't have an account yet?{" "}
+					Don&apos;t have an account yet?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/sign-up">Sign Up</Link>
 					</span>

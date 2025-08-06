@@ -1,12 +1,12 @@
-import SingleProperty from "@/components/SingleProperty";
+import SingleProperty from "../../../components/SingleProperty";
 import { getPropertyById } from "../../../lib/api";
 import AirbnbStyleNavigation from "../../../components/AirbnbStyleNavigation";
-import Footer from "@/components/Footer";
+import Footer from "../../../components/Footer";
 
-type props = {
-	params: { id: string };
+type Props = {
+	params: Promise<{ id: string }>
 };
-const page = async ({ params }: props) => {
+const Page = async ({ params }: Props) => {
 	const { id } = await params;
 	const property = await getPropertyById(Number(id));
 
@@ -28,4 +28,4 @@ const page = async ({ params }: props) => {
 	);
 };
 
-export default page;
+export default Page;

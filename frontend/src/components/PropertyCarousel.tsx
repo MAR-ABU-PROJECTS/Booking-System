@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from 'next/image';
 
 type Props = {
 	images: string[];
@@ -37,15 +38,16 @@ const PropertyCarousel = ({ images }: Props) => {
 		<div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3 group">
 			{/* Image */}
 			<div
-				className={`w-full h-full ${
+				className={`w-full h-full absolute ${
 					images.length ? "" : placeholderImages[currentImageIndex]
 				} transition-all duration-500 ease-in-out`}
 			>
 				{images.length ? (
-					<img
+					<Image
 						src={images[currentImageIndex]}
 						alt={`Property image ${currentImageIndex + 1}`}
 						className="w-full h-full object-cover"
+						fill
 					/>
 				) : null}
 			</div>

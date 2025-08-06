@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import React, { useState } from "react";
 import classNames from "classnames";
 import { Menu, X } from "lucide-react";
+import Image from "next/image"
 
 const navItem = [
   { label: "Home", href: "/" },
@@ -24,10 +25,12 @@ const Navigation = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-md border-b border-white/10 px-4 md:px-12 py-4 flex justify-between items-center transition-all duration-300">
         {/* Logo */}
         <div className="flex items-center">
-          <img 
+          <Image
             src="/logo/logo.png" 
             alt="MAR ABU HOMES" 
             className="h-8 md:h-10"
+            height={32}
+            width={130}
           />
         </div>
 

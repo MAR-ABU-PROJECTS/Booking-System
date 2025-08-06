@@ -1,22 +1,20 @@
-import { Calendar } from "@/components/ui/calendar";
-import { Label } from "@/components/ui/label";
+import { Calendar } from "../../components/ui/calendar";
+import { Label } from "../../components/ui/label";
 import {
 	CalendarMinus2,
 	CalendarRange,
-	CircleCheckBig,
 	CreditCard,
-	FileText,
 	MessageSquareMore,
 	UserRound,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+} from "../../components/ui/popover";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
 import {
 	Select,
 	SelectContent,
@@ -25,12 +23,12 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+} from "../../components/ui/select";
+import { Checkbox } from "../../components/ui/checkbox";
 import { Controller, useFormContext } from "react-hook-form";
 import { bookingDetailsSchema } from "../../lib/schemas";
 import { z } from "zod";
-import GuestCounterTwo from "@/components/GuestCounterTwo";
+import GuestCounterTwo from "../../components/GuestCounterTwo";
 import { useState } from "react";
 import dayjs from "dayjs";
 

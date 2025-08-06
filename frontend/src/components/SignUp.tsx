@@ -1,13 +1,21 @@
 "use client";
+// import { useState, ChangeEvent } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SignUpSchema } from "../lib/schemas";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import Link from "next/link";
-// import apiService from "../lib/apiService";
+import Image from "next/image";
+import { useMutation } from "@tanstack/react-query";
+import { apiService } from "../lib/apiService";
+import { isAxiosError } from "axios";
+import { Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
+// import { checkPasswordStrength } from "../lib/utils";
+// import PasswordStrengthChecker from "../components/PasswordStrengthChecker";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -18,22 +26,81 @@ const SignUp = () => {
 			firstName: "",
 			lastName: "",
 			phone: "",
-			role: "customer",
+			role: "CUSTOMER",
 		},
 		mode: "onChange",
 	});
+	// const [passwordStrength, setPasswordStrength] = useState(0);
 
-	const onSubmit = (data: z.infer<typeof SignUpSchema>) => {
-		console.log({ data });
-		window.location.href = "/";
+	// const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+	// 	const strength = checkPasswordStrength(e.target.value);
+	// 	setPasswordStrength((strength / 5) * 100);
+	// };
+
+	const mutation = useMutation({
+		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
+			try {
+				const response = await apiService.post("/auth/register", {
+					...formData,
+				});
+				console.log(response);
+				return response;
+			} catch (error) {
+				if (isAxiosError(error)) {
+					console.error(
+						"Axios Error:",
+						error.response?.data?.message || error.message
+					);
+					throw error;
+				} else {
+					console.error("Unexpected Error:", error);
+					throw error;
+				}
+			}
+		},
+		onSuccess: async (res) => {
+			if (res?.success) {
+				console.log("Registration successful:", res);
+				const message = res?.message as string;
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+				setTimeout(() => {
+					window.location.href = `/verify-email?email=${res?.data?.user?.email}`;
+				}, 1000);
+			}
+		},
+
+		onError: (error) => {
+			if (isAxiosError(error)) {
+				const message =
+					(error.response?.data?.message as string) ||
+					"Something went wrong";
+				console.error("Handled in onError:", message);
+				toast.error(`${message}`, {
+					closeOnClick: false,
+
+					progress: undefined,
+				});
+			} else {
+				console.error("Non-Axios Error:", error);
+			}
+		},
+	});
+
+	const onSubmit = (values: z.infer<typeof SignUpSchema>) => {
+		mutation.mutate(values);
 	};
 	return (
 		<div className="w-full max-w-xl mx-auto">
 			<div className="mb-6">
-				<img
+				<Image
 					src="/logo/black-logo.png"
 					alt="MAR ABU HOMES"
 					className="h-8 md:h-10 mx-auto mb-5"
+					height={32}
+					width={130}
 				/>
 				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
 					Welcome to MAR ABU!
@@ -158,7 +225,10 @@ const SignUp = () => {
 									id="password"
 									placeholder="Enter password"
 									className="border-2 border-[#f7d5b0] h-[50px]"
-									{...field}
+									onChange={(e) => {
+										// handlePasswordChange(e);
+										field.onChange(e);
+									}}
 								/>
 
 								{fieldState.error && (
@@ -170,16 +240,32 @@ const SignUp = () => {
 						)}
 					/>
 
+					{/* {form.getValues("password").length > 0 && (
+						<div className=" mt-3 max-w-[50%] w-full">
+							<PasswordStrengthChecker
+								strength={passwordStrength}
+								password={form.getValues("password")}
+							/>
+						</div>
+					)} */}
+
 					<Button
 						className="!cursor-pointer w-full mt-8 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
+						disabled={mutation.isPending}
 						type="submit"
 					>
+						{mutation.isPending ? (
+							<Loader2
+								className="animate-spin size-5"
+								strokeWidth={3}
+							/>
+						) : null}
 						Submit
 					</Button>
 				</form>
 
 				<p className="text-center text-sm mt-5 font-medium">
-					Already have an account yet?{" "}
+					Already have an account?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/log-in">Log In</Link>
 					</span>

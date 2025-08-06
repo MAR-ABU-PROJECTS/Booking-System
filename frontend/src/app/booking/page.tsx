@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import Navbar from "@/components/Navigation";
-import BookingForm from "@/components/bookingComponents/BookingForm";
-import BookingSummary from "@/components/bookingComponents/BookingSummary";
+import Navbar from "../../components/Navigation";
+import BookingForm from "../../components/bookingComponents/BookingForm";
+import BookingSummary from "../../components/bookingComponents/BookingSummary";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { bookingDetailsSchema } from "../../lib/schemas";
@@ -14,8 +14,6 @@ import { useRouter } from "next/navigation";
 
 const Page = () => {
 	const booking = useSelector((state: RootState) => state.booking);
-	const [adultCount, setAdultCount] = useState(2);
-	const [childCount, setChildCount] = useState(0);
 
 	const router = useRouter();
 
@@ -23,7 +21,7 @@ const Page = () => {
 		if (!booking?.location) {
 			router.push("/");
 		}
-	}, [booking]);
+	}, [booking, router]);
 
 	const form = useForm<z.infer<typeof bookingDetailsSchema>>({
 		resolver: zodResolver(bookingDetailsSchema),
@@ -88,109 +86,109 @@ const Page = () => {
 		});
 	}, []);
 
-	const handleAdultIncrement = () => {
-		const newAdultCount = adultCount + 1;
-		setAdultCount(newAdultCount);
-		toast(`Updated Adult: ${newAdultCount}`, {
-			position: "top-right",
-			autoClose: 3000,
-			hideProgressBar: false,
-			closeOnClick: false,
-			pauseOnHover: true,
-			draggable: true,
-			progress: undefined,
-			theme: "colored",
-			style: {
-				background: "#12B76A",
-				color: "#ffffff",
-				fontFamily: "Sora, sans-serif",
-				fontSize: "16px",
-				fontWeight: "600",
-				borderRadius: "8px",
-				textTransform: "capitalize",
-				boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-				padding: "16px",
-			},
-		});
-	};
+	// const handleAdultIncrement = () => {
+	// 	const newAdultCount = adultCount + 1;
+	// 	setAdultCount(newAdultCount);
+	// 	toast(`Updated Adult: ${newAdultCount}`, {
+	// 		position: "top-right",
+	// 		autoClose: 3000,
+	// 		hideProgressBar: false,
+	// 		closeOnClick: false,
+	// 		pauseOnHover: true,
+	// 		draggable: true,
+	// 		progress: undefined,
+	// 		theme: "colored",
+	// 		style: {
+	// 			background: "#12B76A",
+	// 			color: "#ffffff",
+	// 			fontFamily: "Sora, sans-serif",
+	// 			fontSize: "16px",
+	// 			fontWeight: "600",
+	// 			borderRadius: "8px",
+	// 			textTransform: "capitalize",
+	// 			boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+	// 			padding: "16px",
+	// 		},
+	// 	});
+	// };
 
-	const handleAdultDecrement = () => {
-		const newAdultDecrement = Math.max(0, adultCount - 1);
-		setAdultCount(newAdultDecrement);
-		toast(`Updated Adult: ${newAdultDecrement}`, {
-			position: "top-right",
-			autoClose: 3000,
-			hideProgressBar: false,
-			closeOnClick: false,
-			pauseOnHover: true,
-			draggable: true,
-			progress: undefined,
-			theme: "colored",
-			style: {
-				background: "#12B76A",
-				color: "#ffffff",
-				fontFamily: "Sora, sans-serif",
-				fontSize: "16px",
-				fontWeight: "600",
-				borderRadius: "8px",
-				textTransform: "capitalize",
-				boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-				padding: "16px",
-			},
-		});
-	};
+	// const handleAdultDecrement = () => {
+	// 	const newAdultDecrement = Math.max(0, adultCount - 1);
+	// 	setAdultCount(newAdultDecrement);
+	// 	toast(`Updated Adult: ${newAdultDecrement}`, {
+	// 		position: "top-right",
+	// 		autoClose: 3000,
+	// 		hideProgressBar: false,
+	// 		closeOnClick: false,
+	// 		pauseOnHover: true,
+	// 		draggable: true,
+	// 		progress: undefined,
+	// 		theme: "colored",
+	// 		style: {
+	// 			background: "#12B76A",
+	// 			color: "#ffffff",
+	// 			fontFamily: "Sora, sans-serif",
+	// 			fontSize: "16px",
+	// 			fontWeight: "600",
+	// 			borderRadius: "8px",
+	// 			textTransform: "capitalize",
+	// 			boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+	// 			padding: "16px",
+	// 		},
+	// 	});
+	// };
 
-	const handleChildIncrement = () => {
-		const newChildCount = childCount + 1;
-		setChildCount(newChildCount);
-		toast(`Updated children: ${newChildCount}`, {
-			position: "top-right",
-			autoClose: 3000,
-			hideProgressBar: false,
-			closeOnClick: false,
-			pauseOnHover: true,
-			draggable: true,
-			progress: undefined,
-			theme: "colored",
-			style: {
-				background: "#12B76A",
-				color: "#ffffff",
-				fontFamily: "Sora, sans-serif",
-				fontSize: "16px",
-				fontWeight: "600",
-				borderRadius: "8px",
-				textTransform: "capitalize",
-				boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-				padding: "16px",
-			},
-		});
-	};
+	// const handleChildIncrement = () => {
+	// 	const newChildCount = childCount + 1;
+	// 	setChildCount(newChildCount);
+	// 	toast(`Updated children: ${newChildCount}`, {
+	// 		position: "top-right",
+	// 		autoClose: 3000,
+	// 		hideProgressBar: false,
+	// 		closeOnClick: false,
+	// 		pauseOnHover: true,
+	// 		draggable: true,
+	// 		progress: undefined,
+	// 		theme: "colored",
+	// 		style: {
+	// 			background: "#12B76A",
+	// 			color: "#ffffff",
+	// 			fontFamily: "Sora, sans-serif",
+	// 			fontSize: "16px",
+	// 			fontWeight: "600",
+	// 			borderRadius: "8px",
+	// 			textTransform: "capitalize",
+	// 			boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+	// 			padding: "16px",
+	// 		},
+	// 	});
+	// };
 
-	const handleChildDecrement = () => {
-		const newChildDecrement = Math.max(0, childCount - 1);
-		setChildCount(newChildDecrement);
-		toast(`Updated children: ${newChildDecrement}`, {
-			position: "top-right",
-			autoClose: 3000,
-			hideProgressBar: false,
-			closeOnClick: false,
-			pauseOnHover: true,
-			draggable: true,
-			progress: undefined,
-			theme: "colored",
-			style: {
-				background: "#12B76A",
-				color: "#ffffff",
-				fontFamily: "Sora, sans-serif",
-				fontSize: "16px",
-				fontWeight: "600",
-				borderRadius: "8px",
-				textTransform: "capitalize",
-				boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-				padding: "16px",
-			},
-		});
-	};
+	// const handleChildDecrement = () => {
+	// 	const newChildDecrement = Math.max(0, childCount - 1);
+	// 	setChildCount(newChildDecrement);
+	// 	toast(`Updated children: ${newChildDecrement}`, {
+	// 		position: "top-right",
+	// 		autoClose: 3000,
+	// 		hideProgressBar: false,
+	// 		closeOnClick: false,
+	// 		pauseOnHover: true,
+	// 		draggable: true,
+	// 		progress: undefined,
+	// 		theme: "colored",
+	// 		style: {
+	// 			background: "#12B76A",
+	// 			color: "#ffffff",
+	// 			fontFamily: "Sora, sans-serif",
+	// 			fontSize: "16px",
+	// 			fontWeight: "600",
+	// 			borderRadius: "8px",
+	// 			textTransform: "capitalize",
+	// 			boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+	// 			padding: "16px",
+	// 		},
+	// 	});
+	// };
 
 	const onSubmit = (data: z.infer<typeof bookingDetailsSchema>) => {
 		console.log({ data });
