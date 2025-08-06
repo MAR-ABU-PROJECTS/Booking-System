@@ -3,8 +3,8 @@
 
 import { ReactNode, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setUser } from "../lib/features/authSlice";
-import { getSessionUser } from "../lib/action";
+// import { setUser } from "../lib/features/authSlice";
+// import { getSessionUser } from "../lib/action";
 import { RootState } from "../lib/features/store";
 
 type Props = {

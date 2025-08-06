@@ -5,13 +5,13 @@ import { cookies } from "next/headers";
 import { jwtDecode } from "jwt-decode";
 import { apiService } from "../lib/apiService";
 
-
 function checkTokenExpiry(token: string): boolean {
 	try {
 		const decoded: { exp: number } = jwtDecode(token);
 		const now = Date.now() / 1000;
 		return decoded.exp < now;
 	} catch (err) {
+		console.log(err);
 		return true;
 	}
 }
@@ -47,8 +47,6 @@ export async function getSession() {
 	return session;
 }
 
-
-
 export async function getSessionUser() {
 	const session = await getSession();
 
@@ -67,14 +65,19 @@ export async function getSessionUser() {
 			await session.save();
 		} else {
 			await session.destroy();
-			return { redirectTo: "/log-in", isLoggedIn:false };
+			return { redirectTo: "/log-in", isLoggedIn: false };
 		}
 	}
 
-	const { token: _, refreshToken: __, ...rest } = session.user;
-	return { user: rest };
+	return {
+		user: {
+			id: session.user.id,
+			name: session.user.name,
+			email: session.user.name,
+			isLoggedIn: session.user.isLoggedIn,
+		},
+	};
 }
-
 
 export async function setSession(data: {
 	id: string;

@@ -1,5 +1,5 @@
 "use client";
-import { useState, ChangeEvent } from "react";
+// import { useState, ChangeEvent } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
@@ -14,8 +14,8 @@ import { apiService } from "../lib/apiService";
 import { isAxiosError } from "axios";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
-import { checkPasswordStrength } from "../lib/utils";
-import PasswordStrengthChecker from "../components/PasswordStrengthChecker";
+// import { checkPasswordStrength } from "../lib/utils";
+// import PasswordStrengthChecker from "../components/PasswordStrengthChecker";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -30,12 +30,12 @@ const SignUp = () => {
 		},
 		mode: "onChange",
 	});
-	const [passwordStrength, setPasswordStrength] = useState(0);
+	// const [passwordStrength, setPasswordStrength] = useState(0);
 
-	const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
-		const strength = checkPasswordStrength(e.target.value);
-		setPasswordStrength((strength / 5) * 100);
-	};
+	// const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+	// 	const strength = checkPasswordStrength(e.target.value);
+	// 	setPasswordStrength((strength / 5) * 100);
+	// };
 
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
@@ -226,7 +226,7 @@ const SignUp = () => {
 									placeholder="Enter password"
 									className="border-2 border-[#f7d5b0] h-[50px]"
 									onChange={(e) => {
-										handlePasswordChange(e);
+										// handlePasswordChange(e);
 										field.onChange(e);
 									}}
 								/>
