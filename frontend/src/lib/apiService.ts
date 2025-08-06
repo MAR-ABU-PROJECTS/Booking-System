@@ -1,12 +1,15 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { getSession } from "../lib/action";
 
-export const BASE_URL =
-	`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1` || "http://localhost:3000/api/v1";
+// export const BASE_URL =
+// 	`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1` || "http://localhost:3000/api/v1";
+
+	const BASE_URL =
+	"https://booking-system-n26e.onrender.com/api/v1";
 
 const axiosInstance = axios.create({
 	baseURL: BASE_URL,
-	withCredentials: true,
+	// withCredentials: true,
 });
 
 axiosInstance.interceptors.request.use(

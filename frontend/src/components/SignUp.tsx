@@ -240,14 +240,14 @@ const SignUp = () => {
 						)}
 					/>
 
-					{form.getValues("password").length > 0 && (
+					{/* {form.getValues("password").length > 0 && (
 						<div className=" mt-3 max-w-[50%] w-full">
 							<PasswordStrengthChecker
 								strength={passwordStrength}
 								password={form.getValues("password")}
 							/>
 						</div>
-					)}
+					)} */}
 
 					<Button
 						className="!cursor-pointer w-full mt-8 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
