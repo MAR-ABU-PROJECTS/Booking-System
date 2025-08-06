@@ -1,4 +1,5 @@
 "use client";
+import { useState, ChangeEvent } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
@@ -13,6 +14,8 @@ import { apiService } from "../lib/apiService";
 import { isAxiosError } from "axios";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
+import { checkPasswordStrength } from "../lib/utils";
+import PasswordStrengthChecker from "../components/PasswordStrengthChecker";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -27,6 +30,12 @@ const SignUp = () => {
 		},
 		mode: "onChange",
 	});
+	const [passwordStrength, setPasswordStrength] = useState(0);
+
+	const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+		const strength = checkPasswordStrength(e.target.value);
+		setPasswordStrength((strength / 5) * 100);
+	};
 
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
@@ -52,7 +61,7 @@ const SignUp = () => {
 		onSuccess: async (res) => {
 			if (res?.success) {
 				console.log("Registration successful:", res);
-				const message = res?.message as string
+				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
 					progress: undefined,
@@ -61,7 +70,6 @@ const SignUp = () => {
 					window.location.href = `/verify-email?email=${res?.data?.user?.email}`;
 				}, 1000);
 			}
-			
 		},
 
 		onError: (error) => {
@@ -217,7 +225,10 @@ const SignUp = () => {
 									id="password"
 									placeholder="Enter password"
 									className="border-2 border-[#f7d5b0] h-[50px]"
-									{...field}
+									onChange={(e) => {
+										handlePasswordChange(e);
+										field.onChange(e);
+									}}
 								/>
 
 								{fieldState.error && (
@@ -228,6 +239,15 @@ const SignUp = () => {
 							</div>
 						)}
 					/>
+
+					{form.getValues("password").length > 0 && (
+						<div className=" mt-3 max-w-[50%] w-full">
+							<PasswordStrengthChecker
+								strength={passwordStrength}
+								password={form.getValues("password")}
+							/>
+						</div>
+					)}
 
 					<Button
 						className="!cursor-pointer w-full mt-8 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"

@@ -29,8 +29,8 @@ export default function AppProviders({ children }: Props) {
 						fontWeight: "600",
 						borderRadius: "8px",
 						textTransform: "capitalize",
-						boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-						padding: "16px",
+						// boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+						// padding: "16px",
 					}}
 				/>
 				<AuthWrapper>{children}</AuthWrapper>
