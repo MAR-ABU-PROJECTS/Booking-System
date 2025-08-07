@@ -2,7 +2,7 @@ import Image from "next/image";
 
 const AuthBanner = () => {
 	return (
-		<div className="w-full md:flex hidden max-w-1/2 flex-col items-center justify-center relative">
+		<div className="w-full md:flex hidden max-w-1/2 flex-col items-stretch justify-center relative overflow-hidden">
 			{/* Background Image */}
 			<Image
 				src="/banner/living-area.JPG"

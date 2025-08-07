@@ -1,5 +1,5 @@
 "use client";
-// import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
@@ -8,14 +8,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SignUpSchema } from "../lib/schemas";
 import { Button } from "../components/ui/button";
 import Link from "next/link";
-import Image from "next/image";
+// import Image from "next/image";
 import { useMutation } from "@tanstack/react-query";
 import { apiService } from "../lib/apiService";
 import { isAxiosError } from "axios";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
-// import { checkPasswordStrength } from "../lib/utils";
-// import PasswordStrengthChecker from "../components/PasswordStrengthChecker";
+import { checkPasswordStrength } from "../lib/utils";
+import PasswordStrengthChecker from "../components/PasswordStrengthChecker";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -30,12 +30,12 @@ const SignUp = () => {
 		},
 		mode: "onChange",
 	});
-	// const [passwordStrength, setPasswordStrength] = useState(0);
+	const [passwordStrength, setPasswordStrength] = useState(0);
 
-	// const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
-	// 	const strength = checkPasswordStrength(e.target.value);
-	// 	setPasswordStrength((strength / 5) * 100);
-	// };
+	const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+		const strength = checkPasswordStrength(e.target.value);
+		setPasswordStrength((strength / 5) * 100);
+	};
 
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
@@ -93,42 +93,42 @@ const SignUp = () => {
 		mutation.mutate(values);
 	};
 	return (
-		<div className="w-full max-w-xl mx-auto">
-			<div className="mb-6">
-				<Image
+		<div className="w-full max-w-xl mx-auto pt-24">
+			<div className="h-[60px] relative">
+				<img
 					src="/logo/black-logo.png"
 					alt="MAR ABU HOMES"
-					className="h-8 md:h-10 mx-auto mb-5"
-					height={32}
-					width={130}
+					className="object-contain object-left w-[260px] h-[63px]"
 				/>
+			</div>
+			<div className="mt-24 mb-16">
 				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
-					Welcome to MAR ABU!
+					Welcome to MAR ABU Homes!
 				</h1>
 				<p className="text-center text-gray-500">
 					Sign Up to get started
 				</p>
 			</div>
 			<div>
-				<form onSubmit={form.handleSubmit(onSubmit)}>
+				<form onSubmit={form.handleSubmit(onSubmit)} className="mb-2">
 					<Controller
 						control={form.control}
 						name="firstName"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<Label className="text-base">
 									First Name
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="text"
 									placeholder="Enter first name"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px]  text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -140,20 +140,20 @@ const SignUp = () => {
 						control={form.control}
 						name="lastName"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<Label className="text-base">
 									Last Name
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="text"
 									placeholder="Enter last name"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -165,20 +165,20 @@ const SignUp = () => {
 						control={form.control}
 						name="email"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<Label className="text-base">
 									Email
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="email"
 									placeholder="Enter email"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -190,20 +190,20 @@ const SignUp = () => {
 						control={form.control}
 						name="phone"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<Label className="text-base">
 									Phone
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="tel"
 									placeholder="Enter phone number"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -215,8 +215,8 @@ const SignUp = () => {
 						control={form.control}
 						name="password"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 ">
+								<Label className="text-base">
 									Password
 									<span className="text-red-600">*</span>
 								</Label>
@@ -224,15 +224,15 @@ const SignUp = () => {
 									type="password"
 									id="password"
 									placeholder="Enter password"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									onChange={(e) => {
-										// handlePasswordChange(e);
+										handlePasswordChange(e);
 										field.onChange(e);
 									}}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -240,17 +240,14 @@ const SignUp = () => {
 						)}
 					/>
 
-					{/* {form.getValues("password").length > 0 && (
-						<div className=" mt-3 max-w-[50%] w-full">
-							<PasswordStrengthChecker
-								strength={passwordStrength}
-								password={form.getValues("password")}
-							/>
-						</div>
-					)} */}
-
+					<div className=" mt-3 max-w-[50%] w-full ml-auto">
+						<PasswordStrengthChecker
+							strength={passwordStrength}
+							password={form.getValues("password")}
+						/>
+					</div>
 					<Button
-						className="!cursor-pointer w-full mt-8 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
+						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
 						disabled={mutation.isPending}
 						type="submit"
 					>
@@ -264,7 +261,7 @@ const SignUp = () => {
 					</Button>
 				</form>
 
-				<p className="text-center text-sm mt-5 font-medium">
+				<p className="text-center text-[15px] font-medium mt-3 mb-5 ">
 					Already have an account?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/log-in">Log In</Link>
