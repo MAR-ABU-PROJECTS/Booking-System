@@ -58,10 +58,23 @@ app.use((0, helmet_1.default)({
 }));
 // CORS configuration
 app.use((0, cors_1.default)({
-    origin: ["https://localhost:3000", 'http://localhost:3001', "https://backend-gora.onrender.com"],
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5050",
+        "https://backend-gora.onrender.com",
+        process.env.FRONTEND_URL,
+        process.env.ADMIN_URL,
+    ].filter((origin) => typeof origin === "string" && origin.length > 0),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+    ],
 }));
 // Body parsing middleware
 app.use(express_1.default.json({ limit: "10mb" }));
