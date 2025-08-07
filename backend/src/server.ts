@@ -35,8 +35,11 @@ import { requestLogger } from "./middlewares/logger.middleware";
 
 // Initialize Prisma
 export const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-})
+  log:
+    process.env.NODE_ENV === "development"
+      ? ["query", "error", "warn"]
+      : ["error"],
+});
 
 // Create Express app
 const app = express();
@@ -69,13 +72,25 @@ app.use(
 app.use(
   cors({
     origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      process.env.ADMIN_URL || "http://localhost:3001",
-      process.env.BACKEND_URL || "https://backend-gora.onrender.com",
-    ],
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:5050",
+      "https://backend-gora.onrender.com",
+      process.env.FRONTEND_URL,
+      process.env.ADMIN_URL,
+    ].filter(
+      (origin): origin is string =>
+        typeof origin === "string" && origin.length > 0
+    ),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
   })
 );
 
