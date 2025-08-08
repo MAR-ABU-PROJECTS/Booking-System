@@ -294,6 +294,7 @@ export class AuthService {
    */
   async refreshToken(refreshToken: string): Promise<AuthTokens> {
     try {
+      // Verify the refresh token using the refresh secret
       const payload = jwt.verify(
         refreshToken,
         this.JWT_REFRESH_SECRET
@@ -313,13 +314,25 @@ export class AuthService {
         },
       });
 
-      if (!user || user.status !== UserStatus.ACTIVE) {
-        throw new Error("User not found or inactive");
+      if (!user) {
+        throw new Error("User not found");
       }
 
+      // Check if user account is active or allow pending verification
+      if (user.status === UserStatus.SUSPENDED) {
+        throw new Error("User account is suspended");
+      }
+
+      // Generate new tokens
       return await this.generateTokens(user);
     } catch (error) {
-      throw new Error("Invalid refresh token");
+      if (error instanceof jwt.JsonWebTokenError) {
+        throw new Error("Invalid refresh token");
+      }
+      if (error instanceof jwt.TokenExpiredError) {
+        throw new Error("Refresh token expired");
+      }
+      throw error;
     }
   }
 

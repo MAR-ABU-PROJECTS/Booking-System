@@ -26,6 +26,11 @@ const receipt_routes_1 = __importDefault(require("./routes/receipt.routes"));
 const review_routes_1 = __importDefault(require("./routes/review.routes"));
 const notification_routes_1 = __importDefault(require("./routes/notification.routes"));
 const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
+const analytics_routes_1 = __importDefault(require("./routes/analytics.routes"));
+const upload_routes_1 = __importDefault(require("./routes/upload.routes"));
+const search_routes_1 = __importDefault(require("./routes/search.routes"));
+const dashboard_routes_1 = __importDefault(require("./routes/dashboard.routes"));
+const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
 // Import middleware
 const error_middleware_1 = require("./middlewares/error.middleware");
 const notfound_middleware_1 = require("./middlewares/notfound.middleware");
@@ -131,6 +136,11 @@ app.use(`${API_PREFIX}/receipts`, receipt_routes_1.default);
 app.use(`${API_PREFIX}/reviews`, review_routes_1.default);
 app.use(`${API_PREFIX}/notifications`, notification_routes_1.default);
 app.use(`${API_PREFIX}/admin`, admin_routes_1.default);
+app.use(`${API_PREFIX}/analytics`, analytics_routes_1.default);
+app.use(`${API_PREFIX}/uploads`, upload_routes_1.default);
+app.use(`${API_PREFIX}/search`, search_routes_1.default);
+app.use(`${API_PREFIX}/dashboard`, dashboard_routes_1.default);
+app.use(`${API_PREFIX}/payment`, payment_routes_1.default);
 // ===============================
 // ERROR HANDLING
 // ===============================
@@ -139,7 +149,7 @@ app.use(error_middleware_1.errorHandler);
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = process.env.PORT || "5001";
+const PORT = process.env.PORT || "5050";
 const startServer = async () => {
     try {
         // Test database connection

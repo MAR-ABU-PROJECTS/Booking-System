@@ -307,28 +307,14 @@ router.post(
   asyncHandler(async (req: any, res: any) => {
     const { refreshToken } = req.body;
 
-    try {
-      const payload = authService.verifyToken(refreshToken);
-      const user = await authService.getUserById(payload.userId);
+    // Remove the try-catch wrapper and let authService.refreshToken handle the verification
+    const result = await authService.refreshToken(refreshToken);
 
-      if (!user) {
-        throw new AppError("User not found", 401);
-      }
-
-      if (user.status !== UserStatus.ACTIVE) {
-        throw new AppError("User account is not active", 403);
-      }
-
-      const result = await authService.refreshToken(refreshToken);
-
-      res.json({
-        success: true,
-        message: "Token refreshed successfully",
-        data: result,
-      });
-    } catch (error) {
-      throw new AppError("Invalid refresh token", 401);
-    }
+    res.json({
+      success: true,
+      message: "Token refreshed successfully",
+      data: result,
+    });
   })
 );
 
