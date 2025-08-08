@@ -8,7 +8,12 @@ import { LogInSchema } from "../lib/schemas";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import Link from "next/link";
-import Image from "next/image";
+import { Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
+import { useMutation } from "@tanstack/react-query";
+import { apiService } from "../lib/apiService";
+import { isAxiosError } from "axios";
+import { setSession } from "../lib/action";
 
 const LogIn = () => {
 	const form = useForm<z.infer<typeof LogInSchema>>({
@@ -21,47 +26,110 @@ const LogIn = () => {
 		mode: "onChange",
 	});
 
-	const onSubmit = (data: z.infer<typeof LogInSchema>) => {
-		console.log({ data });
-		window.location.href = "/";
+	const mutation = useMutation({
+		mutationFn: async (formData: z.infer<typeof LogInSchema>) => {
+			try {
+				const response = await apiService.post("/auth/login", {
+					...formData,
+				});
+				console.log(response);
+				return response;
+			} catch (error) {
+				if (isAxiosError(error)) {
+					console.error(
+						"Axios Error:",
+						error.response?.data?.message || error.message
+					);
+					throw error;
+				} else {
+					console.error("Unexpected Error:", error);
+					throw error;
+				}
+			}
+		},
+		onSuccess: async (res, variables) => {
+			if (res?.success) {
+				console.log(res)
+				const message = res?.message as string;
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+
+
+				await setSession({
+					email: res.data.user.email,
+					id: res.data.user.id,
+					name: `${res.data.user.firstName} ${res.data.user.lastName}`,
+					rememberMe: variables.rememberMe,
+					token: res.data.accessToken,
+					refreshToken: res.data.refreshToken,
+				});
+				setTimeout(() => {
+					window.location.href = `/`;
+				}, 1000);
+			}
+		},
+
+		onError: (error) => {
+			if (isAxiosError(error)) {
+				const message =
+					(error.response?.data?.message as string) ||
+					"Something went wrong";
+				console.error("Handled in onError:", message);
+				toast.error(`${message}`, {
+					closeOnClick: false,
+
+					progress: undefined,
+				});
+			} else {
+				console.error("Non-Axios Error:", error);
+			}
+		},
+	});
+
+	const onSubmit = (values: z.infer<typeof LogInSchema>) => {
+		mutation.mutate(values);
 	};
+
 	return (
-		<div className="w-full max-w-xl mx-auto">
-			<div className="mb-6">
-				<Image
+		<div className="w-full max-w-xl mx-auto pt-8">
+			<div className="h-[60px] relative">
+				<img
 					src="/logo/black-logo.png"
 					alt="MAR ABU HOMES"
-					className="h-8 md:h-10 mx-auto mb-5"
-					height={32}
-					width={130}
+					className="object-contain object-left w-[260px] h-[63px]"
 				/>
+			</div>
+			<div className="mt-18 mb-16">
 				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
-					Welcome Back to MAR ABU!
+					Welcome Back to MAR ABU Homes!
 				</h1>
 				<p className="text-center text-gray-500">
 					Login to your account
 				</p>
 			</div>
+
 			<div>
-				<form onSubmit={form.handleSubmit(onSubmit)}>
+				<form onSubmit={form.handleSubmit(onSubmit)} className="mb-2">
 					<Controller
 						control={form.control}
 						name="email"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<Label className="text-base">
 									Email
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="email"
 									placeholder="Enter email"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -73,8 +141,8 @@ const LogIn = () => {
 						control={form.control}
 						name="password"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-2">
-								<Label>
+							<div className="grid w-full items-center gap-1.5  mb-3.5">
+								<Label className="text-base">
 									Password
 									<span className="text-red-600">*</span>
 								</Label>
@@ -82,12 +150,14 @@ const LogIn = () => {
 									type="password"
 									id="password"
 									placeholder="Enter password"
-									className="border-2 border-[#f7d5b0] h-[50px]"
-									{...field}
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
+									onChange={(e) => {
+										field.onChange(e);
+									}}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -99,33 +169,48 @@ const LogIn = () => {
 						name="rememberMe"
 						control={form.control}
 						render={({ field: { value, onChange, ref } }) => (
-							<div className="flex items-start gap-[10px]">
-								<Checkbox
-									checked={value}
-									onCheckedChange={onChange}
-									ref={ref}
-									className="bg-white border-1 border-black cursor-pointer"
-								/>
-								<Label
-									htmlFor="terms"
-									className="text-[12px] md:text-[14px] text-start"
-								>
-									<p>Remember Me</p>
-								</Label>
+							<div className="flex justify-between items-center">
+								<div className="flex items-start gap-[10px]">
+									<Checkbox
+										checked={value}
+										onCheckedChange={onChange}
+										ref={ref}
+										className="bg-white border-1 border-black cursor-pointer"
+									/>
+									<Label
+										htmlFor="terms"
+										className="text-[15px] md:text-[14px] text-start"
+									>
+										<p>Remember Me</p>
+									</Label>
+								</div>
+
+								<span className="text-amber-500 text:bg-[#F4A857]">
+									<Link href="/forgot-password">
+										Forgot Password
+									</Link>
+								</span>
 							</div>
 						)}
 					/>
 
 					<Button
-						className="!cursor-pointer w-full mt-8 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
+						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
+						disabled={mutation.isPending}
 						type="submit"
 					>
+						{mutation.isPending ? (
+							<Loader2
+								className="animate-spin size-5"
+								strokeWidth={3}
+							/>
+						) : null}
 						Submit
 					</Button>
 				</form>
 
-				<p className="text-center text-sm mt-5 font-medium">
-					Don&apos;t have an account yet?{" "}
+				<p className="text-center text-[15px] font-medium mt-3 mb-5 ">
+					Don't have an account yet?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/sign-up">Sign Up</Link>
 					</span>

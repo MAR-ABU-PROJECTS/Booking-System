@@ -73,7 +73,7 @@ export async function getSessionUser() {
 		user: {
 			id: session.user.id,
 			name: session.user.name,
-			email: session.user.name,
+			email: session.user.email,
 			isLoggedIn: session.user.isLoggedIn,
 		},
 	};
