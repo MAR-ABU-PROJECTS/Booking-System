@@ -1,12 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@prisma/client");
 // MAR ABU PROJECTS SERVICES LLC - Authentication Routes
 const express_1 = require("express");
 const express_validator_1 = require("express-validator");
 const authservice_1 = require("../services/authservice");
 const error_middleware_1 = require("../middlewares/error.middleware");
-const error_middleware_2 = require("../middlewares/error.middleware");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const router = (0, express_1.Router)();
 // Validation middleware
@@ -267,25 +265,13 @@ router.post("/login", [
  */
 router.post("/refresh", [(0, express_validator_1.body)("refreshToken").notEmpty().withMessage("Refresh token required")], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { refreshToken } = req.body;
-    try {
-        const payload = authservice_1.authService.verifyToken(refreshToken);
-        const user = await authservice_1.authService.getUserById(payload.userId);
-        if (!user) {
-            throw new error_middleware_2.AppError("User not found", 401);
-        }
-        if (user.status !== client_1.UserStatus.ACTIVE) {
-            throw new error_middleware_2.AppError("User account is not active", 403);
-        }
-        const result = await authservice_1.authService.refreshToken(refreshToken);
-        res.json({
-            success: true,
-            message: "Token refreshed successfully",
-            data: result,
-        });
-    }
-    catch (error) {
-        throw new error_middleware_2.AppError("Invalid refresh token", 401);
-    }
+    // Remove the try-catch wrapper and let authService.refreshToken handle the verification
+    const result = await authservice_1.authService.refreshToken(refreshToken);
+    res.json({
+        success: true,
+        message: "Token refreshed successfully",
+        data: result,
+    });
 }));
 /**
  * @route   POST /api/v1/auth/verify-email

@@ -158,6 +158,11 @@ app.use(`${API_PREFIX}/receipts`, receiptRoutes);
 app.use(`${API_PREFIX}/reviews`, reviewRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
+app.use(`${API_PREFIX}/uploads`, uploadRoutes);
+app.use(`${API_PREFIX}/search`, searchRoutes);
+app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
+app.use(`${API_PREFIX}/payment`, paymentRoutes);
 
 // ===============================
 // ERROR HANDLING
@@ -168,7 +173,7 @@ app.use(errorHandler);
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = process.env.PORT || "5001";
+const PORT = process.env.PORT || "5050";
 
 const startServer = async () => {
   try {

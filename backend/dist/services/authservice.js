@@ -219,6 +219,7 @@ class AuthService {
      */
     async refreshToken(refreshToken) {
         try {
+            // Verify the refresh token using the refresh secret
             const payload = jsonwebtoken_1.default.verify(refreshToken, this.JWT_REFRESH_SECRET);
             // Get updated user data
             const user = await prisma.user.findUnique({
@@ -233,13 +234,24 @@ class AuthService {
                     emailVerified: true,
                 },
             });
-            if (!user || user.status !== client_1.UserStatus.ACTIVE) {
-                throw new Error("User not found or inactive");
+            if (!user) {
+                throw new Error("User not found");
             }
+            // Check if user account is active or allow pending verification
+            if (user.status === client_1.UserStatus.SUSPENDED) {
+                throw new Error("User account is suspended");
+            }
+            // Generate new tokens
             return await this.generateTokens(user);
         }
         catch (error) {
-            throw new Error("Invalid refresh token");
+            if (error instanceof jsonwebtoken_1.default.JsonWebTokenError) {
+                throw new Error("Invalid refresh token");
+            }
+            if (error instanceof jsonwebtoken_1.default.TokenExpiredError) {
+                throw new Error("Refresh token expired");
+            }
+            throw error;
         }
     }
     /**

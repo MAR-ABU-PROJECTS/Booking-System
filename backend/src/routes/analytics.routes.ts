@@ -74,7 +74,7 @@ const getDateRange = (period: string) => {
  *         schema:
  *           type: string
  *           enum:
- *             - day
+ *             - today
  *             - week
  *             - month
  *             - year
@@ -186,41 +186,59 @@ router.get(
         take: 5,
       }),
 
-      // Booking trends (daily for last 30 days)
-      prisma.$queryRaw`
-        SELECT 
-          DATE(created_at) as date,
-          COUNT(*) as bookings,
-          SUM(CASE WHEN payment_status = 'PAID' THEN total ELSE 0 END) as revenue
-        FROM booking 
-        WHERE created_at >= ${startDate} 
-        AND created_at <= ${endDate}
-        ${
-          req.user.role === UserRole.ADMIN
-            ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
-            : ""
-        }
-        GROUP BY DATE(created_at)
-        ORDER BY date ASC
-      `,
+      // Booking trends (daily) - FIXED
+      req.user.role === UserRole.ADMIN
+        ? prisma.$queryRaw`
+            SELECT 
+              DATE(b."createdAt") as date,
+              COUNT(*)::int as bookings,
+              SUM(CASE WHEN b."paymentStatus" = 'PAID' THEN b.total ELSE 0 END)::float as revenue
+            FROM "bookings" b
+            INNER JOIN "properties" p ON p.id = b."propertyId"
+            WHERE b."createdAt" >= ${startDate} 
+            AND b."createdAt" <= ${endDate}
+            AND p."hostId" = ${req.user.id}
+            GROUP BY DATE(b."createdAt")
+            ORDER BY date ASC
+          `
+        : prisma.$queryRaw`
+            SELECT 
+              DATE(b."createdAt") as date,
+              COUNT(*)::int as bookings,
+              SUM(CASE WHEN b."paymentStatus" = 'PAID' THEN b.total ELSE 0 END)::float as revenue
+            FROM "bookings" b
+            WHERE b."createdAt" >= ${startDate} 
+            AND b."createdAt" <= ${endDate}
+            GROUP BY DATE(b."createdAt")
+            ORDER BY date ASC
+          `,
 
-      // Revenue by month (last 12 months)
-      prisma.$queryRaw`
-        SELECT 
-          EXTRACT(YEAR FROM created_at) as year,
-          EXTRACT(MONTH FROM created_at) as month,
-          SUM(CASE WHEN payment_status = 'PAID' THEN total ELSE 0 END) as revenue,
-          COUNT(*) as bookings
-        FROM booking 
-        WHERE created_at >= ${new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
-        ${
-          req.user.role === UserRole.ADMIN
-            ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
-            : ""
-        }
-        GROUP BY EXTRACT(YEAR FROM created_at), EXTRACT(MONTH FROM created_at)
-        ORDER BY year ASC, month ASC
-      `,
+      // Revenue by month (last 12 months) - FIXED
+      req.user.role === UserRole.ADMIN
+        ? prisma.$queryRaw`
+            SELECT 
+              EXTRACT(YEAR FROM b."createdAt")::int as year,
+              EXTRACT(MONTH FROM b."createdAt")::int as month,
+              SUM(CASE WHEN b."paymentStatus" = 'PAID' THEN b.total ELSE 0 END)::float as revenue,
+              COUNT(*)::int as bookings
+            FROM "bookings" b
+            INNER JOIN "properties" p ON p.id = b."propertyId"
+            WHERE b."createdAt" >= ${new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
+            AND p."hostId" = ${req.user.id}
+            GROUP BY EXTRACT(YEAR FROM b."createdAt"), EXTRACT(MONTH FROM b."createdAt")
+            ORDER BY year ASC, month ASC
+          `
+        : prisma.$queryRaw`
+            SELECT 
+              EXTRACT(YEAR FROM b."createdAt")::int as year,
+              EXTRACT(MONTH FROM b."createdAt")::int as month,
+              SUM(CASE WHEN b."paymentStatus" = 'PAID' THEN b.total ELSE 0 END)::float as revenue,
+              COUNT(*)::int as bookings
+            FROM "bookings" b
+            WHERE b."createdAt" >= ${new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
+            GROUP BY EXTRACT(YEAR FROM b."createdAt"), EXTRACT(MONTH FROM b."createdAt")
+            ORDER BY year ASC, month ASC
+          `,
     ]);
 
     // Get property details for top properties
@@ -318,7 +336,7 @@ router.get(
  */
 /**
  * @swagger
- * /api/v1/analytics/bookings:
+ * /analytics/bookings:
  *   get:
  *     summary: Get detailed booking analytics
  *     description: Retrieves booking analytics such as status distribution, property statistics, average stay duration, occupancy rate, cancellation rate, booking sources, and peak booking hours.
@@ -522,20 +540,26 @@ router.get(
         _avg: { nights: true },
       }),
 
-      // Occupancy rate calculation
-      prisma.$queryRaw`
-        SELECT 
-          COUNT(DISTINCT property_id) as total_properties,
-          COUNT(DISTINCT CASE WHEN status IN ('APPROVED', 'COMPLETED') THEN property_id END) as occupied_properties
-        FROM booking 
-        WHERE created_at >= ${startDate} 
-        AND created_at <= ${endDate}
-        ${
-          req.user.role === UserRole.ADMIN
-            ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
-            : ""
-        }
-      `,
+      // Occupancy rate calculation - FIXED
+      req.user.role === UserRole.ADMIN
+        ? prisma.$queryRaw`
+            SELECT 
+              COUNT(DISTINCT b."propertyId")::int as total_properties,
+              COUNT(DISTINCT CASE WHEN b.status IN ('APPROVED', 'COMPLETED') THEN b."propertyId" END)::int as occupied_properties
+            FROM "bookings" b
+            INNER JOIN "properties" p ON p.id = b."propertyId"
+            WHERE b."createdAt" >= ${startDate} 
+            AND b."createdAt" <= ${endDate}
+            AND p."hostId" = ${req.user.id}
+          `
+        : prisma.$queryRaw`
+            SELECT 
+              COUNT(DISTINCT b."propertyId")::int as total_properties,
+              COUNT(DISTINCT CASE WHEN b.status IN ('APPROVED', 'COMPLETED') THEN b."propertyId" END)::int as occupied_properties
+            FROM "bookings" b
+            WHERE b."createdAt" >= ${startDate} 
+            AND b."createdAt" <= ${endDate}
+          `,
 
       // Cancellation rate
       prisma.booking.aggregate({
@@ -553,23 +577,32 @@ router.get(
         _count: { source: true },
       }),
 
-      // Peak booking times
-      prisma.$queryRaw`
-        SELECT 
-          EXTRACT(HOUR FROM created_at) as hour,
-          COUNT(*) as bookings
-        FROM booking 
-        WHERE created_at >= ${startDate} 
-        AND created_at <= ${endDate}
-        ${
-          req.user.role === UserRole.ADMIN
-            ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
-            : ""
-        }
-        GROUP BY EXTRACT(HOUR FROM created_at)
-        ORDER BY bookings DESC
-        LIMIT 5
-      `,
+      // Peak booking times - FIXED
+      req.user.role === UserRole.ADMIN
+        ? prisma.$queryRaw`
+            SELECT 
+              EXTRACT(HOUR FROM b."createdAt")::int as hour,
+              COUNT(*)::int as bookings
+            FROM "bookings" b
+            INNER JOIN "properties" p ON p.id = b."propertyId"
+            WHERE b."createdAt" >= ${startDate} 
+            AND b."createdAt" <= ${endDate}
+            AND p."hostId" = ${req.user.id}
+            GROUP BY EXTRACT(HOUR FROM b."createdAt")
+            ORDER BY bookings DESC
+            LIMIT 5
+          `
+        : prisma.$queryRaw`
+            SELECT 
+              EXTRACT(HOUR FROM b."createdAt")::int as hour,
+              COUNT(*)::int as bookings
+            FROM "bookings" b
+            WHERE b."createdAt" >= ${startDate} 
+            AND b."createdAt" <= ${endDate}
+            GROUP BY EXTRACT(HOUR FROM b."createdAt")
+            ORDER BY bookings DESC
+            LIMIT 5
+          `,
     ]);
 
     // Get property details
@@ -640,7 +673,7 @@ router.get(
  */
 /**
  * @swagger
- * /api/v1/analytics/revenue:
+ * /analytics/revenue:
  *   get:
  *     summary: Get revenue analytics
  *     description: Returns total revenue, booking trends, breakdowns, and conversion rates based on period and optional property.
@@ -825,24 +858,34 @@ router.get(
         take: 10,
       }),
 
-      // Revenue trends by month
-      prisma.$queryRaw`
-        SELECT 
-          EXTRACT(YEAR FROM created_at) as year,
-          EXTRACT(MONTH FROM created_at) as month,
-          SUM(total) as revenue,
-          COUNT(*) as bookings
-        FROM booking 
-        WHERE created_at >= ${new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
-        AND payment_status = 'PAID'
-        ${
-          req.user.role === UserRole.ADMIN
-            ? `AND property_id IN (SELECT id FROM property WHERE host_id = '${req.user.id}')`
-            : ""
-        }
-        GROUP BY EXTRACT(YEAR FROM created_at), EXTRACT(MONTH FROM created_at)
-        ORDER BY year ASC, month ASC
-      `,
+      // Revenue trends by month - FIXED
+      req.user.role === UserRole.ADMIN
+        ? prisma.$queryRaw`
+            SELECT 
+              EXTRACT(YEAR FROM b."createdAt")::int as year,
+              EXTRACT(MONTH FROM b."createdAt")::int as month,
+              SUM(b.total)::float as revenue,
+              COUNT(*)::int as bookings
+            FROM "bookings" b
+            INNER JOIN "properties" p ON p.id = b."propertyId"
+            WHERE b."createdAt" >= ${new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
+            AND b."paymentStatus" = 'PAID'
+            AND p."hostId" = ${req.user.id}
+            GROUP BY EXTRACT(YEAR FROM b."createdAt"), EXTRACT(MONTH FROM b."createdAt")
+            ORDER BY year ASC, month ASC
+          `
+        : prisma.$queryRaw`
+            SELECT 
+              EXTRACT(YEAR FROM b."createdAt")::int as year,
+              EXTRACT(MONTH FROM b."createdAt")::int as month,
+              SUM(b.total)::float as revenue,
+              COUNT(*)::int as bookings
+            FROM "bookings" b
+            WHERE b."createdAt" >= ${new Date(new Date().setFullYear(new Date().getFullYear() - 1))}
+            AND b."paymentStatus" = 'PAID'
+            GROUP BY EXTRACT(YEAR FROM b."createdAt"), EXTRACT(MONTH FROM b."createdAt")
+            ORDER BY year ASC, month ASC
+          `,
 
       // Average booking value
       prisma.booking.aggregate({
@@ -934,7 +977,7 @@ router.get(
  */
 /**
  * @swagger
- * /api/v1/analytics/properties:
+ * /analytics/properties:
  *   get:
  *     summary: Get property performance analytics
  *     description: Returns analytics data such as bookings, revenue, occupancy, and reviews for properties within a specific time period.
@@ -1094,21 +1137,35 @@ router.get(
           },
         }),
 
-        // Occupancy rates
-        prisma.$queryRaw`
-        SELECT 
-          p.id,
-          p.name,
-          COUNT(b.id) as bookings,
-          SUM(b.nights) as total_nights
-        FROM property p
-        LEFT JOIN booking b ON p.id = b.property_id 
-          AND b.created_at >= ${startDate} 
-          AND b.created_at <= ${endDate}
-          AND b.status IN ('APPROVED', 'COMPLETED')
-        ${req.user.role === UserRole.ADMIN ? `WHERE p.host_id = '${req.user.id}'` : ""}
-        GROUP BY p.id, p.name
-      `,
+        // Occupancy rates - FIXED
+        req.user.role === UserRole.ADMIN
+          ? prisma.$queryRaw`
+              SELECT 
+                p.id,
+                p.name,
+                COUNT(b.id)::int as bookings,
+                SUM(b.nights)::int as total_nights
+              FROM "properties" p
+              LEFT JOIN "bookings" b ON p.id = b."propertyId" 
+                AND b."createdAt" >= ${startDate} 
+                AND b."createdAt" <= ${endDate}
+                AND b.status IN ('APPROVED', 'COMPLETED')
+              WHERE p."hostId" = ${req.user.id}
+              GROUP BY p.id, p.name
+            `
+          : prisma.$queryRaw`
+              SELECT 
+                p.id,
+                p.name,
+                COUNT(b.id)::int as bookings,
+                SUM(b.nights)::int as total_nights
+              FROM "properties" p
+              LEFT JOIN "bookings" b ON p.id = b."propertyId" 
+                AND b."createdAt" >= ${startDate} 
+                AND b."createdAt" <= ${endDate}
+                AND b.status IN ('APPROVED', 'COMPLETED')
+              GROUP BY p.id, p.name
+            `,
 
         // Average ratings
         prisma.property.findMany({
@@ -1186,7 +1243,7 @@ router.get(
  */
 /**
  * @swagger
- * /api/v1/analytics/export:
+ * /analytics/export:
  *   get:
  *     summary: Export analytics data
  *     description: Export bookings, revenue, or properties data as CSV or JSON for a specified time period. Only accessible by Admins or Property Hosts.
