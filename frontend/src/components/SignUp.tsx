@@ -8,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SignUpSchema } from "../lib/schemas";
 import { Button } from "../components/ui/button";
 import Link from "next/link";
-// import Image from "next/image";
 import { useMutation } from "@tanstack/react-query";
 import { apiService } from "../lib/apiService";
 import { isAxiosError } from "axios";
@@ -69,20 +68,32 @@ const SignUp = () => {
 				setTimeout(() => {
 					window.location.href = `/verify-email?email=${res?.data?.user?.email}`;
 				}, 1000);
+			} else {
 			}
 		},
 
 		onError: (error) => {
 			if (isAxiosError(error)) {
-				const message =
-					(error.response?.data?.message as string) ||
-					"Something went wrong";
-				console.error("Handled in onError:", message);
-				toast.error(`${message}`, {
-					closeOnClick: false,
-
-					progress: undefined,
-				});
+				const errorList = error.response?.data?.errors;
+				if (Array.isArray(errorList)) {
+					errorList.forEach((err) => {
+						if (err.path && err.msg) {
+							form.setError(err.path, {
+								type: "server",
+								message: err.msg,
+							});
+						}
+					});
+				} else {
+					const message =
+						(error.response?.data?.message as string) ||
+						"Something went wrong";
+					console.error("Handled in onError:", message);
+					toast.error(`${message}`, {
+						closeOnClick: false,
+						progress: undefined,
+					});
+				}
 			} else {
 				console.error("Non-Axios Error:", error);
 			}
@@ -90,6 +101,13 @@ const SignUp = () => {
 	});
 
 	const onSubmit = (values: z.infer<typeof SignUpSchema>) => {
+		if (passwordStrength < 90) {
+			form.setError("password", {
+				type: "manual",
+				message: "password strength must be Excellent",
+			});
+			return;
+		}
 		mutation.mutate(values);
 	};
 	return (
