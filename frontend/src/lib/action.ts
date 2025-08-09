@@ -108,7 +108,7 @@ export async function setSession(data: {
 	await session.save();
 }
 
-export async function logout() {
+export async function removeSession() {
 	const session = await getSession();
 	session.destroy();
 }

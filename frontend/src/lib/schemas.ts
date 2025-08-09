@@ -130,3 +130,7 @@ export const LogInSchema = z.object({
 	password: z.string().min(1, "Password is required"),
 	rememberMe: z.boolean(),
 });
+
+export const ForgotPasswordSchema = z.object({
+	email: z.email("Invalid email address"),
+});
