@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AuthBanner from "../../components/AuthBanner";
+import AuthBanner from "@components/AuthBanner";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Pre",

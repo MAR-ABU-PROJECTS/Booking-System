@@ -1,16 +1,16 @@
 "use client";
 import { useForm, Controller } from "react-hook-form";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
+import { Label } from "@components/ui/label";
+import { Input } from "@components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ForgotPasswordSchema } from "../lib/schemas";
-import { Button } from "../components/ui/button";
-import Link from "next/link";
+import { Button } from "@components/ui/button";
+// import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useMutation } from "@tanstack/react-query";
-import { apiService } from "../lib/apiService";
+import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
 
 const ForgotPassword = () => {

@@ -1,20 +1,20 @@
 "use client";
 import { useState, ChangeEvent } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
+import { Label } from "@components/ui/label";
+import { Input } from "@components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SignUpSchema } from "../lib/schemas";
-import { Button } from "../components/ui/button";
+import { SignUpSchema } from "@lib/schemas";
+import { Button } from "@components/ui/button";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
-import { apiService } from "../lib/apiService";
+import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
-import { checkPasswordStrength } from "../lib/utils";
-import PasswordStrengthChecker from "../components/PasswordStrengthChecker";
+import { checkPasswordStrength } from "@lib/utils";
+import PasswordStrengthChecker from "@components/PasswordStrengthChecker";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({

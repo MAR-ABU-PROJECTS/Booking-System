@@ -1,6 +1,6 @@
 import React from "react";
 import type { Metadata } from "next";
-import ForgotPassword from "../../../components/ForgotPassword";
+import ForgotPassword from "@components/ForgotPassword";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Forgot Password",

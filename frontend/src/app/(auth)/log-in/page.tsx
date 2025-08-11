@@ -1,7 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
-import LogIn from "../../../components/Login";
-import { getSessionUser } from "../../../lib/action";
+import LogIn from "@components/Login";
+import { getSessionUser } from "@lib/action";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {

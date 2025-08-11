@@ -1,13 +1,13 @@
 "use client";
 import { MapPin, ShieldHalf } from "lucide-react";
-import { bookingDetailsSchema } from "../../lib/schemas";
+import { bookingDetailsSchema } from "@lib/schemas";
 import { useFormContext } from "react-hook-form";
 import { z } from "zod";
 import dayjs from "dayjs";
-import { RootState } from "../../lib/features/store";
+import { RootState } from "@lib/features/store";
 import { useSelector } from "react-redux";
-import { formatCurrency } from "../../lib/utils";
-import PropertyCarousel from "../../components/PropertyCarousel";
+import { formatCurrency } from "@lib/utils";
+import PropertyCarousel from "@components/PropertyCarousel";
 
 const BookingSummary = () => {
 	const booking = useSelector((state: RootState) => state.booking);

@@ -17,10 +17,10 @@ import {
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useSelector } from "react-redux";
-import { RootState } from "../lib/features/store";
-import { removeSession } from "../lib/action";
+import { RootState } from "@lib/features/store";
+import { removeSession } from "@lib/action";
 import { useMutation } from "@tanstack/react-query";
-import { apiService } from "../lib/apiService";
+import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
 import { toast } from "react-toastify";
 

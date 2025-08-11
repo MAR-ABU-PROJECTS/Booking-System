@@ -3,7 +3,10 @@ import { getIronSession } from "iron-session";
 import { SessionData, defaultSession, sessionOptions } from "./session";
 import { cookies } from "next/headers";
 import { jwtDecode } from "jwt-decode";
-import { apiService } from "../lib/apiService";
+import axios from 'axios'
+
+
+const base_URL = process.env.NEXT_PUBLIC_BASE_URL
 
 function checkTokenExpiry(token: string): boolean {
 	try {
@@ -16,16 +19,25 @@ function checkTokenExpiry(token: string): boolean {
 	}
 }
 
-async function refreshAccessToken(
-	refreshToken: string
-): Promise<string | null> {
+async function refreshAccessToken(refreshToken: string): Promise<string | null> {
 	try {
-		const res = await apiService.post("/auth/refresh", {
-			refreshToken,
+		const res = await fetch(`${base_URL}/auth/refresh`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ refreshToken }),
 		});
 
-		if (res?.success) {
-			return res.data.accessToken;
+		if (!res.ok) {
+			console.error(`HTTP error: ${res.status}`);
+			return null;
+		}
+
+		const data = await res.json();
+
+		if (data?.success) {
+			return data.accessToken;
 		}
 
 		return null;
@@ -34,6 +46,7 @@ async function refreshAccessToken(
 		return null;
 	}
 }
+
 
 export async function getSession() {
 	const session = await getIronSession<SessionData>(

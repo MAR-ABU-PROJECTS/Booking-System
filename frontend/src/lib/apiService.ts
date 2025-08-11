@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig } from "axios";
-import { getSession } from "../lib/action";
+import { getSession } from "@lib/action";
 
 // export const BASE_URL =
 // 	`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1` || "http://localhost:3000/api/v1";

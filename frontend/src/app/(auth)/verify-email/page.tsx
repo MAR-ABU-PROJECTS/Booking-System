@@ -1,6 +1,6 @@
 import React from "react";
 import type { Metadata } from "next";
-import VerifyEmail from "../../../components/VerifyEmail";
+import VerifyEmail from "@components/VerifyEmail";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Verify Email",

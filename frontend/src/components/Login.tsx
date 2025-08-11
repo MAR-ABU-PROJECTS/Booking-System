@@ -1,19 +1,19 @@
 "use client";
 import { useForm, Controller } from "react-hook-form";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
+import { Label } from "@components/ui/label";
+import { Input } from "@components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LogInSchema } from "../lib/schemas";
-import { Button } from "../components/ui/button";
-import { Checkbox } from "../components/ui/checkbox";
+import { LogInSchema } from "@lib/schemas";
+import { Button } from "@components/ui/button";
+import { Checkbox } from "@components/ui/checkbox";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useMutation } from "@tanstack/react-query";
-import { apiService } from "../lib/apiService";
+import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
-import { setSession } from "../lib/action";
+import { setSession } from "@lib/action";
 
 const LogIn = () => {
 	const form = useForm<z.infer<typeof LogInSchema>>({
@@ -210,7 +210,7 @@ const LogIn = () => {
 				</form>
 
 				<p className="text-center text-[15px] font-medium mt-3 mb-5 ">
-					Don't have an account yet?{" "}
+					Don&apos;t have an account yet?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/sign-up">Sign Up</Link>
 					</span>

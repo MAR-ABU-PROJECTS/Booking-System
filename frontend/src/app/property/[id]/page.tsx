@@ -1,7 +1,7 @@
-import SingleProperty from "../../../components/SingleProperty";
-import { getPropertyById } from "../../../lib/api";
-import AirbnbStyleNavigation from "../../../components/AirbnbStyleNavigation";
-import Footer from "../../../components/Footer";
+import SingleProperty from "@components/SingleProperty";
+import { getPropertyById } from "@lib/api";
+import AirbnbStyleNavigation from "@components/AirbnbStyleNavigation";
+import Footer from "@components/Footer";
 
 type Props = {
 	params: Promise<{ id: string }>
