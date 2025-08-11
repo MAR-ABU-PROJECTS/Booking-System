@@ -3,7 +3,6 @@ import { getIronSession } from "iron-session";
 import { SessionData, defaultSession, sessionOptions } from "./session";
 import { cookies } from "next/headers";
 import { jwtDecode } from "jwt-decode";
-import axios from 'axios'
 
 
 const base_URL = process.env.NEXT_PUBLIC_BASE_URL

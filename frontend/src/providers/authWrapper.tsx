@@ -15,22 +15,19 @@ export default function AuthWrapper({ children }: Props) {
 	const user = useSelector((state: RootState) => state.auth.user);
 	const dispatch = useDispatch();
 
-	async function fetchSession() {
-		const user = await getSessionUser();
-		console.log(user.user);
-		console.log("run on page change");
-		if (user?.user?.isLoggedIn) {
-			console.log(user.user);
-			dispatch(setUser(user.user));
-		} else {
-			dispatch(setUser(null));
-		}
-	}
-
 	useEffect(() => {
 		if (user?.isLoggedIn) return;
 
-		fetchSession();
+		(async () => {
+			const user = await getSessionUser();
+			console.log(user.user);
+			console.log("run on page change");
+			if (user?.user?.isLoggedIn) {
+				dispatch(setUser(user.user));
+			} else {
+				dispatch(setUser(null));
+			}
+		})();
 	}, [dispatch, user?.isLoggedIn]);
 
 	return <>{children}</>;
