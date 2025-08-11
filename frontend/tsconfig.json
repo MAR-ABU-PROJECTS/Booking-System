@@ -27,6 +27,7 @@
 		// }
 		"baseUrl": ".",
 		"paths": {
+			"@public/*": ["public/*"],
 			"@components/*": ["src/components/*"],
 			"@lib/*": ["src/lib/*"],
 			"@hooks/*": ["src/hooks/*"],

@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { jwtDecode } from "jwt-decode";
 
 
-const base_URL = process.env.NEXT_PUBLIC_BASE_URL
+const base_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1`
 
 function checkTokenExpiry(token: string): boolean {
 	try {
