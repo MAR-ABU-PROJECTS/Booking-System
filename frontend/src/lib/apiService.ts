@@ -1,8 +1,7 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { getSession } from "@lib/action";
 
-	const BASE_URL =
-	"https://booking-system-n26e.onrender.com/api/v1";
+const BASE_URL = "https://booking-system-n26e.onrender.com/api/v1";
 
 const axiosInstance = axios.create({
 	baseURL: BASE_URL,
