@@ -14,6 +14,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
 import { setSession } from "@lib/action";
+import { useRouter } from "next/navigation";
 
 const LogIn = () => {
 	const form = useForm<z.infer<typeof LogInSchema>>({
@@ -25,37 +26,21 @@ const LogIn = () => {
 		},
 		mode: "onChange",
 	});
-
+	const router = useRouter();
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof LogInSchema>) => {
-			try {
-				const response = await apiService.post("/auth/login", {
-					...formData,
-				});
-				console.log(response);
-				return response;
-			} catch (error) {
-				if (isAxiosError(error)) {
-					console.error(
-						"Axios Error:",
-						error.response?.data?.message || error.message
-					);
-					throw error;
-				} else {
-					console.error("Unexpected Error:", error);
-					throw error;
-				}
-			}
+			const response = await apiService.post("/auth/login", {
+				...formData,
+			});
+			return response;
 		},
 		onSuccess: async (res, variables) => {
 			if (res?.success) {
-				console.log(res)
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
-
 
 				await setSession({
 					email: res.data.user.email,
@@ -65,23 +50,37 @@ const LogIn = () => {
 					token: res.data.accessToken,
 					refreshToken: res.data.refreshToken,
 				});
-				setTimeout(() => {
-					window.location.href = `/`;
-				}, 1000);
+				router.push("/");
+			} else {
+				const message = res?.message as string;
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
 			}
 		},
 
 		onError: (error) => {
 			if (isAxiosError(error)) {
-				const message =
-					(error.response?.data?.message as string) ||
-					"Something went wrong";
-				console.error("Handled in onError:", message);
-				toast.error(`${message}`, {
-					closeOnClick: false,
-
-					progress: undefined,
-				});
+				const errorList = error.response?.data?.errors;
+				if (Array.isArray(errorList)) {
+					errorList.forEach((err) => {
+						if (err.path && err.msg) {
+							form.setError(err.path, {
+								type: "server",
+								message: err.msg,
+							});
+						}
+					});
+				} else {
+					const message =
+						(error.response?.data?.message as string) ||
+						"Something went wrong";
+					toast.error(`${message}`, {
+						closeOnClick: false,
+						progress: undefined,
+					});
+				}
 			} else {
 				console.error("Non-Axios Error:", error);
 			}
@@ -102,7 +101,7 @@ const LogIn = () => {
 				/>
 			</div>
 			<div className="mt-18 mb-16">
-				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
+				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl text-center">
 					Welcome Back to MAR ABU Homes!
 				</h1>
 				<p className="text-center text-gray-500">

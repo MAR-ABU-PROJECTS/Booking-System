@@ -45,12 +45,12 @@ const PasswordStrengthChecker = (props: Props) => {
 					)}
 				</p>
 			</div>
-			<div className="mt-2 flex flex-col items-end">
+			<div className="mt-2 flex flex-col items-start">
 				{/* <p className=" font-medium text-[#4A4A4ACC] text-xs">
           Must contain at least
         </p> */}
 				<ul className="text-[13px] text-[#A6A5A5] flex flex-col gap-1 text-right">
-					<li className=" flex items-center gap-1 justify-end">
+					<li className=" flex items-center gap-1">
 						{props.password.length >= 8 ? (
 							<Check className=" size-4" />
 						) : (
@@ -58,7 +58,7 @@ const PasswordStrengthChecker = (props: Props) => {
 						)}
 						At least 8 characters
 					</li>
-					<li className=" flex items-center gap-1 justify-end">
+					<li className=" flex items-center gap-1">
 						{/[A-Z]/.test(props.password) ? (
 							<Check className=" size-4" />
 						) : (
@@ -66,7 +66,7 @@ const PasswordStrengthChecker = (props: Props) => {
 						)}
 						At least 1 uppercase character
 					</li>
-					<li className=" flex items-center gap-1 justify-end">
+					<li className=" flex items-center gap-1">
 						{/[a-z]/.test(props.password) ? (
 							<Check className=" size-4" />
 						) : (
@@ -74,7 +74,7 @@ const PasswordStrengthChecker = (props: Props) => {
 						)}
 						At least 1 lowercase character
 					</li>
-					<li className=" flex items-center gap-1 justify-end">
+					<li className=" flex items-center gap-1">
 						{/\d/.test(props.password) ? (
 							<Check className=" size-4" />
 						) : (
@@ -82,7 +82,7 @@ const PasswordStrengthChecker = (props: Props) => {
 						)}
 						At least 1 number
 					</li>
-					<li className=" flex items-center gap-1 justify-end">
+					<li className=" flex items-center gap-1">
 						{/[\W_]/.test(props.password) ? (
 							<Check className=" size-4" />
 						) : (

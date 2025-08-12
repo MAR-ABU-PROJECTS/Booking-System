@@ -15,6 +15,8 @@ import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { checkPasswordStrength } from "@lib/utils";
 import PasswordStrengthChecker from "@components/PasswordStrengthChecker";
+import { setSession } from "@lib/action";
+import { useRouter } from "next/navigation";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -30,7 +32,7 @@ const SignUp = () => {
 		mode: "onChange",
 	});
 	const [passwordStrength, setPasswordStrength] = useState(0);
-
+	const router = useRouter();
 	const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
 		const strength = checkPasswordStrength(e.target.value);
 		setPasswordStrength((strength / 5) * 100);
@@ -38,37 +40,32 @@ const SignUp = () => {
 
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
-			try {
-				const response = await apiService.post("/auth/register", {
-					...formData,
-				});
-				console.log(response);
-				return response;
-			} catch (error) {
-				if (isAxiosError(error)) {
-					console.error(
-						"Axios Error:",
-						error.response?.data?.message || error.message
-					);
-					throw error;
-				} else {
-					console.error("Unexpected Error:", error);
-					throw error;
-				}
-			}
+			const response = await apiService.post("/auth/register", {
+				...formData,
+			});
+			return response;
 		},
 		onSuccess: async (res) => {
 			if (res?.success) {
-				console.log("Registration successful:", res);
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
-				setTimeout(() => {
-					window.location.href = `/verify-email?email=${res?.data?.user?.email}`;
-				}, 1000);
+				await setSession({
+					email: res.data.user.email,
+					id: res.data.user.id,
+					name: `${res.data.user.firstName} ${res.data.user.lastName}`,
+					token: res.data.accessToken,
+					refreshToken: res.data.refreshToken,
+				});
+				router.push("/");
 			} else {
+				const message = res?.message as string;
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
 			}
 		},
 
@@ -88,7 +85,7 @@ const SignUp = () => {
 					const message =
 						(error.response?.data?.message as string) ||
 						"Something went wrong";
-					console.error("Handled in onError:", message);
+
 					toast.error(`${message}`, {
 						closeOnClick: false,
 						progress: undefined,
@@ -104,7 +101,7 @@ const SignUp = () => {
 		if (passwordStrength < 90) {
 			form.setError("password", {
 				type: "manual",
-				message: "password strength must be Excellent",
+				message: "password is not strong enough",
 			});
 			return;
 		}
@@ -120,7 +117,7 @@ const SignUp = () => {
 				/>
 			</div>
 			<div className="mt-18 mb-16">
-				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
+				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl text-center">
 					Welcome to MAR ABU Homes!
 				</h1>
 				<p className="text-center text-gray-500">
@@ -258,7 +255,7 @@ const SignUp = () => {
 						)}
 					/>
 
-					<div className=" mt-3 max-w-[50%] w-full ml-auto">
+					<div className=" mt-3 max-w-[50%] w-full">
 						<PasswordStrengthChecker
 							strength={passwordStrength}
 							password={form.getValues("password")}
