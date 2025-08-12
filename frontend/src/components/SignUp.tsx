@@ -71,7 +71,7 @@ const SignUp = () => {
 						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
 					})
 				);
-				router.push("/");
+				router.push("/verify-email");
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {

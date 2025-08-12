@@ -19,8 +19,7 @@ export default function AuthWrapper({ children }: Props) {
 
 		(async () => {
 			const user = await getSessionUser();
-			console.log(user.user);
-			console.log("run on page change");
+	
 			if (user?.user?.isLoggedIn) {
 				dispatch(setUser(user.user));
 			} else {

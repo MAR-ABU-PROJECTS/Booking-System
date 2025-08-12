@@ -1,6 +1,8 @@
 import React from "react";
 import type { Metadata } from "next";
 import VerifyEmail from "@components/VerifyEmail";
+import { getSessionUser } from "@lib/action";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Verify Email",
@@ -10,10 +12,16 @@ export const metadata: Metadata = {
 		"luxury accommodations, premium properties, short lets, Nigeria, Lagos, Abuja, Port Harcourt",
 };
 
-const page = () => {
+const page = async () => {
+	const session = await getSessionUser();
+
+	if (!session?.user?.isLoggedIn) {
+		redirect("/");
+	}
+
 	return (
 		<>
-			<VerifyEmail />
+			<VerifyEmail email={session?.user?.email} />
 		</>
 	);
 };
