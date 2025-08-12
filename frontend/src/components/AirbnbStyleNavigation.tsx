@@ -11,12 +11,20 @@ import {
 	MessageSquare,
 	HelpCircle,
 	LogOut,
+	UserRound,
+	Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useSelector } from "react-redux";
-import { RootState } from "../lib/features/store";
-import { logout } from "../lib/action";
+import { RootState } from "@lib/features/store";
+import { removeSession } from "@lib/action";
+import { useMutation } from "@tanstack/react-query";
+import { apiService } from "@lib/apiService";
+import { isAxiosError } from "axios";
+import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { setUser } from "@lib/features/authSlice";
 
 type Props = {
 	whiteBg?: boolean;
@@ -26,6 +34,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
 	const router = useRouter();
 	const user = useSelector((state: RootState) => state.auth.user);
+	const dispatch = useDispatch();
 
 	// Handle scroll effect
 	useEffect(() => {
@@ -57,12 +66,38 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 		handleSearch();
 	};
 
-	const handleLogOut = async () => {
-		await logout();
-		setTimeout(() => {
-			window.location.href = "/";
-		}, 1000);
-	};
+	const LogOutMutation = useMutation({
+		mutationFn: async () => {
+			return apiService.post("/auth/logout", {});
+		},
+		onSuccess: async (res) => {
+			if (res?.success) {
+				await removeSession();
+				dispatch(setUser(null));
+				router.push("/");
+			} else {
+				const message =
+					(res.message as string) || "Something went wrong";
+				toast.error(`${message}`, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			}
+		},
+		onError: (error) => {
+			if (isAxiosError(error)) {
+				const message =
+					(error.response?.data?.message as string) ||
+					"Something went wrong";
+				toast.error(`${message}`, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			} else {
+				console.error("Non-Axios Error:", error);
+			}
+		},
+	});
 
 	return (
 		<header
@@ -154,7 +189,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 					{/* Profile Menu */}
 					<div className="relative">
 						<button
-							className="flex items-center gap-2 p-1 pl-3 border border-gray-300 rounded-full hover:shadow-md transition-shadow"
+							className="flex items-center gap-2 p-1 pl-3 border border-gray-300 rounded-full hover:shadow-md transition-shadow !cursor-pointer"
 							onClick={() => setIsProfileOpen(!isProfileOpen)}
 						>
 							{/* <Menu className="w-4 h-4 text-gray-700" /> */}
@@ -189,6 +224,13 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 										<div className="py-2">
 											<div>
 												<Link
+													href="/profile"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+												>
+													<UserRound className="w-5 h-5" />
+													<span>Profile</span>
+												</Link>
+												<Link
 													href="/wishlist"
 													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
 												>
@@ -212,9 +254,19 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 												<button
 													title="LogOut"
 													className="!cursor-pointer w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
-													onClick={handleLogOut}
+													onClick={() =>
+														LogOutMutation.mutate()
+													}
+													disabled={
+														LogOutMutation.isPending
+													}
 												>
-													<LogOut className="w-5 h-5 rotate-180" />
+													{LogOutMutation.isPending ? (
+														<Loader2 className="w-5 h-5 animate-spin" />
+													) : (
+														<LogOut className="w-5 h-5 rotate-180" />
+													)}
+
 													<span>Log Out</span>
 												</button>
 											</div>

@@ -2,7 +2,7 @@
 import { ReactNode } from "react";
 import ReduxProvider from "./reduxprovider";
 import ReactQueryClientProvider from "./QueryClientProvider";
-import AuthWrapper from "../providers/authWrapper";
+import AuthWrapper from "@providers/authWrapper";
 import { ToastContainer } from "react-toastify";
 
 type Props = {

@@ -5,8 +5,8 @@ import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { properties } from "../lib/mockData";
-import { formatCurrency } from "../lib/utils";
+import { properties } from "@lib/mockData";
+import { formatCurrency } from "@lib/utils";
 
 const PropertiesCard = () => {
 	// const cardContent = [

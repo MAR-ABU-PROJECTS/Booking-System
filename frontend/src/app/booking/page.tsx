@@ -1,14 +1,14 @@
 "use client";
 import { useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import Navbar from "../../components/Navigation";
-import BookingForm from "../../components/bookingComponents/BookingForm";
-import BookingSummary from "../../components/bookingComponents/BookingSummary";
+import Navbar from "@components/Navigation";
+import BookingForm from "@components/bookingComponents/BookingForm";
+import BookingSummary from "@components/bookingComponents/BookingSummary";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { bookingDetailsSchema } from "../../lib/schemas";
+import { bookingDetailsSchema } from "@lib/schemas";
 import { z } from "zod";
-import { RootState } from "../../lib/features/store";
+import { RootState } from "@lib/features/store";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 

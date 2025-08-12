@@ -1,9 +1,9 @@
-import GuestCounter from "../components/GuestCounter";
+import GuestCounter from "@components/GuestCounter";
 import { z } from "zod";
 import { useFormContext, Controller } from "react-hook-form";
-import { BookSchema } from "../lib/schemas";
+import { BookSchema } from "@lib/schemas";
 import dayjs from "dayjs";
-import { formatCurrency } from "../lib/utils";
+import { formatCurrency } from "@lib/utils";
 
 type Props = {
 	price: number;

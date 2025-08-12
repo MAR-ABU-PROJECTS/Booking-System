@@ -1,6 +1,6 @@
 "use client";
 import Lottie from "lottie-react";
-import Checks from "../../../public/animations/check.json";
+import Checks from "@public/animations/check.json";
 import { CreditCard, House, MapPin, User } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import { motion } from "framer-motion";

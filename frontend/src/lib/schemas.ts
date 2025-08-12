@@ -128,5 +128,9 @@ export const SignUpSchema = z.object({
 export const LogInSchema = z.object({
 	email: z.email("Invalid email address"),
 	password: z.string().min(1, "Password is required"),
-	rememberMe: z.boolean().optional(),
+	rememberMe: z.boolean(),
+});
+
+export const ForgotPasswordSchema = z.object({
+	email: z.email("Invalid email address"),
 });

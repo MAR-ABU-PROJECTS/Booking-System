@@ -118,7 +118,7 @@ const Header = () => {
 					{/* Main heading */}
 					<div className="flex flex-col items-center pt-5">
 						<motion.h1
-							className="text-white text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-tight mb-6 gilda-display"
+							className="mt-12 lg:mt-0 text-white text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-tight mb-6 gilda-display"
 							initial={{ opacity: 0, y: 50 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 1, delay: 0.2 }}

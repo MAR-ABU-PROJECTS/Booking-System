@@ -2,8 +2,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, Star, ChevronLeft, ChevronRight } from "lucide-react";
-import type { Property } from "../lib/type";
-import { formatCurrency } from "../lib/utils";
+import type { Property } from "@lib/type";
+import { formatCurrency } from "@lib/utils";
 import Link from "next/link";
 import Image from "next/image"
 

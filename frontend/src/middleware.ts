@@ -1,6 +1,5 @@
-// middleware.ts
 import { NextResponse, NextRequest } from "next/server";
-import { getSessionUser } from "./lib/action";
+import { getSessionUser } from "@lib/action";
 
 export async function middleware(request: NextRequest) {
 	const { user, redirectTo } = await getSessionUser();

@@ -10,8 +10,8 @@ import {
 	Calendar,
 	ArrowRight,
 } from "lucide-react";
-import { properties } from "../lib/mockData";
-import { formatCurrency } from "../lib/utils";
+import { properties } from "@lib/mockData";
+import { formatCurrency } from "@lib/utils";
 import Link from "next/link";
 
 const MarAbuPropertyTypes = () => {

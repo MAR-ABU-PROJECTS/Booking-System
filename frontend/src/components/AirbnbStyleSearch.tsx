@@ -2,13 +2,13 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
-import GuestCounter from "../components/GuestCounter";
-import { Calendar } from "../components/ui/calendar";
+import GuestCounter from "@components/GuestCounter";
+import { Calendar } from "@components/ui/calendar";
 import { useDispatch} from "react-redux";
-import { updateBooking } from "../lib/features/bookingSlice";
+import { updateBooking } from "@lib/features/bookingSlice";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { homePageBookingSchema } from "../lib/schemas";
+import { homePageBookingSchema } from "@lib/schemas";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import {z} from "zod"

@@ -3,7 +3,8 @@ import { getIronSession } from "iron-session";
 import { SessionData, defaultSession, sessionOptions } from "./session";
 import { cookies } from "next/headers";
 import { jwtDecode } from "jwt-decode";
-import { apiService } from "../lib/apiService";
+
+const base_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1`;
 
 function checkTokenExpiry(token: string): boolean {
 	try {
@@ -20,12 +21,23 @@ async function refreshAccessToken(
 	refreshToken: string
 ): Promise<string | null> {
 	try {
-		const res = await apiService.post("/auth/refresh", {
-			refreshToken,
+		const res = await fetch(`${base_URL}/auth/refresh`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ refreshToken }),
 		});
 
-		if (res?.success) {
-			return res.data.accessToken;
+		if (!res.ok) {
+			console.error(`HTTP error: ${res.status}`);
+			return null;
+		}
+
+		const data = await res.json();
+
+		if (data?.success) {
+			return data.accessToken;
 		}
 
 		return null;
@@ -44,11 +56,14 @@ export async function getSession() {
 		session.user = { ...defaultSession.user };
 	}
 
-	return session;
+	return  { user: session.user };
 }
 
 export async function getSessionUser() {
-	const session = await getSession();
+	const session = await getIronSession<SessionData>(
+		await cookies(),
+		sessionOptions
+	);
 
 	if (!session.user?.isLoggedIn) {
 		return { redirectTo: "/log-in", isLoggedIn: false };
@@ -73,7 +88,7 @@ export async function getSessionUser() {
 		user: {
 			id: session.user.id,
 			name: session.user.name,
-			email: session.user.name,
+			email: session.user.email,
 			isLoggedIn: session.user.isLoggedIn,
 		},
 	};
@@ -87,7 +102,10 @@ export async function setSession(data: {
 	refreshToken: string;
 	rememberMe?: boolean;
 }) {
-	const session = await getSession();
+	const session = await getIronSession<SessionData>(
+		await cookies(),
+		sessionOptions
+	);
 
 	session.user = {
 		isLoggedIn: true,
@@ -108,7 +126,12 @@ export async function setSession(data: {
 	await session.save();
 }
 
-export async function logout() {
-	const session = await getSession();
-	session.destroy();
+export async function removeSession() {
+	const session = await getIronSession<SessionData>(
+		await cookies(),
+		sessionOptions
+	);
+	if (session) {
+		session.destroy();
+	}
 }
