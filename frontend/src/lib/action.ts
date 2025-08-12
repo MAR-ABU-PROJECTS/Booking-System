@@ -56,11 +56,14 @@ export async function getSession() {
 		session.user = { ...defaultSession.user };
 	}
 
-	return session;
+	return  { user: session.user };
 }
 
 export async function getSessionUser() {
-	const session = await getSession();
+	const session = await getIronSession<SessionData>(
+		await cookies(),
+		sessionOptions
+	);
 
 	if (!session.user?.isLoggedIn) {
 		return { redirectTo: "/log-in", isLoggedIn: false };
@@ -99,7 +102,10 @@ export async function setSession(data: {
 	refreshToken: string;
 	rememberMe?: boolean;
 }) {
-	const session = await getSession();
+	const session = await getIronSession<SessionData>(
+		await cookies(),
+		sessionOptions
+	);
 
 	session.user = {
 		isLoggedIn: true,
@@ -121,7 +127,10 @@ export async function setSession(data: {
 }
 
 export async function removeSession() {
-	const session = await getSession();
+	const session = await getIronSession<SessionData>(
+		await cookies(),
+		sessionOptions
+	);
 	if (session) {
 		session.destroy();
 	}
