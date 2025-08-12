@@ -1,4 +1,3 @@
-// components/AuthWrapper.tsx
 "use client";
 
 import { ReactNode, useEffect } from "react";

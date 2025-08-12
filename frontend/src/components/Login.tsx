@@ -15,6 +15,8 @@ import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
 import { setSession } from "@lib/action";
 import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { setUser } from "@lib/features/authSlice";
 
 const LogIn = () => {
 	const form = useForm<z.infer<typeof LogInSchema>>({
@@ -50,6 +52,14 @@ const LogIn = () => {
 					token: res.data.accessToken,
 					refreshToken: res.data.refreshToken,
 				});
+				dispatch(
+					setUser({
+						email: res.data.user.email,
+						id: res.data.user.id,
+						isLoggedIn: true,
+						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
+					})
+				);
 				router.push("/");
 			} else {
 				const message = res?.message as string;
@@ -90,7 +100,7 @@ const LogIn = () => {
 	const onSubmit = (values: z.infer<typeof LogInSchema>) => {
 		mutation.mutate(values);
 	};
-
+	const dispatch = useDispatch();
 	return (
 		<div className="w-full max-w-xl mx-auto pt-8">
 			<div className="h-[60px] relative">
@@ -208,7 +218,7 @@ const LogIn = () => {
 					</Button>
 				</form>
 
-				<p className="text-center text-[15px] font-medium mt-3 mb-5 ">
+				<p className="text-center text-[16px] font-medium mt-3 mb-5 ">
 					Don&apos;t have an account yet?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/sign-up">Sign Up</Link>

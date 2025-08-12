@@ -4,8 +4,7 @@ import { SessionData, defaultSession, sessionOptions } from "./session";
 import { cookies } from "next/headers";
 import { jwtDecode } from "jwt-decode";
 
-
-const base_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1`
+const base_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1`;
 
 function checkTokenExpiry(token: string): boolean {
 	try {
@@ -18,7 +17,9 @@ function checkTokenExpiry(token: string): boolean {
 	}
 }
 
-async function refreshAccessToken(refreshToken: string): Promise<string | null> {
+async function refreshAccessToken(
+	refreshToken: string
+): Promise<string | null> {
 	try {
 		const res = await fetch(`${base_URL}/auth/refresh`, {
 			method: "POST",
@@ -45,7 +46,6 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 		return null;
 	}
 }
-
 
 export async function getSession() {
 	const session = await getIronSession<SessionData>(
@@ -122,5 +122,7 @@ export async function setSession(data: {
 
 export async function removeSession() {
 	const session = await getSession();
-	session.destroy();
+	if (session) {
+		session.destroy();
+	}
 }

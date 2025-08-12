@@ -17,6 +17,8 @@ import { checkPasswordStrength } from "@lib/utils";
 import PasswordStrengthChecker from "@components/PasswordStrengthChecker";
 import { setSession } from "@lib/action";
 import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { setUser } from "@lib/features/authSlice";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -37,6 +39,8 @@ const SignUp = () => {
 		const strength = checkPasswordStrength(e.target.value);
 		setPasswordStrength((strength / 5) * 100);
 	};
+
+	const dispatch = useDispatch();
 
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
@@ -59,6 +63,14 @@ const SignUp = () => {
 					token: res.data.accessToken,
 					refreshToken: res.data.refreshToken,
 				});
+				dispatch(
+					setUser({
+						email: res.data.user.email,
+						id: res.data.user.id,
+						isLoggedIn: true,
+						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
+					})
+				);
 				router.push("/");
 			} else {
 				const message = res?.message as string;
@@ -276,7 +288,7 @@ const SignUp = () => {
 					</Button>
 				</form>
 
-				<p className="text-center text-[15px] font-medium mt-3 !mb-5">
+				<p className="text-center text-[16px] font-medium mt-3 !mb-5">
 					Already have an account?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/log-in">Log In</Link>

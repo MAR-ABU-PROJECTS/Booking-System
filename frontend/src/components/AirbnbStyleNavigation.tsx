@@ -23,6 +23,8 @@ import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
 import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { setUser } from "@lib/features/authSlice";
 
 type Props = {
 	whiteBg?: boolean;
@@ -32,6 +34,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
 	const router = useRouter();
 	const user = useSelector((state: RootState) => state.auth.user);
+	const dispatch = useDispatch();
 
 	// Handle scroll effect
 	useEffect(() => {
@@ -63,20 +66,15 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 		handleSearch();
 	};
 
-	const handleLogOut = async () => {
-		await removeSession();
-		setTimeout(() => {
-			window.location.href = "/";
-		}, 1000);
-	};
-
 	const LogOutMutation = useMutation({
 		mutationFn: async () => {
 			return apiService.post("/auth/logout", {});
 		},
 		onSuccess: async (res) => {
 			if (res?.success) {
-				handleLogOut();
+				await removeSession();
+				dispatch(setUser(null));
+				router.push("/");
 			} else {
 				const message =
 					(res.message as string) || "Something went wrong";
