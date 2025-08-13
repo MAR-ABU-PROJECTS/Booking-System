@@ -6,6 +6,7 @@ const express_validator_1 = require("express-validator");
 const authservice_1 = require("../services/authservice");
 const error_middleware_1 = require("../middlewares/error.middleware");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
+const emailservice_1 = require("../services/emailservice");
 const router = (0, express_1.Router)();
 // Validation middleware
 const validate = (req, res, next) => {
@@ -120,6 +121,8 @@ router.post("/register", [
         .withMessage("Invalid role"),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const result = await authservice_1.authService.register(req.body);
+    // Send verification email
+    await emailservice_1.emailService.sendEmailVerification(result.user.email, result.verificationToken);
     (0, logger_middleware_1.auditLog)("USER_REGISTERED", result.user.id, {
         email: result.user.email,
         role: result.user.role,
@@ -127,7 +130,7 @@ router.post("/register", [
     res.status(201).json({
         success: true,
         message: "Registration successful. Please check your email to verify your account.",
-        data: result,
+        data: { user: result.user },
     });
 }));
 /**
@@ -316,6 +319,15 @@ router.post("/verify-email", (0, authservice_1.requireAuth)({ allowPending: true
         message: "Email verified successfully",
     });
 }));
+router.get("/verify-email/:token", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { token } = req.params;
+    await authservice_1.authService.verifyEmailByToken(token);
+    (0, logger_middleware_1.auditLog)("EMAIL_VERIFIED", req.user?.id || "unknown", { token }, req.ip);
+    res.json({
+        success: true,
+        message: "Email verified successfully. You can now log in.",
+    });
+}));
 /**
  * @route   POST /api/v1/auth/forgot-password
  * @desc    Request password reset
@@ -443,6 +455,21 @@ router.post("/reset-password", [
     res.json({
         success: true,
         message: "Password reset successful. Please login with your new password.",
+    });
+}));
+router.get("/reset-password", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { token } = req.query;
+    if (!token) {
+        return res.status(400).json({
+            success: false,
+            message: "Reset token is required",
+        });
+    }
+    // You can render a password reset page here, or just return a message
+    res.json({
+        success: true,
+        message: "Please submit your new password using the POST /auth/reset-password endpoint.",
+        token,
     });
 }));
 /**
@@ -706,5 +733,72 @@ router.put("/change-password", (0, authservice_1.requireAuth)(), [
         success: true,
         message: "Password changed successfully",
     });
+}));
+/**
+ * @route   POST /api/v1/auth/test-email
+ * @desc    Send test email
+ * @access  Public
+ */
+/**
+ * @swagger
+ * /auth/test-email:
+ *   post:
+ *     summary: Send a test email
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Test email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Test email sent successfully!
+ *       400:
+ *         description: Invalid email
+ *       500:
+ *         description: Server error
+ */
+router.post("/test-email", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res
+            .status(400)
+            .json({ success: false, message: "Email is required" });
+    }
+    const success = await emailservice_1.emailService.sendTestEmail(email, {
+        recipientName: "Test User",
+        systemName: "Booking System",
+    });
+    if (success) {
+        return res.json({
+            success: true,
+            message: "Test email sent successfully!",
+        });
+    }
+    else {
+        return res
+            .status(500)
+            .json({ success: false, message: "Failed to send test email." });
+    }
 }));
 exports.default = router;

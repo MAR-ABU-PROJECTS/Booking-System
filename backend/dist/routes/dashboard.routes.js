@@ -14,7 +14,7 @@ const validate = (req, res, next) => {
     if (!errors.isEmpty()) {
         return res.status(400).json({
             success: false,
-            message: 'Validation failed',
+            message: "Validation failed",
             errors: errors.array(),
         });
     }
@@ -34,11 +34,90 @@ const getDateRanges = () => {
 // CUSTOMER DASHBOARD
 // ===============================
 /**
- * @route   GET /api/v1/dashboard/customer
- * @desc    Get customer dashboard data
- * @access  Customer
+ * @swagger
+ * /api/v1/dashboard/customer:
+ *   get:
+ *     summary: Get customer dashboard data
+ *     description: Retrieve comprehensive dashboard statistics for customers including bookings, favorites, and spending analytics
+ *     tags:
+ *       - Dashboard
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Customer dashboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overview:
+ *                       type: object
+ *                       properties:
+ *                         totalBookings:
+ *                           type: integer
+ *                           example: 15
+ *                         upcomingBookings:
+ *                           type: integer
+ *                           example: 3
+ *                         favoriteProperties:
+ *                           type: integer
+ *                           example: 8
+ *                         reviewsToWrite:
+ *                           type: integer
+ *                           example: 2
+ *                         totalSpent:
+ *                           type: number
+ *                           example: 250000
+ *                         loyaltyPoints:
+ *                           type: integer
+ *                           example: 2500
+ *                         memberSince:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2024-01-15T00:00:00.000Z"
+ *                     bookingStats:
+ *                       type: object
+ *                       properties:
+ *                         pending:
+ *                           type: integer
+ *                           example: 1
+ *                         approved:
+ *                           type: integer
+ *                           example: 3
+ *                         completed:
+ *                           type: integer
+ *                           example: 11
+ *                     upcomingBookings:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/BookingWithProperty'
+ *                     recentBookings:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/BookingWithProperty'
+ *                     favoriteProperties:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/FavoriteProperty'
+ *                     reviewsToWrite:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/BookingForReview'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/customer', (0, authservice_1.requireAuth)({ role: client_1.UserRole.CUSTOMER }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.get("/customer", (0, authservice_1.requireAuth)({ role: client_1.UserRole.CUSTOMER }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const userId = req.user.id;
     const { thisMonth, thisYear } = getDateRanges();
     const [totalBookings, upcomingBookings, recentBookings, favoriteProperties, reviewsToWrite, totalSpent, memberSince, loyaltyPoints,] = await Promise.all([
@@ -53,7 +132,7 @@ router.get('/customer', (0, authservice_1.requireAuth)({ role: client_1.UserRole
                 status: client_1.BookingStatus.APPROVED,
                 checkInDate: { gte: new Date() },
             },
-            orderBy: { checkInDate: 'asc' },
+            orderBy: { checkInDate: "asc" },
             take: 5,
             include: {
                 property: {
@@ -77,7 +156,7 @@ router.get('/customer', (0, authservice_1.requireAuth)({ role: client_1.UserRole
         // Recent bookings
         server_1.prisma.booking.findMany({
             where: { customerId: userId },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
             take: 5,
             include: {
                 property: {
@@ -94,7 +173,7 @@ router.get('/customer', (0, authservice_1.requireAuth)({ role: client_1.UserRole
         // Favorite properties
         server_1.prisma.favorite.findMany({
             where: { userId },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
             take: 8,
             include: {
                 property: {
@@ -121,7 +200,7 @@ router.get('/customer', (0, authservice_1.requireAuth)({ role: client_1.UserRole
                 checkOutDate: { lt: new Date() },
                 review: null,
             },
-            orderBy: { checkOutDate: 'desc' },
+            orderBy: { checkOutDate: "desc" },
             take: 5,
             include: {
                 property: {
@@ -156,14 +235,15 @@ router.get('/customer', (0, authservice_1.requireAuth)({ role: client_1.UserRole
         }),
     ]);
     // Calculate averages and stats
-    const avgRatingFavorites = favoriteProperties.map(fav => {
-        const ratings = fav.property.reviews.map(r => r.rating);
+    const avgRatingFavorites = favoriteProperties.map((fav) => {
+        const ratings = fav.property.reviews.map((r) => r.rating);
         return {
             ...fav,
             property: {
                 ...fav.property,
                 averageRating: ratings.length > 0
-                    ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+                    ? ratings.reduce((sum, rating) => sum + rating, 0) /
+                        ratings.length
                     : 0,
                 reviews: undefined,
             },
@@ -173,7 +253,7 @@ router.get('/customer', (0, authservice_1.requireAuth)({ role: client_1.UserRole
     const points = Math.floor((totalSpent._sum.total || 0) / 100);
     // Booking stats by status
     const bookingStats = await server_1.prisma.booking.groupBy({
-        by: ['status'],
+        by: ["status"],
         where: { customerId: userId },
         _count: { status: true },
     });
@@ -205,11 +285,91 @@ router.get('/customer', (0, authservice_1.requireAuth)({ role: client_1.UserRole
 // PROPERTY HOST DASHBOARD
 // ===============================
 /**
- * @route   GET /api/v1/dashboard/host
- * @desc    Get property host dashboard data
- * @access  Property Host
+ * @swagger
+ * /api/v1/dashboard/host:
+ *   get:
+ *     summary: Get property host dashboard data
+ *     description: Retrieve comprehensive dashboard analytics for property hosts including earnings, bookings, and property performance
+ *     tags:
+ *       - Dashboard
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Host dashboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overview:
+ *                       type: object
+ *                       properties:
+ *                         totalProperties:
+ *                           type: integer
+ *                           example: 5
+ *                         activeProperties:
+ *                           type: integer
+ *                           example: 4
+ *                         pendingProperties:
+ *                           type: integer
+ *                           example: 1
+ *                         totalBookings:
+ *                           type: integer
+ *                           example: 42
+ *                         pendingBookings:
+ *                           type: integer
+ *                           example: 3
+ *                         totalEarnings:
+ *                           type: number
+ *                           example: 1250000
+ *                         monthlyEarnings:
+ *                           type: number
+ *                           example: 180000
+ *                         upcomingCheckIns:
+ *                           type: integer
+ *                           example: 2
+ *                         averageRating:
+ *                           type: number
+ *                           example: 4.7
+ *                     properties:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/PropertyWithStats'
+ *                     pendingBookings:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/PendingBooking'
+ *                     recentBookings:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/RecentBooking'
+ *                     upcomingCheckIns:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/UpcomingCheckIn'
+ *                     recentReviews:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/ReviewWithCustomer'
+ *                     revenueHistory:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/MonthlyRevenue'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/host', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.get("/host", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const hostId = req.user.id;
     const { today, thisWeek, thisMonth, thisYear } = getDateRanges();
     const [properties, totalBookings, pendingBookings, recentBookings, earnings, monthlyEarnings, upcomingCheckIns, recentReviews, occupancyRate,] = await Promise.all([
@@ -247,7 +407,7 @@ router.get('/host', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
                 property: { hostId },
                 status: client_1.BookingStatus.PENDING,
             },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { createdAt: "asc" },
             include: {
                 property: {
                     select: { name: true },
@@ -266,7 +426,7 @@ router.get('/host', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
             where: {
                 property: { hostId },
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
             take: 10,
             include: {
                 property: {
@@ -307,7 +467,7 @@ router.get('/host', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
                     lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next 7 days
                 },
             },
-            orderBy: { checkInDate: 'asc' },
+            orderBy: { checkInDate: "asc" },
             include: {
                 property: {
                     select: { name: true },
@@ -328,7 +488,7 @@ router.get('/host', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
                 property: { hostId },
                 approved: true,
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
             take: 5,
             include: {
                 customer: {
@@ -357,8 +517,8 @@ router.get('/host', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
       `,
     ]);
     // Process properties with stats
-    const propertiesWithStats = properties.map(property => {
-        const ratings = property.reviews.map(r => r.rating);
+    const propertiesWithStats = properties.map((property) => {
+        const ratings = property.reviews.map((r) => r.rating);
         const averageRating = ratings.length > 0
             ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
             : 0;
@@ -372,8 +532,8 @@ router.get('/host', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
     });
     // Calculate performance metrics
     const totalProperties = properties.length;
-    const activeProperties = properties.filter(p => p.status === client_1.PropertyStatus.ACTIVE).length;
-    const pendingProperties = properties.filter(p => p.status === client_1.PropertyStatus.PENDING).length;
+    const activeProperties = properties.filter((p) => p.status === client_1.PropertyStatus.ACTIVE).length;
+    const pendingProperties = properties.filter((p) => p.status === client_1.PropertyStatus.PENDING).length;
     // Revenue trends (last 6 months)
     const revenueHistory = await server_1.prisma.$queryRaw `
       SELECT 
@@ -419,26 +579,160 @@ router.get('/host', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
 // ADMIN DASHBOARD
 // ===============================
 /**
- * @route   GET /api/v1/dashboard/admin
- * @desc    Get admin dashboard data
- * @access  Admin
+ * @swagger
+ * /api/v1/dashboard/admin:
+ *   get:
+ *     summary: Get admin dashboard data
+ *     description: Retrieve comprehensive system-wide analytics and metrics for administrators
+ *     tags:
+ *       - Dashboard
+ *       - Admin
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Admin dashboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overview:
+ *                       type: object
+ *                       properties:
+ *                         totalUsers:
+ *                           type: integer
+ *                           example: 1250
+ *                         totalProperties:
+ *                           type: integer
+ *                           example: 340
+ *                         totalBookings:
+ *                           type: integer
+ *                           example: 2847
+ *                         monthlyRevenue:
+ *                           type: number
+ *                           example: 8750000
+ *                         todayBookings:
+ *                           type: integer
+ *                           example: 15
+ *                         bookingGrowth:
+ *                           type: string
+ *                           example: "12.5%"
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         users:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: object
+ *                             additionalProperties:
+ *                               type: integer
+ *                           example:
+ *                             CUSTOMER:
+ *                               ACTIVE: 980
+ *                               PENDING_VERIFICATION: 45
+ *                             ADMIN:
+ *                               ACTIVE: 12
+ *                         properties:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: integer
+ *                           example:
+ *                             ACTIVE: 310
+ *                             PENDING: 25
+ *                             SUSPENDED: 5
+ *                         bookings:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: integer
+ *                           example:
+ *                             PENDING: 45
+ *                             APPROVED: 123
+ *                             COMPLETED: 2567
+ *                             CANCELLED: 112
+ *                     pendingApprovals:
+ *                       type: object
+ *                       properties:
+ *                         properties:
+ *                           type: integer
+ *                           example: 25
+ *                         reviews:
+ *                           type: integer
+ *                           example: 18
+ *                         bookings:
+ *                           type: integer
+ *                           example: 45
+ *                         total:
+ *                           type: integer
+ *                           example: 88
+ *                     systemHealth:
+ *                       type: object
+ *                       properties:
+ *                         weeklyCancellations:
+ *                           type: integer
+ *                           example: 12
+ *                         suspendedUsers:
+ *                           type: integer
+ *                           example: 3
+ *                         todayErrors:
+ *                           type: integer
+ *                           example: 2
+ *                         status:
+ *                           type: string
+ *                           enum: [HEALTHY, WARNING, CRITICAL]
+ *                           example: "HEALTHY"
+ *                     topPerformers:
+ *                       type: object
+ *                       properties:
+ *                         properties:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/TopProperty'
+ *                         hosts:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/TopHost'
+ *                     dailyMetrics:
+ *                       type: object
+ *                       properties:
+ *                         newUsers:
+ *                           type: integer
+ *                           example: 8
+ *                         newProperties:
+ *                           type: integer
+ *                           example: 3
+ *                         newBookings:
+ *                           type: integer
+ *                           example: 15
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/admin', (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.get("/admin", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { today, yesterday, thisWeek, thisMonth, thisYear } = getDateRanges();
     const [userStats, propertyStats, bookingStats, revenueStats, dailyMetrics, pendingApprovals, systemHealth, topPerformers,] = await Promise.all([
         // User statistics
         server_1.prisma.user.groupBy({
-            by: ['role', 'status'],
+            by: ["role", "status"],
             _count: { role: true },
         }),
         // Property statistics
         server_1.prisma.property.groupBy({
-            by: ['status', 'type'],
+            by: ["status", "type"],
             _count: { status: true },
         }),
         // Booking statistics
         server_1.prisma.booking.groupBy({
-            by: ['status'],
+            by: ["status"],
             _count: { status: true },
         }),
         // Revenue statistics
@@ -489,12 +783,12 @@ router.get('/admin', (0, authservice_1.requireAuth)({ role: client_1.UserRole.AD
             }),
             server_1.prisma.user.count({
                 where: {
-                    status: 'SUSPENDED',
+                    status: "SUSPENDED",
                 },
             }),
             server_1.prisma.auditLog.count({
                 where: {
-                    action: 'ERROR',
+                    action: "ERROR",
                     createdAt: { gte: today },
                 },
             }),
@@ -502,14 +796,14 @@ router.get('/admin', (0, authservice_1.requireAuth)({ role: client_1.UserRole.AD
         // Top performing properties and hosts
         Promise.all([
             server_1.prisma.booking.groupBy({
-                by: ['propertyId'],
+                by: ["propertyId"],
                 where: {
                     paymentStatus: client_1.PaymentStatus.PAID,
                     createdAt: { gte: thisMonth },
                 },
                 _sum: { total: true },
                 _count: { propertyId: true },
-                orderBy: { _sum: { total: 'desc' } },
+                orderBy: { _sum: { total: "desc" } },
                 take: 5,
             }),
             server_1.prisma.$queryRaw `
@@ -536,7 +830,7 @@ router.get('/admin', (0, authservice_1.requireAuth)({ role: client_1.UserRole.AD
     const [weeklyCancellations, suspendedUsers, todayErrors] = systemHealth;
     const [topProperties, topHosts] = topPerformers;
     // Get property details for top performers
-    const propertyIds = topProperties.map(p => p.propertyId);
+    const propertyIds = topProperties.map((p) => p.propertyId);
     const propertyDetails = await server_1.prisma.property.findMany({
         where: { id: { in: propertyIds } },
         select: {
@@ -552,8 +846,8 @@ router.get('/admin', (0, authservice_1.requireAuth)({ role: client_1.UserRole.AD
             },
         },
     });
-    const topPropertiesWithDetails = topProperties.map(prop => {
-        const details = propertyDetails.find(p => p.id === prop.propertyId);
+    const topPropertiesWithDetails = topProperties.map((prop) => {
+        const details = propertyDetails.find((p) => p.id === prop.propertyId);
         return {
             property: details,
             revenue: prop._sum.total,
@@ -562,8 +856,9 @@ router.get('/admin', (0, authservice_1.requireAuth)({ role: client_1.UserRole.AD
     });
     // Calculate growth rates
     const bookingGrowth = yesterdayBookings > 0
-        ? ((todayBookings - yesterdayBookings) / yesterdayBookings * 100).toFixed(1)
-        : '0';
+        ? (((todayBookings - yesterdayBookings) / yesterdayBookings) *
+            100).toFixed(1)
+        : "0";
     // Format user and property stats
     const userStatsByRole = userStats.reduce((acc, stat) => {
         if (!acc[stat.role])
@@ -607,7 +902,11 @@ router.get('/admin', (0, authservice_1.requireAuth)({ role: client_1.UserRole.AD
                 weeklyCancellations,
                 suspendedUsers,
                 todayErrors,
-                status: todayErrors > 10 ? 'CRITICAL' : todayErrors > 5 ? 'WARNING' : 'HEALTHY',
+                status: todayErrors > 10
+                    ? "CRITICAL"
+                    : todayErrors > 5
+                        ? "WARNING"
+                        : "HEALTHY",
             },
             topPerformers: {
                 properties: topPropertiesWithDetails,
@@ -625,11 +924,67 @@ router.get('/admin', (0, authservice_1.requireAuth)({ role: client_1.UserRole.AD
 // QUICK ACTIONS
 // ===============================
 /**
- * @route   GET /api/v1/dashboard/quick-actions
- * @desc    Get quick actions based on user role
- * @access  Protected
+ * @swagger
+ * /api/v1/dashboard/quick-actions:
+ *   get:
+ *     summary: Get quick actions based on user role
+ *     description: Retrieve personalized quick actions and shortcuts based on the authenticated user's role and current state
+ *     tags:
+ *       - Dashboard
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Quick actions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       type:
+ *                         type: string
+ *                         example: "bookings"
+ *                         description: Action type identifier
+ *                       label:
+ *                         type: string
+ *                         example: "Pending Bookings"
+ *                         description: Human-readable action label
+ *                       count:
+ *                         type: integer
+ *                         example: 3
+ *                         description: Number of items requiring attention
+ *                       priority:
+ *                         type: string
+ *                         enum: [high, medium, low]
+ *                         example: "high"
+ *                         description: Action priority level
+ *                   example:
+ *                     - type: "bookings"
+ *                       label: "Pending Bookings"
+ *                       count: 3
+ *                       priority: "high"
+ *                     - type: "checkins"
+ *                       label: "Today's Check-ins"
+ *                       count: 2
+ *                       priority: "high"
+ *                     - type: "properties"
+ *                       label: "Manage Properties"
+ *                       count: 0
+ *                       priority: "medium"
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/quick-actions', (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.get("/quick-actions", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const actions = [];
     switch (req.user.role) {
         case client_1.UserRole.CUSTOMER:
@@ -648,7 +1003,27 @@ router.get('/quick-actions', (0, authservice_1.requireAuth)(), (0, error_middlew
                     review: null,
                 },
             });
-            actions.push({ type: 'search', label: 'Search Properties', count: 0, priority: 'high' }, { type: 'bookings', label: 'My Bookings', count: upcomingBookings, priority: 'medium' }, { type: 'reviews', label: 'Write Reviews', count: pendingReviews, priority: 'low' }, { type: 'favorites', label: 'My Favorites', count: 0, priority: 'low' });
+            actions.push({
+                type: "search",
+                label: "Search Properties",
+                count: 0,
+                priority: "high",
+            }, {
+                type: "bookings",
+                label: "My Bookings",
+                count: upcomingBookings,
+                priority: "medium",
+            }, {
+                type: "reviews",
+                label: "Write Reviews",
+                count: pendingReviews,
+                priority: "low",
+            }, {
+                type: "favorites",
+                label: "My Favorites",
+                count: 0,
+                priority: "low",
+            });
             break;
         case client_1.UserRole.ADMIN:
             // Host quick actions
@@ -668,7 +1043,27 @@ router.get('/quick-actions', (0, authservice_1.requireAuth)(), (0, error_middlew
                     },
                 },
             });
-            actions.push({ type: 'bookings', label: 'Pending Bookings', count: pendingBookings, priority: 'high' }, { type: 'checkins', label: "Today's Check-ins", count: checkInsToday, priority: 'high' }, { type: 'properties', label: 'Manage Properties', count: 0, priority: 'medium' }, { type: 'earnings', label: 'View Earnings', count: 0, priority: 'medium' });
+            actions.push({
+                type: "bookings",
+                label: "Pending Bookings",
+                count: pendingBookings,
+                priority: "high",
+            }, {
+                type: "checkins",
+                label: "Today's Check-ins",
+                count: checkInsToday,
+                priority: "high",
+            }, {
+                type: "properties",
+                label: "Manage Properties",
+                count: 0,
+                priority: "medium",
+            }, {
+                type: "earnings",
+                label: "View Earnings",
+                count: 0,
+                priority: "medium",
+            });
             break;
         case client_1.UserRole.ADMIN:
             // Admin quick actions
@@ -678,7 +1073,27 @@ router.get('/quick-actions', (0, authservice_1.requireAuth)(), (0, error_middlew
                 server_1.prisma.booking.count({ where: { status: client_1.BookingStatus.PENDING } }),
             ]);
             const totalPending = pendingApprovals.reduce((sum, count) => sum + count, 0);
-            actions.push({ type: 'approvals', label: 'Pending Approvals', count: totalPending, priority: 'high' }, { type: 'users', label: 'Manage Users', count: 0, priority: 'medium' }, { type: 'analytics', label: 'View Analytics', count: 0, priority: 'medium' }, { type: 'settings', label: 'System Settings', count: 0, priority: 'low' });
+            actions.push({
+                type: "approvals",
+                label: "Pending Approvals",
+                count: totalPending,
+                priority: "high",
+            }, {
+                type: "users",
+                label: "Manage Users",
+                count: 0,
+                priority: "medium",
+            }, {
+                type: "analytics",
+                label: "View Analytics",
+                count: 0,
+                priority: "medium",
+            }, {
+                type: "settings",
+                label: "System Settings",
+                count: 0,
+                priority: "low",
+            });
             break;
     }
     res.json({

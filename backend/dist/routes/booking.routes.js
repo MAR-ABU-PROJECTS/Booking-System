@@ -11,6 +11,7 @@ const server_1 = require("../server");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
 const zod_1 = require("zod");
+const bookingservice_1 = require("../services/bookingservice");
 const router = (0, express_1.Router)();
 // Validation schemas
 const createBookingSchema = zod_1.z.object({
@@ -218,6 +219,100 @@ router.get("/", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }
     });
 }));
 /**
+ * @route   GET /api/v1/bookings/pricing
+ * @desc    Get pricing information
+ * @access  Protected
+ */
+/**
+ * @swagger
+ * /bookings/pricing:
+ *   get:
+ *     summary: Get pricing information
+ *     description: Retrieve pricing information for a specific property and dates.
+ *     tags:
+ *       - Bookings
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *       - in: query
+ *         name: checkIn
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Check-in date
+ *       - in: query
+ *         name: checkOut
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Check-out date
+ *       - in: query
+ *         name: adults
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Number of adults
+ *     responses:
+ *       200:
+ *         description: Pricing information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     propertyId:
+ *                       type: string
+ *                     checkIn:
+ *                       type: string
+ *                       format: date
+ *                     checkOut:
+ *                       type: string
+ *                       format: date
+ *                     adults:
+ *                       type: integer
+ *                     nights:
+ *                       type: integer
+ *                     baseRate:
+ *                       type: number
+ *                     cleaningFee:
+ *                       type: number
+ *                     serviceFee:
+ *                       type: number
+ *                     total:
+ *                       type: number
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/pricing", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { propertyId, checkIn, checkOut, adults, promoCode } = req.query;
+    try {
+        const pricing = await bookingservice_1.bookingService.calculatePricing(propertyId, checkIn, checkOut, Number(adults), promoCode);
+        res.json({ success: true, data: pricing });
+    }
+    catch (error) {
+        res.status(400).json({
+            success: false,
+            message: typeof error === "object" && error !== null && "message" in error ? error.message : "An error occurred",
+        });
+    }
+}));
+/**
  * @route   GET /api/v1/bookings/:id
  * @desc    Get booking details
  * @access  Protected (owner, property host, admin)
@@ -310,7 +405,7 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
  */
 /**
  * @swagger
- * /create-bookings:
+ * /bookings:
  *   post:
  *     summary: Create a new booking
  *     tags:
@@ -492,6 +587,13 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
                         },
                     },
                 },
+                customer: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    },
+                },
             },
         });
         // Create notification for property host
@@ -510,7 +612,9 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
         // Send email notifications
         await Promise.all([
             emailservice_1.emailService.sendBookingConfirmation(data.guestEmail, booking),
-            emailservice_1.emailService.sendHostBookingNotification(property.host.email, booking),
+            property.host && property.host.email
+                ? emailservice_1.emailService.sendHostBookingNotification(property.host.email, booking)
+                : Promise.resolve(),
         ]);
         (0, logger_middleware_1.auditLog)("BOOKING_CREATED", req.user.id, {
             bookingId: booking.id,

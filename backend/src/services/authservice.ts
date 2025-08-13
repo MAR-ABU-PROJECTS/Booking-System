@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { z } from "zod";
+import { emailService } from "./emailservice"; // Import email service
 
 const prisma = new PrismaClient();
 
@@ -121,7 +122,7 @@ export class AuthService {
     userData: z.infer<typeof registerSchema>,
     ipAddress?: string,
     userAgent?: string
-  ): Promise<AuthTokens> {
+  ): Promise<{ user: AuthUser; verificationToken: string }> {
     try {
       // Validate input
       const validatedData = registerSchema.parse(userData);
@@ -160,6 +161,18 @@ export class AuthService {
         },
       });
 
+      // Generate verification token
+      const verificationToken = crypto.randomBytes(32).toString("hex");
+
+      // Store token and expiry in database
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          verificationToken,
+          verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        },
+      });
+
       // Log audit
       await this.logAudit(user.id, "CREATE", "User", user.id, {
         ipAddress,
@@ -167,10 +180,7 @@ export class AuthService {
         registrationTime: new Date(),
       });
 
-      // Generate tokens
-      const tokens = await this.generateTokens(user);
-
-      return tokens;
+      return { user, verificationToken };
     } catch (error) {
       if (error instanceof z.ZodError) {
         throw new Error(
@@ -431,6 +441,9 @@ export class AuthService {
         },
       });
 
+      // Send password reset email
+      await emailService.sendPasswordResetEmail(email, resetToken);
+
       // Log audit
       await this.logAudit(user.id, "UPDATE", "User", user.id, {
         action: "Password reset requested",
@@ -656,6 +669,37 @@ export class AuthService {
       // Log error but don't throw to avoid disrupting main flow
       console.error("Failed to log audit:", error);
     }
+  }
+
+  /**
+   * Token-based email verification
+   */
+  public async verifyEmailByToken(token: string): Promise<void> {
+    const user = await prisma.user.findFirst({
+      where: {
+        verificationToken: token,
+        verificationTokenExpiry: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      throw new Error("Invalid or expired verification token");
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: new Date(),
+        status: UserStatus.ACTIVE,
+        verificationToken: null,
+        verificationTokenExpiry: null,
+      },
+    });
+
+    // Log audit if needed
+    await this.logAudit(user.id, "UPDATE", "User", user.id, {
+      action: "Email verified by token",
+    });
   }
 }
 

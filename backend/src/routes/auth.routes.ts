@@ -6,6 +6,7 @@ import { authService, requireAuth } from "../services/authservice";
 import { asyncHandler } from "../middlewares/error.middleware";
 import { AppError } from "../middlewares/error.middleware";
 import { auditLog } from "../middlewares/logger.middleware";
+import { emailService } from "../services/emailservice";
 
 const router = Router();
 
@@ -133,6 +134,12 @@ router.post(
   asyncHandler(async (req: any, res: any) => {
     const result = await authService.register(req.body);
 
+    // Send verification email
+    await emailService.sendEmailVerification(
+      result.user.email,
+      result.verificationToken
+    );
+
     auditLog(
       "USER_REGISTERED",
       result.user.id,
@@ -147,7 +154,7 @@ router.post(
       success: true,
       message:
         "Registration successful. Please check your email to verify your account.",
-      data: result,
+      data: { user: result.user },
     });
   })
 );
@@ -216,7 +223,6 @@ router.post(
  *       500:
  *         description: Server error
  */
-
 router.post(
   "/login",
   [
@@ -299,7 +305,6 @@ router.post(
  *       500:
  *         description: Server error
  */
-
 router.post(
   "/refresh",
   [body("refreshToken").notEmpty().withMessage("Refresh token required")],
@@ -370,6 +375,21 @@ router.post(
     res.json({
       success: true,
       message: "Email verified successfully",
+    });
+  })
+);
+
+router.get(
+  "/verify-email/:token",
+  asyncHandler(async (req: any, res: any) => {
+    const { token } = req.params;
+    await authService.verifyEmailByToken(token);
+
+    auditLog("EMAIL_VERIFIED", req.user?.id || "unknown", { token }, req.ip);
+
+    res.json({
+      success: true,
+      message: "Email verified successfully. You can now log in.",
     });
   })
 );
@@ -523,6 +543,26 @@ router.post(
       success: true,
       message:
         "Password reset successful. Please login with your new password.",
+    });
+  })
+);
+
+router.get(
+  "/reset-password",
+  asyncHandler(async (req: any, res: any) => {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token is required",
+      });
+    }
+    // You can render a password reset page here, or just return a message
+    res.json({
+      success: true,
+      message:
+        "Please submit your new password using the POST /auth/reset-password endpoint.",
+      token,
     });
   })
 );
@@ -839,6 +879,77 @@ router.put(
       success: true,
       message: "Password changed successfully",
     });
+  })
+);
+
+/**
+ * @route   POST /api/v1/auth/test-email
+ * @desc    Send test email
+ * @access  Public
+ */
+/**
+ * @swagger
+ * /auth/test-email:
+ *   post:
+ *     summary: Send a test email
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Test email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Test email sent successfully!
+ *       400:
+ *         description: Invalid email
+ *       500:
+ *         description: Server error
+ */
+
+router.post(
+  "/test-email",
+  asyncHandler(async (req: any, res: any) => {
+    const { email } = req.body;
+    if (!email) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
+    }
+    const success = await emailService.sendTestEmail(email, {
+      recipientName: "Test User",
+      systemName: "Booking System",
+    });
+    if (success) {
+      return res.json({
+        success: true,
+        message: "Test email sent successfully!",
+      });
+    } else {
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to send test email." });
+    }
   })
 );
 
