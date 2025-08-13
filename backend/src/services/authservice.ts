@@ -674,11 +674,18 @@ export class AuthService {
   /**
    * Token-based email verification
    */
-  public async verifyEmailByToken(token: string): Promise<void> {
+  public async verifyEmailByToken(
+    token: string
+  ): Promise<{ id: string; email: string; firstName: string } | null> {
     const user = await prisma.user.findFirst({
       where: {
         verificationToken: token,
         verificationTokenExpiry: { gt: new Date() },
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
       },
     });
 
@@ -700,6 +707,8 @@ export class AuthService {
     await this.logAudit(user.id, "UPDATE", "User", user.id, {
       action: "Email verified by token",
     });
+
+    return user;
   }
 }
 
