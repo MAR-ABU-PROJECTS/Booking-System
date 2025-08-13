@@ -536,6 +536,11 @@ class AuthService {
                 verificationToken: token,
                 verificationTokenExpiry: { gt: new Date() },
             },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+            },
         });
         if (!user) {
             throw new Error("Invalid or expired verification token");
@@ -553,6 +558,7 @@ class AuthService {
         await this.logAudit(user.id, "UPDATE", "User", user.id, {
             action: "Email verified by token",
         });
+        return user;
     }
 }
 exports.AuthService = AuthService;

@@ -321,8 +321,13 @@ router.post("/verify-email", (0, authservice_1.requireAuth)({ allowPending: true
 }));
 router.get("/verify-email/:token", (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { token } = req.params;
-    await authservice_1.authService.verifyEmailByToken(token);
-    (0, logger_middleware_1.auditLog)("EMAIL_VERIFIED", req.user?.id || "unknown", { token }, req.ip);
+    // Verify the email and get the user object
+    const user = await authservice_1.authService.verifyEmailByToken(token);
+    (0, logger_middleware_1.auditLog)("EMAIL_VERIFIED", user?.id || "unknown", { token }, req.ip);
+    // Send welcome email if user exists and verification succeeded
+    if (user && user.email && user.firstName) {
+        await emailservice_1.emailService.sendWelcomeEmail(user.email, user.firstName);
+    }
     res.json({
         success: true,
         message: "Email verified successfully. You can now log in.",

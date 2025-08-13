@@ -383,9 +383,15 @@ router.get(
   "/verify-email/:token",
   asyncHandler(async (req: any, res: any) => {
     const { token } = req.params;
-    await authService.verifyEmailByToken(token);
+    // Verify the email and get the user object
+    const user: { id?: string; email?: string; firstName?: string } | null = await authService.verifyEmailByToken(token);
 
-    auditLog("EMAIL_VERIFIED", req.user?.id || "unknown", { token }, req.ip);
+    auditLog("EMAIL_VERIFIED", user?.id || "unknown", { token }, req.ip);
+
+    // Send welcome email if user exists and verification succeeded
+    if (user && user.email && user.firstName) {
+      await emailService.sendWelcomeEmail(user.email, user.firstName);
+    }
 
     res.json({
       success: true,
