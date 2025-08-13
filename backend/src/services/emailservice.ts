@@ -34,29 +34,14 @@ export class EmailService {
   }
 
   constructor() {
-    this.driver =
-      (process.env.EMAIL_DRIVER as EmailDriver) ||
-      (process.env.NODE_ENV === "production" ? "resend" : "mailhog");
+    this.driver = "mailhog"; // Force MailHog for all environments
 
-    if (this.driver === "resend") {
-      if (!process.env.RESEND_API_KEY) {
-        logger.warn("RESEND_API_KEY missing. Falling back to MailHog.");
-        this.driver = "mailhog";
-      } else {
-        this.resend = new Resend(process.env.RESEND_API_KEY);
-        logger.info("Resend client initialized");
-      }
-    }
-
-    if (this.driver === "mailhog") {
-      this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || "127.0.0.1",
-        port: Number(process.env.SMTP_PORT || 1025),
-        secure: false,
-      });
-      logger.info("MailHog SMTP transporter initialized");
-    }
-
+    this.transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || "127.0.0.1",
+      port: Number(process.env.SMTP_PORT || 1025),
+      secure: false,
+    });
+    logger.info("MailHog SMTP transporter initialized");
     logger.info(`Email driver active: ${this.driver}`);
   }
 
