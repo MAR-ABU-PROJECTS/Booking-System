@@ -75,7 +75,7 @@ app.use(
       "http://localhost:3000",
       "http://localhost:3001",
       "http://localhost:5050",
-      "https://backend-gora.onrender.com",
+      "https://booking-system-n26e.onrender.com",
       process.env.FRONTEND_URL,
       process.env.ADMIN_URL,
     ].filter(

@@ -22,7 +22,7 @@ const options = {
                 description: "Development server (Local)",
             },
             {
-                url: "https://backend-gora.onrender.com/api/v1",
+                url: "https://booking-system-n26e.onrender.com/api/v1",
                 description: "Production server (Render)",
             },
         ],
