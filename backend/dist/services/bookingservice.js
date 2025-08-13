@@ -77,7 +77,7 @@ class BookingService {
     /**
      * Calculate booking pricing
      */
-    async calculatePricing(propertyId, checkIn, checkOut, adults = 1) {
+    async calculatePricing(propertyId, checkIn, checkOut, adults = 1, promoCode) {
         const checkInDate = new Date(checkIn);
         const checkOutDate = new Date(checkOut);
         // Validate dates
@@ -145,7 +145,11 @@ class BookingService {
         const serviceFeeRate = property.serviceFee || 0.05;
         const serviceFee = Math.round((baseAmount + cleaningFee) * serviceFeeRate);
         const taxes = 0; // Add tax calculation if needed
-        const discounts = 0; // Add discount calculation if needed
+        let discounts = 0; // Add discount calculation if needed
+        if (promoCode) {
+            // Lookup promo code and apply discount
+            discounts = 0;
+        }
         const totalAmount = baseAmount + cleaningFee + serviceFee + taxes - discounts;
         return {
             baseAmount: Math.round(baseAmount),

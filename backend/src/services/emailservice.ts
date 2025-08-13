@@ -1,10 +1,8 @@
-// MAR ABU PROJECTS SERVICES LLC - Email Service (Extended)
-// import nodemailer from 'nodemailer'
+// MAR ABU PROJECTS SERVICES LLC - Email Service (Dual Driver: MailHog | Resend)
+import nodemailer from "nodemailer";
 import { Resend } from "resend";
 import { logger } from "../middlewares/logger.middleware";
 import { APP_CONSTANTS } from "../utils/constants";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface EmailAttachment {
   filename: string;
@@ -16,145 +14,141 @@ interface EmailOptions {
   html: string;
   attachments?: EmailAttachment[];
 }
+type EmailDriver = "mailhog" | "resend";
 
 export class EmailService {
-  constructor() {
-    logger.info("Resend Email service ready");
+  private driver: EmailDriver;
+  private resend?: Resend;
+  private transporter?: nodemailer.Transporter;
+
+  // Safely get property object or fallback
+  private safeBookingProperty(property: any): any {
+    return property && typeof property === "object"
+      ? property
+      : {
+          name: "Property",
+          address: "N/A",
+          city: "N/A",
+          host: { firstName: "Host", lastName: "", phone: "" },
+        };
   }
 
-  /**
-   * Send email
-   */
+  constructor() {
+    this.driver =
+      (process.env.EMAIL_DRIVER as EmailDriver) ||
+      (process.env.NODE_ENV === "production" ? "resend" : "mailhog");
+
+    if (this.driver === "resend") {
+      if (!process.env.RESEND_API_KEY) {
+        logger.warn("RESEND_API_KEY missing. Falling back to MailHog.");
+        this.driver = "mailhog";
+      } else {
+        this.resend = new Resend(process.env.RESEND_API_KEY);
+        logger.info("Resend client initialized");
+      }
+    }
+
+    if (this.driver === "mailhog") {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || "127.0.0.1",
+        port: Number(process.env.SMTP_PORT || 1025),
+        secure: false,
+      });
+      logger.info("MailHog SMTP transporter initialized");
+    }
+
+    logger.info(`Email driver active: ${this.driver}`);
+  }
+
+  private buildFrom(): string {
+    const fromEmail = process.env.EMAIL_FROM || "no-reply@local.test";
+    return `"${APP_CONSTANTS.COMPANY.NAME}" <${fromEmail}>`;
+  }
+
+  private getBackendBaseUrl(): string {
+    return (process.env.BACKEND_URL || "http://localhost:5050").replace(
+      /\/$/,
+      ""
+    );
+  }
+
+  private url(path: string): string {
+    return `${this.getBackendBaseUrl()}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+
+  private apiUrl(path: string): string {
+    const prefix = process.env.API_PREFIX || "/api/v1";
+    const clean = path.startsWith("/") ? path : `/${path}`;
+    return `${this.getBackendBaseUrl()}${prefix}${clean}`;
+  }
+
   async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
-      const response = await resend.emails.send({
-        from: `"${APP_CONSTANTS.COMPANY.NAME}" <${process.env.EMAIL_FROM}>`,
+      if (this.driver === "mailhog") {
+        if (!this.transporter) throw new Error("SMTP transporter not ready");
+        await this.transporter.sendMail({
+          from: this.buildFrom(),
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          attachments: options.attachments?.map((a) => ({
+            filename: a.filename,
+            content: a.content,
+          })),
+        });
+        logger.info("Email sent (MailHog)", { to: options.to });
+        return true;
+      }
+
+      if (!this.resend) throw new Error("Resend client not initialized");
+      const response = await this.resend.emails.send({
+        from: this.buildFrom(),
         to: options.to,
         subject: options.subject,
         html: options.html,
-        attachments: options.attachments?.map((att) => {
-          if (!att.content) {
-            throw new Error(
-              `Attachment content is missing for file: ${att.filename}`
-            );
-          }
-
-          return {
-            filename: att.filename,
-            content: Buffer.isBuffer(att.content)
-              ? att.content.toString("base64")
-              : Buffer.from(att.content).toString("base64"),
-          };
-        }),
+        attachments: options.attachments?.map((att) => ({
+          filename: att.filename,
+          content: Buffer.isBuffer(att.content)
+            ? att.content.toString("base64")
+            : Buffer.from(att.content).toString("base64"),
+        })),
       });
-
-      logger.info("Email sent successfully", {
+      logger.info("Email sent (Resend)", {
         to: options.to,
-        messageId: response?.data?.id,
+        id: response?.data?.id,
       });
-
       return true;
-    } catch (error) {
-      logger.error("Failed to send email", { error, to: options.to });
+    } catch (err: any) {
+      logger.error("Email send failed", {
+        driver: this.driver,
+        to: options.to,
+        error: err?.message,
+      });
       return false;
     }
   }
 
-  /**
-   * Get base email template
-   */
   private getBaseTemplate(content: string): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${APP_CONSTANTS.COMPANY.NAME}</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .header {
-            background-color: ${APP_CONSTANTS.COLORS.PRIMARY};
-            color: white;
-            padding: 20px;
-            text-align: center;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-          }
-          .content {
-            padding: 30px;
-          }
-          .button {
-            display: inline-block;
-            padding: 12px 30px;
-            background-color: ${APP_CONSTANTS.COLORS.PRIMARY};
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 20px 0;
-          }
-          .footer {
-            background-color: ${APP_CONSTANTS.COLORS.SECONDARY};
-            color: white;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-          }
-          .info-box {
-            background-color: #f9f9f9;
-            border-left: 4px solid ${APP_CONSTANTS.COLORS.PRIMARY};
-            padding: 15px;
-            margin: 20px 0;
-          }
-          .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-          }
-          .detail-label {
-            font-weight: bold;
-            color: #666;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>${APP_CONSTANTS.COMPANY.NAME}</h1>
-          </div>
-          <div class="content">
-            ${content}
-          </div>
-          <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} ${APP_CONSTANTS.COMPANY.NAME}. All rights reserved.</p>
-            <p>
-              <a href="mailto:${APP_CONSTANTS.COMPANY.SUPPORT_EMAIL}" style="color: white;">
-                ${APP_CONSTANTS.COMPANY.SUPPORT_EMAIL}
-              </a>
-            </p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${APP_CONSTANTS.COMPANY.NAME}</title>
+<style>
+body{font-family:Arial,sans-serif;line-height:1.6;color:#333;background:#f4f4f4;margin:0;padding:0;}
+.container{max-width:600px;margin:20px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.1);}
+.header{background:${APP_CONSTANTS.COLORS.PRIMARY};color:#fff;padding:20px;text-align:center;}
+.content{padding:30px;}
+.button{display:inline-block;padding:12px 30px;background:${APP_CONSTANTS.COLORS.PRIMARY};color:#fff;text-decoration:none;border-radius:5px;margin:20px 0;}
+.footer{background:${APP_CONSTANTS.COLORS.SECONDARY};color:#fff;padding:20px;text-align:center;font-size:14px;}
+.info-box{background:#f9f9f9;border-left:4px solid ${APP_CONSTANTS.COLORS.PRIMARY};padding:15px;margin:20px 0;}
+.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;}
+.detail-label{font-weight:bold;color:#666;}
+a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
+</style></head><body>
+<div class="container">
+<div class="header"><h1>${APP_CONSTANTS.COMPANY.NAME}</h1></div>
+<div class="content">${content}</div>
+<div class="footer">
+<p>&copy; ${new Date().getFullYear()} ${APP_CONSTANTS.COMPANY.NAME}. All rights reserved.</p>
+<p><a href="mailto:${APP_CONSTANTS.COMPANY.SUPPORT_EMAIL}" style="color:#fff;">${APP_CONSTANTS.COMPANY.SUPPORT_EMAIL}</a></p>
+</div></div></body></html>`;
   }
 
   /**
@@ -170,7 +164,7 @@ export class EmailService {
         <li>Browse available properties for your next stay</li>
         <li>List your property if you're a host</li>
       </ul>
-      <a href="${process.env.APP_URL}/dashboard" class="button">Go to Dashboard</a>
+      <a href="${this.url("/dashboard")}" class="button">Go to Dashboard</a>
       <p>If you have any questions, don't hesitate to reach out to our support team.</p>
     `;
 
@@ -185,40 +179,23 @@ export class EmailService {
    * Send booking confirmation email
    */
   async sendBookingConfirmation(email: string, booking: any): Promise<boolean> {
+    const property = this.safeBookingProperty(booking.property);
     const content = `
       <h2>Booking Confirmation</h2>
       <p>Your booking has been confirmed!</p>
-      
       <div class="info-box">
         <h3>Booking Details</h3>
-        <div class="detail-row">
-          <span class="detail-label">Booking Code:</span>
-          <span>${booking.bookingCode}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Property:</span>
-          <span>${booking.property.name}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Check-in:</span>
-          <span>${new Date(booking.checkInDate).toLocaleDateString()}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Check-out:</span>
-          <span>${new Date(booking.checkOutDate).toLocaleDateString()}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Total Amount:</span>
-          <span>${booking.currency} ${booking.total.toLocaleString()}</span>
-        </div>
+        <div class="detail-row"><span class="detail-label">Booking Code:</span><span>${booking.bookingCode || "N/A"}</span></div>
+        <div class="detail-row"><span class="detail-label">Property:</span><span>${property.name}</span></div>
+        <div class="detail-row"><span class="detail-label">Check-in:</span><span>${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</span></div>
+        <div class="detail-row"><span class="detail-label">Check-out:</span><span>${booking.checkOutDate ? new Date(booking.checkOutDate).toLocaleDateString() : "N/A"}</span></div>
+        <div class="detail-row"><span class="detail-label">Total Amount:</span><span>${booking.currency || "NGN"} ${(booking.total || 0).toLocaleString()}</span></div>
       </div>
-      
-      <a href="${process.env.APP_URL}/bookings/${booking.id}" class="button">View Booking</a>
+      <a href="${this.url(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">View Booking</a>
     `;
-
     return this.sendEmail({
       to: email,
-      subject: `Booking Confirmed - ${booking.bookingCode}`,
+      subject: `Booking Confirmed - ${booking.bookingCode || "Booking"}`,
       html: this.getBaseTemplate(content),
     });
   }
@@ -230,16 +207,13 @@ export class EmailService {
     email: string,
     resetToken: string
   ): Promise<boolean> {
-    const resetUrl = `${process.env.APP_URL}/reset-password?token=${resetToken}`;
+    const resetUrl = `${this.getBackendBaseUrl()}/auth/reset-password?token=${resetToken}`;
 
     const content = `
       <h2>Password Reset Request</h2>
-      <p>You requested to reset your password. Click the button below to create a new password:</p>
-      
+      <p>You requested to reset your password. Click below:</p>
       <a href="${resetUrl}" class="button">Reset Password</a>
-      
-      <p>This link will expire in 1 hour for security reasons.</p>
-      <p>If you didn't request this, please ignore this email.</p>
+      <p>This link will expire in 1 hour.</p>
     `;
 
     return this.sendEmail({
@@ -256,14 +230,13 @@ export class EmailService {
     email: string,
     verificationToken: string
   ): Promise<boolean> {
-    const verifyUrl = `${process.env.APP_URL}/verify-email?token=${verificationToken}`;
+    // Use backend API route for verification
+    const verifyUrl = this.apiUrl(`/auth/verify-email/${verificationToken}`);
 
     const content = `
       <h2>Verify Your Email Address</h2>
       <p>Please click the button below to verify your email address:</p>
-      
       <a href="${verifyUrl}" class="button">Verify Email</a>
-      
       <p>This link will expire in 24 hours.</p>
     `;
 
@@ -284,15 +257,12 @@ export class EmailService {
     const content = `
       <h2>Payment Receipt Uploaded</h2>
       <p>A payment receipt has been uploaded for booking ${booking.bookingCode}.</p>
-      
       <div class="info-box">
         <p><strong>Property:</strong> ${booking.property.name}</p>
         <p><strong>Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
       </div>
-      
       <p>Our team will verify the receipt within 24 hours.</p>
-      
-      <a href="${process.env.APP_URL}/bookings/${booking.id}" class="button">View Booking</a>
+      <a href="${this.url(`/bookings/${booking.id}`)}" class="button">View Booking</a>
     `;
 
     return this.sendEmail({
@@ -311,17 +281,14 @@ export class EmailService {
   ): Promise<boolean> {
     const content = `
       <h2>Payment Verified</h2>
-      <p>Great news! Your payment for booking ${booking.bookingCode} has been verified.</p>
-      
+      <p>Your payment for booking ${booking.bookingCode} has been verified.</p>
       <div class="info-box">
         <p><strong>Property:</strong> ${booking.property.name}</p>
         <p><strong>Check-in:</strong> ${new Date(booking.checkInDate).toLocaleDateString()}</p>
         <p><strong>Check-out:</strong> ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
       </div>
-      
       <p>You're all set for your stay!</p>
-      
-      <a href="${process.env.APP_URL}/bookings/${booking.id}" class="button">View Booking Details</a>
+      <a href="${this.url(`/bookings/${booking.id}`)}" class="button">View Booking Details</a>
     `;
 
     return this.sendEmail({
@@ -340,20 +307,16 @@ export class EmailService {
   ): Promise<boolean> {
     const content = `
       <h2>Booking Approved!</h2>
-      <p>Good news! Your booking request has been approved by the host.</p>
-      
+      <p>Your booking request has been approved.</p>
       <div class="info-box">
-        <h3>Booking Details</h3>
         <p><strong>Booking Code:</strong> ${booking.bookingCode}</p>
         <p><strong>Property:</strong> ${booking.property.name}</p>
         <p><strong>Check-in:</strong> ${new Date(booking.checkInDate).toLocaleDateString()}</p>
         <p><strong>Check-out:</strong> ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
         <p><strong>Total Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
       </div>
-      
       <p>Please complete your payment within 24 hours to secure your booking.</p>
-      
-      <a href="${process.env.APP_URL}/bookings/${booking.id}/payment" class="button">Make Payment</a>
+      <a href="${this.url(`/bookings/${booking.id}/payment`)}" class="button">Make Payment</a>
     `;
 
     return this.sendEmail({
@@ -371,32 +334,26 @@ export class EmailService {
     booking: any,
     reason?: string
   ): Promise<boolean> {
+    const property = this.safeBookingProperty(booking.property);
     const content = `
       <h2>Booking Cancelled</h2>
-      <p>Your booking ${booking.bookingCode} has been cancelled.</p>
-      
+      <p>Your booking ${booking.bookingCode || ""} has been cancelled.</p>
       <div class="info-box">
-        <p><strong>Property:</strong> ${booking.property.name}</p>
-        <p><strong>Original Dates:</strong> ${new Date(booking.checkInDate).toLocaleDateString()} - ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
+        <p><strong>Property:</strong> ${property.name}</p>
+        <p><strong>Original Dates:</strong> ${
+          booking.checkInDate && booking.checkOutDate
+            ? `${new Date(booking.checkInDate).toLocaleDateString()} - ${new Date(booking.checkOutDate).toLocaleDateString()}`
+            : "N/A"
+        }</p>
         ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
       </div>
-      
-      ${
-        booking.refundAmount
-          ? `
-        <p>A refund of ${booking.currency} ${booking.refundAmount.toLocaleString()} will be processed within 5-7 business days.</p>
-      `
-          : ""
-      }
-      
+      ${booking.refundAmount ? `<p>A refund of ${booking.currency || "NGN"} ${(booking.refundAmount || 0).toLocaleString()} will be processed within 5-7 business days.</p>` : ""}
       <p>If you have any questions, please contact our support team.</p>
-      
-      <a href="${process.env.APP_URL}/support" class="button">Contact Support</a>
+      <a href="${this.url("/support")}" class="button">Contact Support</a>
     `;
-
     return this.sendEmail({
       to: email,
-      subject: `Booking Cancelled - ${booking.bookingCode}`,
+      subject: `Booking Cancelled - ${booking.bookingCode || "Booking"}`,
       html: this.getBaseTemplate(content),
     });
   }
@@ -411,17 +368,14 @@ export class EmailService {
     const content = `
       <h2>Property Approved!</h2>
       <p>Congratulations! Your property listing has been approved.</p>
-      
       <div class="info-box">
         <h3>Property Details</h3>
         <p><strong>Name:</strong> ${property.name}</p>
         <p><strong>Location:</strong> ${property.city}, ${property.state}</p>
         <p><strong>Type:</strong> ${property.type}</p>
       </div>
-      
       <p>Your property is now live and available for bookings!</p>
-      
-      <a href="${process.env.APP_URL}/properties/${property.id}" class="button">View Property</a>
+      <a href="${this.url(`/properties/${property.id}`)}" class="button">View Property</a>
     `;
 
     return this.sendEmail({
@@ -441,17 +395,14 @@ export class EmailService {
   ): Promise<boolean> {
     const content = `
       <h2>Property Listing Update</h2>
-      <p>Unfortunately, your property listing has not been approved at this time.</p>
-      
+      <p>Your property listing has not been approved at this time.</p>
       <div class="info-box">
         <h3>Property Details</h3>
         <p><strong>Name:</strong> ${property.name}</p>
         <p><strong>Reason:</strong> ${reason}</p>
       </div>
-      
       <p>Please address the issues mentioned and resubmit your property for review.</p>
-      
-      <a href="${process.env.APP_URL}/properties/${property.id}/edit" class="button">Edit Property</a>
+      <a href="${this.url(`/properties/${property.id}/edit`)}" class="button">Edit Property</a>
     `;
 
     return this.sendEmail({
@@ -468,17 +419,12 @@ export class EmailService {
     const content = `
       <h2>How was your stay?</h2>
       <p>We hope you enjoyed your stay at ${booking.property.name}!</p>
-      
-      <p>Your feedback helps other travelers make informed decisions and helps hosts improve their services.</p>
-      
+      <p>Your feedback helps other travelers and helps hosts improve.</p>
       <div class="info-box">
         <p><strong>Property:</strong> ${booking.property.name}</p>
         <p><strong>Stay Dates:</strong> ${new Date(booking.checkInDate).toLocaleDateString()} - ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
       </div>
-      
-      <p>Please take a moment to share your experience.</p>
-      
-      <a href="${process.env.APP_URL}/bookings/${booking.id}/review" class="button">Write a Review</a>
+      <a href="${this.url(`/bookings/${booking.id}/review`)}" class="button">Write a Review</a>
     `;
 
     return this.sendEmail({
@@ -494,16 +440,13 @@ export class EmailService {
   async sendPasswordChangeNotification(email: string): Promise<boolean> {
     const content = `
       <h2>Password Changed Successfully</h2>
-      <p>Your password has been changed successfully.</p>
-      
+      <p>Your password has been changed.</p>
       <div class="info-box">
         <p><strong>Changed at:</strong> ${new Date().toLocaleString()}</p>
         <p><strong>IP Address:</strong> ${process.env.NODE_ENV === "production" ? "Hidden for security" : "Local development"}</p>
       </div>
-      
-      <p>If you didn't make this change, please contact our support team immediately.</p>
-      
-      <a href="${process.env.APP_URL}/support" class="button">Contact Support</a>
+      <p>If this wasn't you, contact support immediately.</p>
+      <a href="${this.url("/support")}" class="button">Contact Support</a>
     `;
 
     return this.sendEmail({
@@ -523,16 +466,12 @@ export class EmailService {
     const content = `
       <h2>Account Deleted</h2>
       <p>Dear ${name},</p>
-      
-      <p>Your account has been successfully deleted as requested.</p>
-      
+      <p>Your account has been deleted as requested.</p>
       <div class="info-box">
-        <p>We're sorry to see you go. Your data will be permanently removed from our systems within 30 days.</p>
-        <p>If this was a mistake or you change your mind, please contact our support team within the next 7 days.</p>
+        <p>Your data will be permanently removed within 30 days.</p>
+        <p>If this was a mistake, contact support within 7 days.</p>
       </div>
-      
       <p>Thank you for being part of ${APP_CONSTANTS.COMPANY.NAME}.</p>
-      
       <a href="mailto:${APP_CONSTANTS.COMPANY.SUPPORT_EMAIL}" class="button">Contact Support</a>
     `;
 
@@ -550,28 +489,27 @@ export class EmailService {
     email: string,
     booking: any
   ): Promise<boolean> {
+    const property = this.safeBookingProperty(booking.property);
+    const guestName = booking.customer?.firstName
+      ? `${booking.customer.firstName} ${booking.customer.lastName || ""}`
+      : booking.guestName || "Guest";
     const content = `
       <h2>New Booking Request</h2>
-      <p>You have a new booking request for your property!</p>
-      
+      <p>You have a new booking request.</p>
       <div class="info-box">
-        <h3>Booking Details</h3>
-        <p><strong>Property:</strong> ${booking.property.name}</p>
-        <p><strong>Guest:</strong> ${booking.customer.firstName} ${booking.customer.lastName}</p>
-        <p><strong>Check-in:</strong> ${new Date(booking.checkInDate).toLocaleDateString()}</p>
-        <p><strong>Check-out:</strong> ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
-        <p><strong>Guests:</strong> ${booking.adults} adults${booking.children ? `, ${booking.children} children` : ""}</p>
-        <p><strong>Total Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
+        <p><strong>Property:</strong> ${property.name}</p>
+        <p><strong>Guest:</strong> ${guestName}</p>
+        <p><strong>Check-in:</strong> ${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</p>
+        <p><strong>Check-out:</strong> ${booking.checkOutDate ? new Date(booking.checkOutDate).toLocaleDateString() : "N/A"}</p>
+        <p><strong>Guests:</strong> ${booking.adults || 0} adults${booking.children ? `, ${booking.children} children` : ""}</p>
+        <p><strong>Total Amount:</strong> ${booking.currency || "NGN"} ${(booking.total || 0).toLocaleString()}</p>
       </div>
-      
-      <p>Please review and respond to this booking request within 24 hours.</p>
-      
-      <a href="${process.env.APP_URL}/host/bookings/${booking.id}" class="button">Review Booking</a>
+      <p>Please review and respond within 24 hours.</p>
+      <a href="${this.url(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">Review Booking</a>
     `;
-
     return this.sendEmail({
       to: email,
-      subject: `New Booking Request - ${booking.property.name}`,
+      subject: `New Booking Request - ${property.name}`,
       html: this.getBaseTemplate(content),
     });
   }
@@ -585,17 +523,13 @@ export class EmailService {
   ): Promise<boolean> {
     const content = `
       <h2>Payment Reminder</h2>
-      <p>This is a friendly reminder that your payment for booking ${booking.bookingCode} is pending.</p>
-      
+      <p>Your payment for booking ${booking.bookingCode} is pending.</p>
       <div class="info-box">
         <p><strong>Property:</strong> ${booking.property.name}</p>
         <p><strong>Amount Due:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
-        <p><strong>Payment Deadline:</strong> ${new Date(booking.approvedAt).getTime() + 24 * 60 * 60 * 1000}</p>
       </div>
-      
-      <p>Please complete your payment soon to secure your booking.</p>
-      
-      <a href="${process.env.APP_URL}/bookings/${booking.id}/payment" class="button">Make Payment</a>
+      <p>Please complete payment soon.</p>
+      <a href="${this.url(`/bookings/${booking.id}/payment`)}" class="button">Make Payment</a>
     `;
 
     return this.sendEmail({
@@ -612,31 +546,25 @@ export class EmailService {
     email: string,
     booking: any
   ): Promise<boolean> {
+    const property = this.safeBookingProperty(booking.property);
     const content = `
       <h2>Check-in Reminder</h2>
-      <p>Your check-in at ${booking.property.name} is tomorrow!</p>
-      
+      <p>Your check-in at ${property.name} is tomorrow.</p>
       <div class="info-box">
-        <h3>Check-in Details</h3>
-        <p><strong>Date:</strong> ${new Date(booking.checkInDate).toLocaleDateString()}</p>
+        <p><strong>Date:</strong> ${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</p>
         <p><strong>Time:</strong> After ${APP_CONSTANTS.BOOKING.CHECKIN_TIME}</p>
-        <p><strong>Address:</strong> ${booking.property.address}, ${booking.property.city}</p>
+        <p><strong>Address:</strong> ${property.address}, ${property.city}</p>
       </div>
-      
       <div class="info-box">
-        <h3>Host Contact</h3>
-        <p><strong>Name:</strong> ${booking.property.host.firstName} ${booking.property.host.lastName}</p>
-        <p><strong>Phone:</strong> ${booking.property.host.phone || "Available in app"}</p>
+        <p><strong>Host:</strong> ${property.host.firstName} ${property.host.lastName}</p>
+        <p><strong>Phone:</strong> ${property.host.phone || "Available in app"}</p>
       </div>
-      
       <p>Have a wonderful stay!</p>
-      
-      <a href="${process.env.APP_URL}/bookings/${booking.id}" class="button">View Booking Details</a>
+      <a href="${this.url(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">View Booking Details</a>
     `;
-
     return this.sendEmail({
       to: email,
-      subject: `Check-in Tomorrow - ${booking.property.name}`,
+      subject: `Check-in Tomorrow - ${property.name}`,
       html: this.getBaseTemplate(content),
     });
   }
@@ -654,45 +582,20 @@ export class EmailService {
     }
   ): Promise<boolean> {
     const content = `
-    <h2>Review Update - ${data.propertyName}</h2>
-    <p>Dear ${data.customerName},</p>
-    
-    <div class="info-box">
-      <p>Your review for <strong>${data.propertyName}</strong> has been 
-      <strong>${data.approved ? "approved" : "rejected"}</strong>.</p>
-      
+      <h2>Review Update - ${data.propertyName}</h2>
+      <p>Dear ${data.customerName},</p>
+      <div class="info-box">
+        <p>Your review for <strong>${data.propertyName}</strong> has been <strong>${data.approved ? "approved" : "rejected"}</strong>.</p>
+        ${data.adminNotes && !data.approved ? `<p><strong>Admin Notes:</strong> ${data.adminNotes}</p>` : ""}
+        <p>${data.approved ? "Your review is now publicly visible." : "Please consider submitting a revised review."}</p>
+      </div>
       ${
-        data.adminNotes && !data.approved
-          ? `
-        <p><strong>Admin Notes:</strong> ${data.adminNotes}</p>
-      `
-          : ""
-      }
-      
-      <p>${
         data.approved
-          ? "Your review is now publicly visible on the property page."
-          : "Please review the comments above and consider submitting a revised review."
+          ? `<a href="${this.url(`/properties/${data.propertyName}`)}" class="button">View Property</a>`
+          : `<a href="${this.url("/support")}" class="button">Contact Support</a>`
       }
-      </p>
-    </div>
-    
-    ${
-      data.approved
-        ? `
-      <a href="${process.env.APP_URL}/properties/${data.propertyName}" class="button">
-        View Property
-      </a>
-    `
-        : `
-      <a href="${process.env.APP_URL}/support" class="button">
-        Contact Support
-      </a>
-    `
-    }
-    
-    <p>Thank you for sharing your feedback with the ${APP_CONSTANTS.COMPANY.NAME} community.</p>
-  `;
+      <p>Thank you for sharing your feedback with the ${APP_CONSTANTS.COMPANY.NAME} community.</p>
+    `;
 
     return this.sendEmail({
       to: email,
@@ -717,13 +620,13 @@ export class EmailService {
     const content = `
       <h2>Payment Confirmed</h2>
       <p>Dear ${data.customerName},</p>
-      <p>Your payment for booking <strong>${data.bookingCode}</strong> at <strong>${data.propertyName}</strong> has been received and confirmed.</p>
+      <p>Your payment for booking <strong>${data.bookingCode}</strong> at <strong>${data.propertyName}</strong> has been received.</p>
       <div class="info-box">
         <p><strong>Amount Paid:</strong> ${data.amount.toLocaleString()}</p>
         <p><strong>Payment Reference:</strong> ${data.paymentReference}</p>
       </div>
-      <p>Thank you for your payment. We look forward to hosting you!</p>
-      <a href="${process.env.APP_URL}/bookings/${data.bookingCode}" class="button">View Booking</a>
+      <p>Thank you. We look forward to hosting you!</p>
+      <a href="${this.url(`/bookings/${data.bookingCode}`)}" class="button">View Booking</a>
     `;
 
     return this.sendEmail({
@@ -749,13 +652,13 @@ export class EmailService {
     const content = `
       <h2>Payment Received</h2>
       <p>Dear ${data.hostName},</p>
-      <p>A payment has been received for booking <strong>${data.bookingCode}</strong> at <strong>${data.propertyName}</strong>.</p>
+      <p>A payment has been received for booking <strong>${data.bookingCode}</strong>.</p>
       <div class="info-box">
         <p><strong>Guest:</strong> ${data.customerName}</p>
         <p><strong>Amount Paid:</strong> ${data.amount.toLocaleString()}</p>
       </div>
-      <p>You can view the booking details in your dashboard.</p>
-      <a href="${process.env.APP_URL}/host/bookings/${data.bookingCode}" class="button">View Booking</a>
+      <p>View the booking details in your dashboard.</p>
+      <a href="${this.url(`/bookings/${data.bookingCode}`)}" class="button">View Booking</a>
     `;
 
     return this.sendEmail({
@@ -791,5 +694,4 @@ export class EmailService {
   }
 }
 
-// Export singleton instance
 export const emailService = new EmailService();

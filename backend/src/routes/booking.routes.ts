@@ -9,6 +9,7 @@ import { prisma } from "../server";
 import { auditLog } from "../middlewares/logger.middleware";
 import { emailService } from "../services/emailservice";
 import { z } from "zod";
+import { bookingService } from "../services/bookingservice";
 
 const router = Router();
 
@@ -243,6 +244,110 @@ router.get(
 );
 
 /**
+ * @route   GET /api/v1/bookings/pricing
+ * @desc    Get pricing information
+ * @access  Protected
+ */
+/**
+ * @swagger
+ * /bookings/pricing:
+ *   get:
+ *     summary: Get pricing information
+ *     description: Retrieve pricing information for a specific property and dates.
+ *     tags:
+ *       - Bookings
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *       - in: query
+ *         name: checkIn
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Check-in date
+ *       - in: query
+ *         name: checkOut
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Check-out date
+ *       - in: query
+ *         name: adults
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Number of adults
+ *     responses:
+ *       200:
+ *         description: Pricing information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     propertyId:
+ *                       type: string
+ *                     checkIn:
+ *                       type: string
+ *                       format: date
+ *                     checkOut:
+ *                       type: string
+ *                       format: date
+ *                     adults:
+ *                       type: integer
+ *                     nights:
+ *                       type: integer
+ *                     baseRate:
+ *                       type: number
+ *                     cleaningFee:
+ *                       type: number
+ *                     serviceFee:
+ *                       type: number
+ *                     total:
+ *                       type: number
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/pricing",
+  requireAuth(),
+  asyncHandler(async (req: any, res: any) => {
+    const { propertyId, checkIn, checkOut, adults, promoCode } = req.query;
+    try {
+      const pricing = await bookingService.calculatePricing(
+        propertyId,
+        checkIn,
+        checkOut,
+        Number(adults),
+        promoCode
+      );
+      res.json({ success: true, data: pricing });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: typeof error === "object" && error !== null && "message" in error ? (error as any).message : "An error occurred",
+      });
+    }
+  })
+);
+
+/**
  * @route   GET /api/v1/bookings/:id
  * @desc    Get booking details
  * @access  Protected (owner, property host, admin)
@@ -345,7 +450,7 @@ router.get(
  */
 /**
  * @swagger
- * /create-bookings:
+ * /bookings:
  *   post:
  *     summary: Create a new booking
  *     tags:
@@ -545,6 +650,13 @@ router.post(
               },
             },
           },
+          customer: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
         },
       });
 
@@ -565,7 +677,12 @@ router.post(
       // Send email notifications
       await Promise.all([
         emailService.sendBookingConfirmation(data.guestEmail, booking),
-        emailService.sendHostBookingNotification(property.host.email, booking),
+        property.host && property.host.email
+          ? emailService.sendHostBookingNotification(
+              property.host.email,
+              booking
+            )
+          : Promise.resolve(),
       ]);
 
       auditLog(

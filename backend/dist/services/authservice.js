@@ -12,6 +12,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const zod_1 = require("zod");
+const emailservice_1 = require("./emailservice"); // Import email service
 const prisma = new client_1.PrismaClient();
 // ===============================
 // VALIDATION SCHEMAS
@@ -110,15 +111,23 @@ class AuthService {
                     emailVerified: true,
                 },
             });
+            // Generate verification token
+            const verificationToken = crypto_1.default.randomBytes(32).toString("hex");
+            // Store token and expiry in database
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    verificationToken,
+                    verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+                },
+            });
             // Log audit
             await this.logAudit(user.id, "CREATE", "User", user.id, {
                 ipAddress,
                 userAgent,
                 registrationTime: new Date(),
             });
-            // Generate tokens
-            const tokens = await this.generateTokens(user);
-            return tokens;
+            return { user, verificationToken };
         }
         catch (error) {
             if (error instanceof zod_1.z.ZodError) {
@@ -323,6 +332,8 @@ class AuthService {
                     resetTokenExpiry,
                 },
             });
+            // Send password reset email
+            await emailservice_1.emailService.sendPasswordResetEmail(email, resetToken);
             // Log audit
             await this.logAudit(user.id, "UPDATE", "User", user.id, {
                 action: "Password reset requested",
@@ -515,6 +526,33 @@ class AuthService {
             // Log error but don't throw to avoid disrupting main flow
             console.error("Failed to log audit:", error);
         }
+    }
+    /**
+     * Token-based email verification
+     */
+    async verifyEmailByToken(token) {
+        const user = await prisma.user.findFirst({
+            where: {
+                verificationToken: token,
+                verificationTokenExpiry: { gt: new Date() },
+            },
+        });
+        if (!user) {
+            throw new Error("Invalid or expired verification token");
+        }
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                emailVerified: new Date(),
+                status: client_1.UserStatus.ACTIVE,
+                verificationToken: null,
+                verificationTokenExpiry: null,
+            },
+        });
+        // Log audit if needed
+        await this.logAudit(user.id, "UPDATE", "User", user.id, {
+            action: "Email verified by token",
+        });
     }
 }
 exports.AuthService = AuthService;
