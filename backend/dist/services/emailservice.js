@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailService = exports.EmailService = void 0;
 // MAR ABU PROJECTS SERVICES LLC - Email Service (Dual Driver: MailHog | Resend)
 const nodemailer_1 = __importDefault(require("nodemailer"));
-const resend_1 = require("resend");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const constants_1 = require("../utils/constants");
 class EmailService {
@@ -22,27 +21,13 @@ class EmailService {
             };
     }
     constructor() {
-        this.driver =
-            process.env.EMAIL_DRIVER ||
-                (process.env.NODE_ENV === "production" ? "resend" : "mailhog");
-        if (this.driver === "resend") {
-            if (!process.env.RESEND_API_KEY) {
-                logger_middleware_1.logger.warn("RESEND_API_KEY missing. Falling back to MailHog.");
-                this.driver = "mailhog";
-            }
-            else {
-                this.resend = new resend_1.Resend(process.env.RESEND_API_KEY);
-                logger_middleware_1.logger.info("Resend client initialized");
-            }
-        }
-        if (this.driver === "mailhog") {
-            this.transporter = nodemailer_1.default.createTransport({
-                host: process.env.SMTP_HOST || "127.0.0.1",
-                port: Number(process.env.SMTP_PORT || 1025),
-                secure: false,
-            });
-            logger_middleware_1.logger.info("MailHog SMTP transporter initialized");
-        }
+        this.driver = "mailhog"; // Force MailHog for all environments
+        this.transporter = nodemailer_1.default.createTransport({
+            host: process.env.SMTP_HOST || "127.0.0.1",
+            port: Number(process.env.SMTP_PORT || 1025),
+            secure: false,
+        });
+        logger_middleware_1.logger.info("MailHog SMTP transporter initialized");
         logger_middleware_1.logger.info(`Email driver active: ${this.driver}`);
     }
     buildFrom() {
