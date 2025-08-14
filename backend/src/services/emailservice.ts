@@ -1,4 +1,4 @@
-// MAR ABU PROJECTS SERVICES LLC - Email Service (Dual Driver: MailHog | Resend)
+// MAR ABU PROJECTS SERVICES LLC - Email Service (Gmail | Resend)
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 import { logger } from "../middlewares/logger.middleware";
@@ -14,14 +14,13 @@ interface EmailOptions {
   html: string;
   attachments?: EmailAttachment[];
 }
-type EmailDriver = "mailhog" | "resend";
+type EmailDriver = "gmail" | "resend";
 
 export class EmailService {
   private driver: EmailDriver;
   private resend?: Resend;
   private transporter?: nodemailer.Transporter;
 
-  // Safely get property object or fallback
   private safeBookingProperty(property: any): any {
     return property && typeof property === "object"
       ? property
@@ -34,14 +33,29 @@ export class EmailService {
   }
 
   constructor() {
-    this.driver = "mailhog"; // Force MailHog for all environments
+    this.driver = (process.env.EMAIL_DRIVER as EmailDriver) || "gmail";
 
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "127.0.0.1",
-      port: Number(process.env.SMTP_PORT || 1025),
-      secure: false,
-    });
-    logger.info("MailHog SMTP transporter initialized");
+    if (this.driver === "gmail") {
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        logger.error("Gmail SMTP credentials missing");
+      }
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+      logger.info("Gmail SMTP transporter initialized");
+    } else if (this.driver === "resend") {
+      if (!process.env.RESEND_API_KEY) {
+        logger.error("Resend API key missing");
+      }
+      this.resend = new Resend(process.env.RESEND_API_KEY!);
+      logger.info("Resend email driver initialized");
+    }
     logger.info(`Email driver active: ${this.driver}`);
   }
 
@@ -69,7 +83,7 @@ export class EmailService {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
-      if (this.driver === "mailhog") {
+      if (this.driver === "gmail") {
         if (!this.transporter) throw new Error("SMTP transporter not ready");
         await this.transporter.sendMail({
           from: this.buildFrom(),
@@ -81,28 +95,32 @@ export class EmailService {
             content: a.content,
           })),
         });
-        logger.info("Email sent (MailHog)", { to: options.to });
+        logger.info("Email sent (Gmail)", { to: options.to });
         return true;
       }
 
-      if (!this.resend) throw new Error("Resend client not initialized");
-      const response = await this.resend.emails.send({
-        from: this.buildFrom(),
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        attachments: options.attachments?.map((att) => ({
-          filename: att.filename,
-          content: Buffer.isBuffer(att.content)
-            ? att.content.toString("base64")
-            : Buffer.from(att.content).toString("base64"),
-        })),
-      });
-      logger.info("Email sent (Resend)", {
-        to: options.to,
-        id: response?.data?.id,
-      });
-      return true;
+      if (this.driver === "resend") {
+        if (!this.resend) throw new Error("Resend client not initialized");
+        const response = await this.resend.emails.send({
+          from: this.buildFrom(),
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          attachments: options.attachments?.map((att) => ({
+            filename: att.filename,
+            content: Buffer.isBuffer(att.content)
+              ? att.content.toString("base64")
+              : Buffer.from(att.content).toString("base64"),
+          })),
+        });
+        logger.info("Email sent (Resend)", {
+          to: options.to,
+          id: response?.data?.id,
+        });
+        return true;
+      }
+
+      throw new Error("No valid email driver configured");
     } catch (err: any) {
       logger.error("Email send failed", {
         driver: this.driver,

@@ -26,9 +26,65 @@ const validate = (req, res, next) => {
 // NOTIFICATION ROUTES
 // ===============================
 /**
- * @route   GET /api/v1/notifications
- * @desc    Get user notifications
- * @access  Protected
+ * @openapi
+ * /notifications:
+ *   get:
+ *     summary: Get user notifications
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of notifications per page
+ *       - in: query
+ *         name: read
+ *         schema:
+ *           type: boolean
+ *         description: Filter by read status
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *         description: Filter by notification type
+ *     responses:
+ *       200:
+ *         description: List of notifications
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     notifications:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Notification'
+ *                     unreadCount:
+ *                       type: integer
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         pages:
+ *                           type: integer
  */
 router.get("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { page = 1, limit = 20, read, type } = req.query;
@@ -68,9 +124,35 @@ router.get("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHa
     });
 }));
 /**
- * @route   GET /api/v1/notifications/:id
- * @desc    Get notification details
- * @access  Protected (notification owner only)
+ * @openapi
+ * /notifications/{id}:
+ *   get:
+ *     summary: Get notification details
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Notification'
+ *       404:
+ *         description: Notification not found
  */
 router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const notification = await server_1.prisma.notification.findUnique({
@@ -101,9 +183,35 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
     });
 }));
 /**
- * @route   PUT /api/v1/notifications/:id/mark-read
- * @desc    Mark notification as read
- * @access  Protected (notification owner only)
+ * @openapi
+ * /notifications/{id}/mark-read:
+ *   put:
+ *     summary: Mark notification as read
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/Notification'
  */
 router.put("/:id/mark-read", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const notification = await server_1.prisma.notification.findUnique({
@@ -130,9 +238,26 @@ router.put("/:id/mark-read", (0, authservice_1.requireAuth)(), (0, error_middlew
     });
 }));
 /**
- * @route   PUT /api/v1/notifications/mark-all-read
- * @desc    Mark all notifications as read
- * @access  Protected
+ * @openapi
+ * /notifications/mark-all-read:
+ *   put:
+ *     summary: Mark all notifications as read
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 router.put("/mark-all-read", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     await server_1.prisma.notification.updateMany({
@@ -154,9 +279,33 @@ router.put("/mark-all-read", (0, authservice_1.requireAuth)(), (0, error_middlew
     });
 }));
 /**
- * @route   DELETE /api/v1/notifications/:id
- * @desc    Delete notification
- * @access  Protected (notification owner only)
+ * @openapi
+ * /notifications/{id}:
+ *   delete:
+ *     summary: Delete notification
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 router.delete("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const notification = await server_1.prisma.notification.findUnique({
@@ -181,9 +330,26 @@ router.delete("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.a
     });
 }));
 /**
- * @route   DELETE /api/v1/notifications/clear-all
- * @desc    Clear all notifications for user
- * @access  Protected
+ * @openapi
+ * /notifications/clear-all:
+ *   delete:
+ *     summary: Clear all notifications for user
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications cleared
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 router.delete("/clear-all", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const deletedCount = await server_1.prisma.notification.deleteMany({
@@ -198,9 +364,29 @@ router.delete("/clear-all", (0, authservice_1.requireAuth)(), (0, error_middlewa
     });
 }));
 /**
- * @route   GET /api/v1/notifications/unread-count
- * @desc    Get unread notification count
- * @access  Protected
+ * @openapi
+ * /notifications/unread-count:
+ *   get:
+ *     summary: Get unread notification count
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread notification count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     unreadCount:
+ *                       type: integer
  */
 router.get("/unread-count", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const unreadCount = await server_1.prisma.notification.count({
@@ -215,9 +401,91 @@ router.get("/unread-count", (0, authservice_1.requireAuth)(), (0, error_middlewa
     });
 }));
 /**
- * @route   POST /api/v1/notifications/preferences
- * @desc    Update notification preferences
- * @access  Protected
+ * @openapi
+ * /notifications/preferences:
+ *   post:
+ *     summary: Update notification preferences
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               emailNotifications:
+ *                 type: boolean
+ *               pushNotifications:
+ *                 type: boolean
+ *               smsNotifications:
+ *                 type: boolean
+ *               bookingUpdates:
+ *                 type: boolean
+ *               reviewNotifications:
+ *                 type: boolean
+ *               promotionalEmails:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Preferences updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     emailNotifications:
+ *                       type: boolean
+ *                     pushNotifications:
+ *                       type: boolean
+ *                     smsNotifications:
+ *                       type: boolean
+ *                     bookingUpdates:
+ *                       type: boolean
+ *                     reviewNotifications:
+ *                       type: boolean
+ *                     promotionalEmails:
+ *                       type: boolean
+ *   get:
+ *     summary: Get notification preferences
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Preferences object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     emailNotifications:
+ *                       type: boolean
+ *                     pushNotifications:
+ *                       type: boolean
+ *                     smsNotifications:
+ *                       type: boolean
+ *                     bookingUpdates:
+ *                       type: boolean
+ *                     reviewNotifications:
+ *                       type: boolean
+ *                     promotionalEmails:
+ *                       type: boolean
  */
 router.post("/preferences", (0, authservice_1.requireAuth)(), [
     (0, express_validator_1.body)("emailNotifications")
@@ -260,9 +528,39 @@ router.post("/preferences", (0, authservice_1.requireAuth)(), [
     });
 }));
 /**
- * @route   GET /api/v1/notifications/preferences
- * @desc    Get notification preferences
- * @access  Protected
+ * @openapi
+ * /notifications/preferences:
+ *   get:
+ *     summary: Get notification preferences
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Preferences object
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     emailNotifications:
+ *                       type: boolean
+ *                     pushNotifications:
+ *                       type: boolean
+ *                     smsNotifications:
+ *                       type: boolean
+ *                     bookingUpdates:
+ *                       type: boolean
+ *                     reviewNotifications:
+ *                       type: boolean
+ *                     promotionalEmails:
+ *                       type: boolean
  */
 router.get("/preferences", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const user = await server_1.prisma.user.findUnique({
@@ -290,7 +588,7 @@ router.get("/preferences", (0, authservice_1.requireAuth)(), (0, error_middlewar
 // ADMIN NOTIFICATION ROUTES
 // ===============================
 /**
- * @route   POST /api/v1/notifications/broadcast
+ * @route   POST /notifications/broadcast
  * @desc    Send broadcast notification to all users
  * @access  Admin only
  */
@@ -348,7 +646,7 @@ router.post("/broadcast", (0, authservice_1.requireAuth)({ role: client_1.UserRo
     });
 }));
 /**
- * @route   GET /api/v1/notifications/admin/stats
+ * @route   GET /notifications/admin/stats
  * @desc    Get notification statistics
  * @access  Admin only
  */

@@ -321,17 +321,29 @@ router.post("/verify-email", (0, authservice_1.requireAuth)({ allowPending: true
 }));
 router.get("/verify-email/:token", (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { token } = req.params;
-    // Verify the email and get the user object
-    const user = await authservice_1.authService.verifyEmailByToken(token);
-    (0, logger_middleware_1.auditLog)("EMAIL_VERIFIED", user?.id || "unknown", { token }, req.ip);
-    // Send welcome email if user exists and verification succeeded
-    if (user && user.email && user.firstName) {
+    try {
+        const user = await authservice_1.authService.verifyEmailByToken(token);
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired verification token",
+                errors: null,
+            });
+        }
         await emailservice_1.emailService.sendWelcomeEmail(user.email, user.firstName);
+        return res.json({
+            success: true,
+            message: "Email verified successfully. You can now log in.",
+        });
     }
-    res.json({
-        success: true,
-        message: "Email verified successfully. You can now log in.",
-    });
+    catch (error) {
+        console.error("Email verification error:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Internal server error",
+            errors: null,
+        });
+    }
 }));
 /**
  * @route   POST /api/v1/auth/forgot-password
