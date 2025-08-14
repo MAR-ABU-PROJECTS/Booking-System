@@ -2,7 +2,7 @@ import type { Property } from "../lib/type";
 
 export const properties: Property[] = [
 	{
-		id: 1,
+		id: "cmdwwite80003wgkoehn3r6ng",
 		status: "Premium",
 		desc: "Sophisticated penthouse with contemporary design and premium amenities",
 		name: "ABIKE PENTHOUSE",
@@ -34,7 +34,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: 2,
+		id: "cmdwwitew000dwgkoewq2h7d9",
 		name: "WHITE-STONE",
 		type: "Short Let",
 		location: "Victoria Island, Lagos",
@@ -54,7 +54,6 @@ export const properties: Property[] = [
 			"/apartment-images/IMG_5269.JPG",
 			"/apartment-images/IMG_5259.JPG",
 			"/apartment-images/IMG_5265.JPG",
-		
 		],
 		isNew: true,
 		bed: 4,
@@ -65,7 +64,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: 3,
+		id: "cmdwwitf8000lwgkod167qhhq",
 		name: "OBUDU VILLA",
 		type: "Short Let",
 		location: "Lekki Phase 1, Lagos",
@@ -95,7 +94,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: 4,
+		id: "cmdwwitfh000uwgkom0t5wj8u",
 		name: "ZIRCON",
 		type: "Short Let",
 		location: "Banana Island, Lagos",

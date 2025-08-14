@@ -33,7 +33,10 @@ import { useState } from "react";
 import dayjs from "dayjs";
 
 
-const BookingForm = () => {
+type Props = {
+	isSubmitting: boolean
+}
+const BookingForm = ({isSubmitting}: Props) => {
 	const { control } = useFormContext<z.infer<typeof bookingDetailsSchema>>();
 	const [open, setOpen] = useState(false);
 	const [openSec, setOpenSec] = useState(false);
@@ -63,7 +66,7 @@ const BookingForm = () => {
 						<div className="flex w-full items-center gap-[10px]">
 							<Controller
 								control={control}
-								name="checkInDate"
+								name="checkIn"
 								render={({ field, fieldState }) => (
 									<div className="flex flex-col w-full gap-1">
 										<Label
@@ -127,7 +130,7 @@ const BookingForm = () => {
 
 							<Controller
 								control={control}
-								name="checkOutDate"
+								name="checkOut"
 								render={({ field, fieldState }) => (
 									<div className="flex flex-col w-full gap-1">
 										<Label
@@ -193,7 +196,7 @@ const BookingForm = () => {
 							<p className="text-[16px] font-bold capitalize">
 								Number of guests
 							</p>
-							<div className="flex flex-col lg:flex-row justify-between items-center gap-[20px]">
+							<div className="flex flex-col lg:grid lg:grid-cols-2 justify-between items-center gap-[20px]">
 								<Controller
 									control={control}
 									name="adults"
@@ -222,6 +225,25 @@ const BookingForm = () => {
 											<GuestCounterTwo
 												title="			Children"
 												subtitle="	Age 0 - 17"
+												value={field.value}
+												onChange={field.onChange}
+											/>
+											{fieldState.error && (
+												<p className="text-sm text-red-600">
+													{fieldState.error.message}
+												</p>
+											)}
+										</div>
+									)}
+								/>
+								<Controller
+									control={control}
+									name="infants"
+									render={({ field, fieldState }) => (
+										<div className="flex flex-col w-full gap-1">
+											<GuestCounterTwo
+												title="			Infants"
+												subtitle="Under 2"
 												value={field.value}
 												onChange={field.onChange}
 											/>
@@ -306,7 +328,7 @@ const BookingForm = () => {
 						<div className="flex justify-between items-center gap-[20px]">
 							<Controller
 								control={control}
-								name="email"
+								name="guestEmail"
 								render={({ field, fieldState }) => (
 									<div className="grid w-full max-w-sm items-center gap-1">
 										<Label>
@@ -333,7 +355,7 @@ const BookingForm = () => {
 
 							<Controller
 								control={control}
-								name="phone"
+								name="guestPhone"
 								render={({ field, fieldState }) => (
 									<div className="grid w-full max-w-sm items-center gap-1">
 										<Label>
@@ -729,10 +751,11 @@ const BookingForm = () => {
 				</div>
 				<hr className="h-px my-[10px] bg-[#f7d5b0] border-0" />
 				<Button
-					className="hover:bg-[#F4A857] py-[15px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
+					className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
+					disabled={isSubmitting}
 					type="submit"
 				>
-					🔒 Complete Secure Booking
+			  {isSubmitting ? "⏳ Processing..." : "🔒 Complete Secure Booking"}
 				</Button>
 			</div>
 		</div>

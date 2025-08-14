@@ -8,14 +8,23 @@ import { RootState } from "@lib/features/store";
 import { useSelector } from "react-redux";
 import { formatCurrency } from "@lib/utils";
 import PropertyCarousel from "@components/PropertyCarousel";
+import { useQuery } from "@tanstack/react-query";
+import { apiService } from "@lib/apiService";
+import { isAxiosError } from "axios";
+import { toast } from "react-toastify";
+import { useSearchParams } from "next/navigation";
 
 const BookingSummary = () => {
+	const searchParams = useSearchParams();
+	const propertyId = searchParams.get("id");
+
 	const booking = useSelector((state: RootState) => state.booking);
 	const { watch } = useFormContext<z.infer<typeof bookingDetailsSchema>>();
 	const adultCount = watch("adults");
 	const childCount = watch("children");
-	const checkInDate = watch("checkInDate");
-	const checkOutDate = watch("checkOutDate");
+	const infantCount = watch("infants");
+	const checkInDate = watch("checkIn");
+	const checkOutDate = watch("checkOut");
 	const nights =
 		checkInDate && checkOutDate
 			? dayjs(checkOutDate).diff(dayjs(checkInDate), "day")
@@ -43,6 +52,62 @@ const BookingSummary = () => {
 		"/apartment-images/IMG_5677.JPG",
 		"/apartment-images/IMG_5678.JPG",
 	];
+
+	const params = {
+		propertyId: propertyId,
+		adults: adultCount,
+		children: childCount,
+		infants: infantCount,
+		checkIn: "",
+		checkOut: "",
+	};
+
+	const getSummary = useQuery({
+		queryKey: ["bookingSummary", params],
+		queryFn: async () => {
+			try {
+				const queryString = new URLSearchParams(
+					Object.entries(params).reduce(
+						(acc, [key, value]) => {
+							if (
+								value !== undefined &&
+								value !== null &&
+								value !== ""
+							) {
+								acc[key] = String(value);
+							}
+							return acc;
+						},
+						{} as Record<string, string>
+					)
+				).toString();
+
+				const response = await apiService.get(
+					`/bookings/pricing?${queryString}`
+				);
+				return response;
+			} catch (error) {
+				let errorMessage = "An unexpected error occurred";
+				if (isAxiosError(error)) {
+					errorMessage = error.response
+						? error.response.data.message
+						: error.message;
+				} else if (error instanceof Error) {
+					errorMessage = error.message;
+				}
+				toast.error(errorMessage, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+
+				throw new Error(errorMessage);
+			}
+ 		},
+		enabled: Boolean(propertyId),
+		retry:false
+	});
+
+	console.log(getSummary.data);
 
 	return (
 		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
@@ -98,7 +163,8 @@ const BookingSummary = () => {
 					<div>
 						<p className="text-[14px] font-[500]">
 							{adultCount} Adult{adultCount !== 1 && "s"},{" "}
-							{childCount} Child{childCount !== 1 && "ren"}
+							{childCount} Child{childCount !== 1 && "ren"},{" "}
+							{infantCount} Infant{infantCount > 0 && "s"}
 						</p>
 					</div>
 				</div>

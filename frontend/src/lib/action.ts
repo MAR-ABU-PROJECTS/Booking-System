@@ -2,50 +2,7 @@
 import { getIronSession } from "iron-session";
 import { SessionData, defaultSession, sessionOptions } from "./session";
 import { cookies } from "next/headers";
-import { jwtDecode } from "jwt-decode";
 
-const base_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1`;
-
-function checkTokenExpiry(token: string): boolean {
-	try {
-		const decoded: { exp: number } = jwtDecode(token);
-		const now = Date.now() / 1000;
-		return decoded.exp < now;
-	} catch (err) {
-		console.log(err);
-		return true;
-	}
-}
-
-async function refreshAccessToken(
-	refreshToken: string
-): Promise<string | null> {
-	try {
-		const res = await fetch(`${base_URL}/auth/refresh`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ refreshToken }),
-		});
-
-		if (!res.ok) {
-			console.error(`HTTP error: ${res.status}`);
-			return null;
-		}
-
-		const data = await res.json();
-
-		if (data?.success) {
-			return data.accessToken;
-		}
-
-		return null;
-	} catch (error) {
-		console.error("Token refresh failed:", error);
-		return null;
-	}
-}
 
 export async function getSession() {
 	const session = await getIronSession<SessionData>(
@@ -56,7 +13,7 @@ export async function getSession() {
 		session.user = { ...defaultSession.user };
 	}
 
-	return  { user: session.user };
+	return { user: session.user };
 }
 
 export async function getSessionUser() {
@@ -64,25 +21,6 @@ export async function getSessionUser() {
 		await cookies(),
 		sessionOptions
 	);
-
-	if (!session.user?.isLoggedIn) {
-		return { redirectTo: "/log-in", isLoggedIn: false };
-	}
-
-	const { token, refreshToken } = session.user;
-	const isTokenExpired = checkTokenExpiry(token);
-
-	if (isTokenExpired && refreshToken) {
-		const newToken = await refreshAccessToken(refreshToken);
-
-		if (newToken) {
-			session.user.token = newToken;
-			await session.save();
-		} else {
-			await session.destroy();
-			return { redirectTo: "/log-in", isLoggedIn: false };
-		}
-	}
 
 	return {
 		user: {
@@ -124,6 +62,21 @@ export async function setSession(data: {
 	});
 
 	await session.save();
+}
+
+export async function updateSession(updates: Partial<SessionData["user"]>) {
+	const session = await getIronSession<SessionData>(
+		await cookies(),
+		sessionOptions
+	);
+
+	session.user = {
+		...session.user,
+		...updates,
+	};
+
+	await session.save();
+
 }
 
 export async function removeSession() {

@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 type BookingSliceType = {
+	id:string;
 	location: string;
 	name: string;
 	checkIn: undefined | Date;
@@ -13,6 +14,7 @@ type BookingSliceType = {
 	price: number;
 };
 const initialState: BookingSliceType = {
+	id:'',
 	location: "",
 	name:"",
 	checkIn: undefined,

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const homePageBookingSchema = z.object({
 	stepOne: z.object({
+		id: z.string().min(1, ""),
 		location: z.string().min(1, "please select location"),
 		name: z.string().min(1, "please select location"),
 		price: z.number(),
@@ -33,44 +34,33 @@ export const homePageBookingSchema = z.object({
 
 export const bookingDetailsSchema = z
 	.object({
-		// Booking Dates
-
-		checkInDate: z.date({
+		checkIn: z.date({
 			error: (issue) =>
 				issue.input === undefined
 					? "Please select a check-in date"
 					: "Invalid check-in date",
 		}),
-		checkOutDate: z.date({
+		checkOut: z.date({
 			error: (issue) =>
 				issue.input === undefined
 					? "Please select a check-out date"
 					: "Invalid check-out date",
 		}),
-
-		// Guests
 		adults: z.number().min(1, "At least 1 adult is required"),
 		children: z.number().min(0),
-
-		// Guest Info
+		infants: z.number().min(0),
 		firstName: z.string().min(1, "First name is required"),
 		lastName: z.string().min(1, "Last name is required"),
-		email: z
+		guestEmail: z
 			.string()
 			.min(1, "email address is required")
 			.email("Invalid email address"),
-		phone: z.string().min(10, "Phone number is required"),
+		guestPhone: z.string().min(10, "Phone number is required"),
 		address: z.string().min(1, "Billing address is required"),
-
-		// ID
 		idType: z.string().min(1, "Select an ID type"),
 		idNumber: z.string().min(1, "Enter your ID number"),
 		emergencyContact: z.string().min(1, "Emergency contact is required"),
-
-		// Payment
 		paymentMethod: z.string().min(1, "Select a payment method"),
-
-		// Additional Info
 		additionalInfo: z.string().optional(),
 		arrivalTime: z
 			.string()

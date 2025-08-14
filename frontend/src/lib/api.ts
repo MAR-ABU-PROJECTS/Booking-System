@@ -7,7 +7,7 @@ export const getAllProperties = async () => {
 	return properties;
 };
 
-export const getPropertyById = async (id: number) => {
+export const getPropertyById = async (id: string) => {
 	await delay(4000);
 	return properties.find((item) => item.id === id);
 };

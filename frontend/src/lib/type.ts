@@ -1,5 +1,5 @@
 export type Property = {
-	id: number;
+	id: string;
 	status?: string;
 	desc: string;
 	name: string;

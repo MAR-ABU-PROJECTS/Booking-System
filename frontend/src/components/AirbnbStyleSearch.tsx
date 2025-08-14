@@ -4,21 +4,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
 import GuestCounter from "@components/GuestCounter";
 import { Calendar } from "@components/ui/calendar";
-import { useDispatch} from "react-redux";
+import { useDispatch } from "react-redux";
 import { updateBooking } from "@lib/features/bookingSlice";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { homePageBookingSchema } from "@lib/schemas";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import {z} from "zod"
+import { z } from "zod";
 
 const AirbnbStyleSearch = () => {
 	const [activeTab, setActiveTab] = useState<string | null>(null);
 	const router = useRouter();
 
-
-	const dispatch = useDispatch()
+	const dispatch = useDispatch();
 
 	const handleTabClick = (tab: string) => {
 		setActiveTab(activeTab === tab ? null : tab);
@@ -31,24 +30,28 @@ const AirbnbStyleSearch = () => {
 	// MAR ABU HOMES current apartments
 	const marAbuApartments = [
 		{
+			id: "cmdwwite80003wgkoehn3r6ng",
 			name: "WHITE-STONE",
 			location: "Victoria Island, Lagos",
 			type: "Luxury Apartment",
 			price: 85000,
 		},
 		{
+			id: "cmdwwitew000dwgkoewq2h7d9",
 			name: "ABIKE PENTHOUSE",
 			location: "Ikoyi, Lagos",
 			type: "Premium Penthouse",
 			price: 120000,
 		},
 		{
+			id: "cmdwwitf8000lwgkod167qhhq",
 			name: "OBUDU VILLA",
 			location: "Lekki Phase 1, Lagos",
 			type: "Executive Villa",
 			price: 95000,
 		},
 		{
+			id: "cmdwwitfh000uwgkom0t5wj8u",
 			name: "ZIRCON",
 			location: "Banana Island, Lagos",
 			type: "Luxury Suite",
@@ -59,7 +62,7 @@ const AirbnbStyleSearch = () => {
 	const form = useForm({
 		resolver: zodResolver(homePageBookingSchema),
 		defaultValues: {
-			stepOne: { location: "", name:"" },
+			stepOne: { location: "", name: "", id:"" },
 			stepTwo: { checkin: undefined },
 			stepThree: { checkout: undefined },
 			stepFour: {
@@ -84,15 +87,36 @@ const AirbnbStyleSearch = () => {
 
 	const onSubmit = (data: z.infer<typeof homePageBookingSchema>) => {
 		handleClose();
-		dispatch(updateBooking({ key: "location", value: data.stepOne.location }));
+		dispatch(
+			updateBooking({ key: "id", value: data.stepOne.id })
+		);
+		dispatch(
+			updateBooking({ key: "location", value: data.stepOne.location })
+		);
 		dispatch(updateBooking({ key: "name", value: data.stepOne.name }));
 		dispatch(updateBooking({ key: "price", value: data.stepOne.price }));
-		dispatch(updateBooking({ key: "checkIn", value: data.stepTwo.checkin }));
-		dispatch(updateBooking({ key: "checkOut", value: data.stepThree.checkout }));
-		dispatch(updateBooking({ key: "adults", value: data.stepFour.Guests.adults }));
-		dispatch(updateBooking({ key: "children", value: data.stepFour.Guests.children }));
-		dispatch(updateBooking({ key: "infants", value: data.stepFour.Guests.infants }));
-		router.push("/booking");
+		dispatch(
+			updateBooking({ key: "checkIn", value: data.stepTwo.checkin })
+		);
+		dispatch(
+			updateBooking({ key: "checkOut", value: data.stepThree.checkout })
+		);
+		dispatch(
+			updateBooking({ key: "adults", value: data.stepFour.Guests.adults })
+		);
+		dispatch(
+			updateBooking({
+				key: "children",
+				value: data.stepFour.Guests.children,
+			})
+		);
+		dispatch(
+			updateBooking({
+				key: "infants",
+				value: data.stepFour.Guests.infants,
+			})
+		);
+		router.push(`/booking?id=${data.stepOne.id}`);
 	};
 
 	return (
@@ -230,6 +254,10 @@ const AirbnbStyleSearch = () => {
 															form.setValue(
 																"stepOne.price",
 																apartment.price
+															);
+															form.setValue(
+																"stepOne.id",
+																apartment.id
 															);
 															const isValid =
 																await form.trigger(
