@@ -283,7 +283,7 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="text"
-											id="firstname"
+									
 											placeholder="Enter First Name"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -311,7 +311,7 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="text"
-											id="lastname"
+										
 											placeholder="Enter Last Name"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -339,7 +339,7 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="email"
-											id="email"
+										
 											placeholder="youremail@example.com"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -366,7 +366,7 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="number"
-											id="number"
+									
 											placeholder="+234 XXX XXXX XXX"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -460,7 +460,7 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="number"
-											id="number"
+										
 											placeholder="Enter ID Number"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -643,7 +643,7 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="time"
-											defaultValue="Pick Time"
+										
 											className="bg-background border-2 border-[#f7d5b0] appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 											{...field}
 										/>
