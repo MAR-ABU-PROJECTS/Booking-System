@@ -63,7 +63,14 @@ app.use((0, helmet_1.default)({
 }));
 // CORS configuration
 app.use((0, cors_1.default)({
-    origin: "*", // Only for development, remove in production!
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5050",
+        "https://booking-system-n26e.onrender.com",
+        process.env.FRONTEND_URL,
+        process.env.ADMIN_URL,
+    ].filter((origin) => typeof origin === "string" && origin.length > 0),
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
