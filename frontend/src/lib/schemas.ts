@@ -30,7 +30,15 @@ export const homePageBookingSchema = z.object({
 			infants: z.number().min(0),
 		}),
 	}),
-});
+}).superRefine((data, ctx) => {
+	if (data.stepThree.checkout <= data.stepTwo.checkin) {
+		ctx.addIssue({
+			code: "custom",
+			message: "Check-out date must be after check-in date.",
+			path: ["stepThree", "checkout"],
+		});
+	}
+});;
 
 export const bookingDetailsSchema = z
 	.object({
@@ -77,6 +85,13 @@ export const bookingDetailsSchema = z
 				code: "custom",
 				message: "Please agree to the terms to continue.",
 				path: ["agree"],
+			});
+		}
+		if (data.checkOut <= data.checkIn) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Check-out date must be after check-in date.",
+				path: ["checkOut"],
 			});
 		}
 	});

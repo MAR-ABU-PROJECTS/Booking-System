@@ -53,13 +53,20 @@ const BookingSummary = () => {
 		"/apartment-images/IMG_5678.JPG",
 	];
 
+
+	const checkIn = checkInDate
+		? dayjs(checkInDate).format("YYYY-MM-DD")
+		: "";
+		const checkOut = checkOutDate
+		? dayjs(checkOutDate).format("YYYY-MM-DD")
+		: "";	
 	const params = {
 		propertyId: propertyId,
 		adults: adultCount,
 		children: childCount,
 		infants: infantCount,
-		checkIn: "",
-		checkOut: "",
+		checkIn: checkIn,
+		checkOut: checkOut,
 	};
 
 	const getSummary = useQuery({
@@ -107,7 +114,6 @@ const BookingSummary = () => {
 		retry:false
 	});
 
-	console.log(getSummary.data);
 
 	return (
 		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
