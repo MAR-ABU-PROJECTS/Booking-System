@@ -1,44 +1,51 @@
 import { z } from "zod";
 
-export const homePageBookingSchema = z.object({
-	stepOne: z.object({
-		id: z.string().min(1, ""),
-		location: z.string().min(1, "please select location"),
-		name: z.string().min(1, "please select location"),
-		price: z.number(),
-	}),
-	stepTwo: z.object({
-		checkin: z.date({
-			error: (issue) =>
-				issue.input === undefined
-					? "Please select a check-in date"
-					: "Invalid check-in date",
+export const homePageBookingSchema = z
+	.object({
+		stepOne: z.object({
+			id: z.string().refine((val) => val.trim().length > 0, {
+				message: "",
+			}),
+			location: z.string().min(1, "please select location"),
+			name: z.string().refine((val) => val.trim().length > 0, {
+				message: "",
+			}),
 		}),
-	}),
-	stepThree: z.object({
-		checkout: z.date({
-			error: (issue) =>
-				issue.input === undefined
-					? "Please select a check-out date"
-					: "Invalid check-out date",
+		stepTwo: z.object({
+			checkin: z
+				.date({
+					error: (issue) =>
+						issue.input === undefined
+							? "Please select a check-in date"
+							: "Invalid check-in date",
+				})
+				.default(new Date()),
 		}),
-	}),
-	stepFour: z.object({
-		Guests: z.object({
-			adults: z.number().min(1, "Atleast 1 adult"),
-			children: z.number().min(0),
-			infants: z.number().min(0),
+		stepThree: z.object({
+			checkout: z.date({
+				error: (issue) =>
+					issue.input === undefined
+						? "Please select a check-out date"
+						: "Invalid check-out date",
+			}),
 		}),
-	}),
-}).superRefine((data, ctx) => {
-	if (data.stepThree.checkout <= data.stepTwo.checkin) {
-		ctx.addIssue({
-			code: "custom",
-			message: "Check-out date must be after check-in date.",
-			path: ["stepThree", "checkout"],
-		});
-	}
-});;
+		stepFour: z.object({
+			Guests: z.object({
+				adults: z.number().min(1, "Atleast 1 adult"),
+				children: z.number().min(0),
+				infants: z.number().min(0),
+			}),
+		}),
+	})
+	.superRefine((data, ctx) => {
+		if (data.stepThree.checkout <= data.stepTwo.checkin) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Check-out date must be after check-in date.",
+				path: ["stepThree", "checkout"],
+			});
+		}
+	});
 
 export const bookingDetailsSchema = z
 	.object({
