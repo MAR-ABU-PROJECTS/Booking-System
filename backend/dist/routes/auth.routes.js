@@ -281,44 +281,6 @@ router.post("/refresh", [(0, express_validator_1.body)("refreshToken").notEmpty(
  * @desc    Verify email address
  * @access  Protected
  */
-/**
- * @swagger
- * /auth/verify-email:
- *   post:
- *     summary: Verify user email address
- *     tags:
- *       - Auth
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Email verified successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Email verified successfully
- *       401:
- *         description: Unauthorized (missing or invalid token)
- *       500:
- *         description: Server error
- */
-router.post("/verify-email", (0, authservice_1.requireAuth)({ allowPending: true }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    await authservice_1.authService.verifyEmail(req.user.id);
-    (0, logger_middleware_1.auditLog)("EMAIL_VERIFIED", req.user.id, {
-        email: req.user.email,
-    }, req.ip);
-    res.json({
-        success: true,
-        message: "Email verified successfully",
-    });
-}));
 router.get("/verify-email/:token", (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { token } = req.params;
     try {
@@ -343,6 +305,40 @@ router.get("/verify-email/:token", (0, error_middleware_1.asyncHandler)(async (r
             message: error.message || "Internal server error",
             errors: null,
         });
+    }
+}));
+/**
+ * @route   POST /api/v1/auth/verify-email/resend
+ * @desc    Resend verification email (if not yet verified)
+ * @access  Protected
+ */
+/**
+ * @swagger
+ * /auth/verify-email/resend:
+ *   post:
+ *     summary: Resend verification email
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Verification email (re)sent
+ *       400:
+ *         description: Email already verified
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/verify-email/resend", (0, authservice_1.requireAuth)({ allowPending: true }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    try {
+        await authservice_1.authService.resendVerification(req.user.id);
+        return res.json({ success: true, message: "Verification email sent" });
+    }
+    catch (e) {
+        if (e.message === "Email already verified") {
+            return res.status(400).json({ success: false, message: e.message });
+        }
+        throw e;
     }
 }));
 /**

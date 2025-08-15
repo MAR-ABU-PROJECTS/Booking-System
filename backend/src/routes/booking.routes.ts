@@ -246,7 +246,7 @@ router.get(
 /**
  * @route   GET /api/v1/bookings/pricing
  * @desc    Get pricing information
- * @access  Protected
+ * @access  Public
  */
 /**
  * @swagger
@@ -256,8 +256,6 @@ router.get(
  *     description: Retrieve pricing information for a specific property and dates.
  *     tags:
  *       - Bookings
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: propertyId
@@ -285,48 +283,20 @@ router.get(
  *         schema:
  *           type: integer
  *         description: Number of adults
+ *       - in: query
+ *         name: promoCode
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional promo code
  *     responses:
  *       200:
  *         description: Pricing information retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     propertyId:
- *                       type: string
- *                     checkIn:
- *                       type: string
- *                       format: date
- *                     checkOut:
- *                       type: string
- *                       format: date
- *                     adults:
- *                       type: integer
- *                     nights:
- *                       type: integer
- *                     baseRate:
- *                       type: number
- *                     cleaningFee:
- *                       type: number
- *                     serviceFee:
- *                       type: number
- *                     total:
- *                       type: number
  *       400:
  *         description: Invalid request
- *       401:
- *         description: Unauthorized
  */
 router.get(
   "/pricing",
-  requireAuth(),
   asyncHandler(async (req: any, res: any) => {
     const { propertyId, checkIn, checkOut, adults, promoCode } = req.query;
     try {
@@ -341,7 +311,10 @@ router.get(
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: typeof error === "object" && error !== null && "message" in error ? (error as any).message : "An error occurred",
+        message:
+          typeof error === "object" && error !== null && "message" in error
+            ? (error as any).message
+            : "An error occurred",
       });
     }
   })
@@ -909,6 +882,31 @@ router.patch(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID to cancel
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Optional reason for cancellation
+ *     responses:
+ *       200:
+ *         description: Booking cancelled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
  *         name: id
  *         required: true
  *         schema:

@@ -1,5 +1,5 @@
 // MAR ABU PROJECTS SERVICES LLC - Database Configuration
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { logger } from "../middlewares/logger.middleware";
 
 // Extend PrismaClient with middleware
@@ -12,43 +12,53 @@ const prismaClientSingleton = () => {
     errorFormat: "pretty",
   });
 
+  const hasMiddleware = typeof (prisma as any).$use === "function";
+
   // Middleware for query logging in development
-  if (process.env.NODE_ENV === "development") {
-    prisma.$use(async (params, next) => {
-      const before = Date.now();
-      const result = await next(params);
-      const after = Date.now();
+  if (process.env.NODE_ENV === "development" && hasMiddleware) {
+    (prisma as any).$use(
+      async (params: any, next: (p: any) => Promise<any>) => {
+        const before = Date.now();
+        const result = await next(params);
+        const after = Date.now();
 
-      logger.debug({
-        model: params.model,
-        action: params.action,
-        duration: `${after - before}ms`,
-      });
+        logger.debug({
+          model: params.model,
+          action: params.action,
+          duration: `${after - before}ms`,
+        });
 
-      return result;
-    });
+        return result;
+      }
+    );
   }
 
-  // Middleware for soft deletes (if needed in future)
-  prisma.$use(async (params, next) => {
-    // Handle soft deletes for specific models
-    if (params.model === "User" || params.model === "Property") {
-      if (params.action === "delete") {
-        params.action = "update";
-        params.args["data"] = { deletedAt: new Date() };
-      }
-      if (params.action === "deleteMany") {
-        params.action = "updateMany";
-        if (params.args.data !== undefined) {
-          params.args.data["deletedAt"] = new Date();
-        } else {
-          params.args["data"] = { deletedAt: new Date() };
+  // Middleware for soft deletes
+  if (hasMiddleware) {
+    (prisma as any).$use(
+      async (params: any, next: (p: any) => Promise<any>) => {
+        if (params.model === "User" || params.model === "Property") {
+          if (params.action === "delete") {
+            params.action = "update";
+            params.args["data"] = { deletedAt: new Date() };
+          }
+          if (params.action === "deleteMany") {
+            params.action = "updateMany";
+            if (params.args.data !== undefined) {
+              params.args.data["deletedAt"] = new Date();
+            } else {
+              params.args["data"] = { deletedAt: new Date() };
+            }
+          }
         }
+        return next(params);
       }
-    }
-
-    return next(params);
-  });
+    );
+  } else if (process.env.NODE_ENV === "development") {
+    logger.warn(
+      "Prisma middleware ($use) not available. If unexpected, delete node_modules/.prisma and regenerate."
+    );
+  }
 
   return prisma;
 };
