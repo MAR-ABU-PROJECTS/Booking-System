@@ -51,7 +51,7 @@ class EmailService {
         return `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <${fromEmail}>`;
     }
     getBackendBaseUrl() {
-        return "http://localhost:5050".replace(/\/$/, "");
+        return (process.env.BACKEND_URL || "http://localhost:5050").replace(/\/$/, "");
     }
     url(path) {
         return `${this.getBackendBaseUrl()}${path.startsWith("/") ? path : `/${path}`}`;
@@ -183,7 +183,8 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
      * Send password reset email
      */
     async sendPasswordResetEmail(email, resetToken) {
-        const resetUrl = `${this.getBackendBaseUrl()}/auth/reset-password?token=${resetToken}`;
+        // Use API route (adds /api/v1 automatically)
+        const resetUrl = this.apiUrl(`/auth/reset-password?token=${resetToken}`);
         const content = `
       <h2>Password Reset Request</h2>
       <p>You requested to reset your password. Click below:</p>

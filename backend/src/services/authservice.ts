@@ -228,17 +228,12 @@ export class AuthService {
       }
 
       // Update last login (only if lastLoginAt field exists)
-      try {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            lastLoginAt: new Date(), // Commented out until DB migration
-          },
-        });
-      } catch (updateError) {
-        // Continue if lastLoginAt field doesn't exist yet
-        console.log("Note: lastLoginAt field not found in database");
-      }
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          lastLoginAt: new Date(),
+        },
+      });
 
       // Log audit
       await this.logAudit(user.id, "LOGIN", "User", user.id, {
@@ -249,9 +244,7 @@ export class AuthService {
 
       // Generate tokens
       const { password: _, ...userWithoutPassword } = user;
-      const tokens = await this.generateTokens(userWithoutPassword);
-
-      return tokens;
+      return this.generateTokens(userWithoutPassword as AuthUser);
     } catch (error) {
       if (error instanceof z.ZodError) {
         throw new Error(
@@ -408,7 +401,7 @@ export class AuthService {
   }
 
   /**
-   * Forgot password method - TEMPORARILY DISABLED until DB migration
+   * Forgot password
    */
   async forgotPassword(email: string): Promise<void> {
     try {
@@ -417,20 +410,11 @@ export class AuthService {
         where: { email: email.toLowerCase().trim() },
       });
 
-      if (!user) {
-        // Don't reveal if email exists for security reasons
-        return;
-      }
+      if (!user) return;
 
       // Generate reset token
       const resetToken = crypto.randomBytes(32).toString("hex");
       const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-      // TEMPORARY: Skip database update until migration is complete
-      console.log(
-        `Password reset requested for ${email}. Token: ${resetToken}`
-      );
-      console.log("Note: Database update skipped until migration is complete");
 
       // TODO: Uncomment after running database migration
       await prisma.user.update({
@@ -442,7 +426,7 @@ export class AuthService {
       });
 
       // Send password reset email
-      await emailService.sendPasswordResetEmail(email, resetToken);
+      await emailService.sendPasswordResetEmail(user.email, resetToken);
 
       // Log audit
       await this.logAudit(user.id, "UPDATE", "User", user.id, {
@@ -459,63 +443,52 @@ export class AuthService {
   }
 
   /**
-   * Reset password method - TEMPORARILY DISABLED until DB migration
+   * Reset password
    */
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    try {
-      // Validate new password
-      if (!newPassword || newPassword.length < 8) {
-        throw new Error("Password must be at least 8 characters long");
-      }
-
-      // TEMPORARY: For now, just validate the token format
-      if (!token || token.length < 32) {
-        throw new Error("Invalid reset token format");
-      }
-
-      console.log("Password reset attempted with token:", token);
-      console.log("Note: Database lookup skipped until migration is complete");
-
-      // TODO: Uncomment after running database migration
-
-      // Find user by reset token
-      const user = await prisma.user.findFirst({
-        where: {
-          resetToken: token,
-          resetTokenExpiry: {
-            gt: new Date(), // Token must not be expired
-          },
-        },
-      });
-
-      if (!user) {
-        throw new Error("Invalid or expired reset token");
-      }
-
-      // Hash new password
-      const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-      // Update password and clear reset token
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          password: hashedPassword,
-          resetToken: null,
-          resetTokenExpiry: null,
-        },
-      });
-
-      // Log audit
-      await this.logAudit(user.id, "UPDATE", "User", user.id, {
-        action: "Password reset completed",
-      });
-
-      throw new Error(
-        "Password reset temporarily disabled until database migration is complete"
-      );
-    } catch (error) {
-      throw error;
+    // TEMPORARY: For now, just validate the token format
+    if (!token || token.length < 32) {
+      throw new Error("Invalid reset token format");
     }
+
+    // Validate new password
+    if (!newPassword || newPassword.length < 8) {
+      throw new Error("Password must be at least 8 characters long");
+    }
+
+    // Find user by reset token
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpiry: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new Error("Invalid or expired reset token");
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password and clear reset token
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    // Log audit
+    await this.logAudit(user.id, "UPDATE", "User", user.id, {
+      action: "Password reset completed",
+    });
+
+    await emailService.sendPasswordChangeNotification(user.email);
   }
 
   /**
@@ -546,7 +519,7 @@ export class AuthService {
         updateData.firstName = validatedData.firstName;
       if (validatedData.lastName) updateData.lastName = validatedData.lastName;
       if (validatedData.phone) updateData.phone = validatedData.phone;
-      // Skip avatar until DB migration: if (validatedData.avatar) updateData.avatar = validatedData.avatar
+      if (validatedData.avatar) updateData.avatar = validatedData.avatar;
 
       const updatedUser = await prisma.user.update({
         where: { id: userId },
@@ -560,14 +533,14 @@ export class AuthService {
           status: true,
           emailVerified: true,
           phone: true,
-          // avatar: true, // Skip until DB migration
+          avatar: true,
         },
       });
 
       // Log audit
       await this.logAudit(userId, "UPDATE", "User", userId, {
         action: "Profile updated",
-        changes: validatedData,
+        changes: updateData,
       });
 
       return updatedUser as AuthUser;
@@ -577,7 +550,6 @@ export class AuthService {
           `Validation error: ${error.errors.map((e) => e.message).join(", ")}`
         );
       }
-      console.error("Update profile error:", error);
       throw error;
     }
   }
@@ -586,22 +558,87 @@ export class AuthService {
    * Verify email
    */
   async verifyEmail(userId: string): Promise<void> {
-    try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        emailVerified: true,
+        verificationToken: true,
+        status: true,
+      },
+    });
+
+    if (!user) throw new Error("User not found");
+    if (user.emailVerified) return; // Already verified
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        emailVerified: new Date(),
+        status: UserStatus.ACTIVE,
+        verificationToken: null,
+        verificationTokenExpiry: null,
+      },
+    });
+
+    await this.logAudit(userId, "UPDATE", "User", userId, {
+      action: "Email verified (authenticated route)",
+    });
+  }
+
+  /**
+   * Resend email verification
+   */
+  async resendVerification(userId: string): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        status: true,
+        emailVerified: true,
+        verificationToken: true,
+        verificationTokenExpiry: true,
+      },
+    });
+    if (!user) throw new Error("User not found");
+    if (user.emailVerified) throw new Error("Email already verified");
+
+    // Reuse valid, unexpired token (optional) or always issue new
+    let reuse = false;
+    if (
+      user.verificationToken &&
+      user.verificationTokenExpiry &&
+      user.verificationTokenExpiry > new Date()
+    ) {
+      reuse = true;
+    }
+
+    let verificationToken = user.verificationToken;
+    let verificationTokenExpiry = user.verificationTokenExpiry;
+
+    if (!reuse) {
+      verificationToken = crypto.randomBytes(32).toString("hex");
+      verificationTokenExpiry = new Date(Date.now() + 1000 * 60 * 60); // 1h
       await prisma.user.update({
-        where: { id: userId },
+        where: { id: user.id },
         data: {
-          emailVerified: new Date(),
-          status: UserStatus.ACTIVE,
+          verificationToken,
+          verificationTokenExpiry,
         },
       });
-
-      await this.logAudit(userId, "UPDATE", "User", userId, {
-        action: "Email verified",
-      });
-    } catch (error) {
-      console.error("Verify email error:", error);
-      throw error;
     }
+
+    await emailService.sendEmailVerification(
+      user.email,
+      verificationToken as string
+    );
+
+    await this.logAudit(user.id, "UPDATE", "User", user.id, {
+      action: "Verification email resent",
+      reused: reuse,
+    });
   }
 
   /**

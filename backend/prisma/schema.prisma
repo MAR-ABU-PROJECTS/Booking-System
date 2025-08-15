@@ -62,6 +62,7 @@ model User {
 
   @@index([email])
   @@index([resetToken])
+  @@index([verificationToken])
   @@index([status])
   @@index([deletedAt])
   @@map("users")

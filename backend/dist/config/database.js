@@ -15,8 +15,9 @@ const prismaClientSingleton = () => {
             : ["error"],
         errorFormat: "pretty",
     });
+    const hasMiddleware = typeof prisma.$use === "function";
     // Middleware for query logging in development
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && hasMiddleware) {
         prisma.$use(async (params, next) => {
             const before = Date.now();
             const result = await next(params);
@@ -29,26 +30,30 @@ const prismaClientSingleton = () => {
             return result;
         });
     }
-    // Middleware for soft deletes (if needed in future)
-    prisma.$use(async (params, next) => {
-        // Handle soft deletes for specific models
-        if (params.model === "User" || params.model === "Property") {
-            if (params.action === "delete") {
-                params.action = "update";
-                params.args["data"] = { deletedAt: new Date() };
-            }
-            if (params.action === "deleteMany") {
-                params.action = "updateMany";
-                if (params.args.data !== undefined) {
-                    params.args.data["deletedAt"] = new Date();
-                }
-                else {
+    // Middleware for soft deletes
+    if (hasMiddleware) {
+        prisma.$use(async (params, next) => {
+            if (params.model === "User" || params.model === "Property") {
+                if (params.action === "delete") {
+                    params.action = "update";
                     params.args["data"] = { deletedAt: new Date() };
                 }
+                if (params.action === "deleteMany") {
+                    params.action = "updateMany";
+                    if (params.args.data !== undefined) {
+                        params.args.data["deletedAt"] = new Date();
+                    }
+                    else {
+                        params.args["data"] = { deletedAt: new Date() };
+                    }
+                }
             }
-        }
-        return next(params);
-    });
+            return next(params);
+        });
+    }
+    else if (process.env.NODE_ENV === "development") {
+        logger_middleware_1.logger.warn("Prisma middleware ($use) not available. If unexpected, delete node_modules/.prisma and regenerate.");
+    }
     return prisma;
 };
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();

@@ -210,15 +210,14 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
     email: string,
     resetToken: string
   ): Promise<boolean> {
-    const resetUrl = `${this.getBackendBaseUrl()}/auth/reset-password?token=${resetToken}`;
-
+    // Use API route (adds /api/v1 automatically)
+    const resetUrl = this.apiUrl(`/auth/reset-password?token=${resetToken}`);
     const content = `
       <h2>Password Reset Request</h2>
       <p>You requested to reset your password. Click below:</p>
       <a href="${resetUrl}" class="button">Reset Password</a>
       <p>This link will expire in 1 hour.</p>
     `;
-
     return this.sendEmail({
       to: email,
       subject: "Password Reset Request",
