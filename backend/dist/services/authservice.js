@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authService = exports.AuthService = exports.updateProfileSchema = exports.changePasswordSchema = exports.loginSchema = exports.registerSchema = void 0;
 exports.requireAuth = requireAuth;
 exports.optionalAuth = optionalAuth;
+exports.blacklistToken = blacklistToken;
+exports.isTokenBlacklisted = isTokenBlacklisted;
 // MAR ABU PROJECTS SERVICES LLC - Authentication Service (FULLY FIXED)
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
@@ -595,6 +597,72 @@ class AuthService {
         });
         return user;
     }
+    /**
+     * Issue a new refresh token for the user
+     */
+    async issueRefreshToken(userId, expiresInMs = 7 * 24 * 60 * 60 * 1000) {
+        const token = crypto_1.default.randomBytes(64).toString("hex");
+        const tokenHash = crypto_1.default.createHash("sha256").update(token).digest("hex");
+        const expiresAt = new Date(Date.now() + expiresInMs);
+        await prisma.refreshToken.create({
+            data: {
+                tokenHash,
+                userId,
+                expiresAt,
+            },
+        });
+        return token;
+    }
+    /**
+     * Look up an opaque refresh token record to learn its owner & expiry.
+     * Returns null if the token doesn't exist.
+     */
+    async getRefreshTokenOwner(token) {
+        const tokenHash = crypto_1.default.createHash("sha256").update(token).digest("hex");
+        const found = await prisma.refreshToken.findUnique({
+            where: { tokenHash },
+            select: { userId: true, expiresAt: true, revoked: true },
+        });
+        return found ?? null;
+    }
+    /**
+     * Rotate refresh token
+     */
+    async rotateRefreshToken(oldToken, userId) {
+        const oldTokenHash = crypto_1.default
+            .createHash("sha256")
+            .update(oldToken)
+            .digest("hex");
+        const found = await prisma.refreshToken.findUnique({
+            where: { tokenHash: oldTokenHash },
+        });
+        if (!found ||
+            found.revoked ||
+            found.expiresAt < new Date() ||
+            found.userId !== userId) {
+            throw new Error("Invalid or expired refresh token");
+        }
+        // Revoke old token
+        await prisma.refreshToken.update({
+            where: { tokenHash: oldTokenHash },
+            data: { revoked: true },
+        });
+        // Issue new token
+        return await this.issueRefreshToken(userId);
+    }
+    /**
+     * Issue a new access token
+     */
+    issueAccessToken(user) {
+        const payload = {
+            userId: user.id,
+            email: user.email,
+            role: user.role,
+        };
+        return jsonwebtoken_1.default.sign(payload, this.JWT_SECRET, {
+            expiresIn: String(this.JWT_EXPIRES_IN),
+        });
+    }
 }
 exports.AuthService = AuthService;
 // ===============================
@@ -615,6 +683,13 @@ function requireAuth(options) {
                 });
             }
             const token = authHeader.substring(7);
+            // Blacklist check
+            if (await isTokenBlacklisted(token)) {
+                return res.status(401).json({
+                    success: false,
+                    message: "Token is blacklisted",
+                });
+            }
             const payload = exports.authService.verifyToken(token);
             // Get user data
             const user = await exports.authService.getUserById(payload.userId);
@@ -669,4 +744,27 @@ function optionalAuth() {
             next();
         }
     };
+}
+// Hash a token for secure storage
+function hashToken(token) {
+    return crypto_1.default.createHash("sha256").update(token).digest("hex");
+}
+// Add token to blacklist
+async function blacklistToken(token, expiresAt, userId) {
+    const tokenHash = hashToken(token);
+    await prisma.blacklistedToken.create({
+        data: {
+            tokenHash,
+            expiresAt,
+            userId,
+        },
+    });
+}
+// Check if token is blacklisted
+async function isTokenBlacklisted(token) {
+    const tokenHash = hashToken(token);
+    const found = await prisma.blacklistedToken.findUnique({
+        where: { tokenHash },
+    });
+    return !!found;
 }

@@ -145,10 +145,18 @@ class BookingService {
         const serviceFeeRate = property.serviceFee || 0.05;
         const serviceFee = Math.round((baseAmount + cleaningFee) * serviceFeeRate);
         const taxes = 0; // Add tax calculation if needed
-        let discounts = 0; // Add discount calculation if needed
+        let discounts = 0;
         if (promoCode) {
             // Lookup promo code and apply discount
-            discounts = 0;
+            const promo = await prisma.promoCode.findUnique({
+                where: { code: promoCode },
+            });
+            if (promo &&
+                promo.active &&
+                (!promo.startDate || promo.startDate <= new Date()) &&
+                (!promo.endDate || promo.endDate >= new Date())) {
+                discounts = Math.round((baseAmount + cleaningFee) * (promo.discount / 100));
+            }
         }
         const totalAmount = baseAmount + cleaningFee + serviceFee + taxes - discounts;
         return {

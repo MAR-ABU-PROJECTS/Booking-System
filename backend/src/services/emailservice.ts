@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { Resend } from "resend";
 import { logger } from "../middlewares/logger.middleware";
 import { APP_CONSTANTS } from "../utils/constants";
+import { prisma } from "../server";
 
 interface EmailAttachment {
   filename: string;
@@ -697,3 +698,29 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
 }
 
 export const emailService = new EmailService();
+
+export async function enqueueEmail(
+  options: EmailOptions,
+  type: string,
+  scheduledAt?: Date
+) {
+  await prisma.emailQueue.create({
+    data: {
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      type,
+      scheduledAt: scheduledAt ?? new Date(),
+    },
+  });
+}
+
+// Usage example in your password reset flow:
+// await enqueueEmail(
+//   {
+//     to: user.email,
+//     subject: "Password Reset",
+//     html: resetHtml,
+//   },
+//   "passwordReset"
+// );
