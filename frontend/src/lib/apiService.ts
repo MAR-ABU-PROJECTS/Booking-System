@@ -10,13 +10,13 @@ const axiosInstance = axios.create({
 
 type FailedRequest = {
 	resolve: (value?: string | null) => void;
-	reject: (reason?: any) => void;
+	reject: (reason?: unknown) => void;
 };
 
 let isRefreshing = false;
 let failedQueue: FailedRequest[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
 	failedQueue.forEach(({ resolve, reject }) => {
 		if (error) reject(error);
 		else resolve(token);

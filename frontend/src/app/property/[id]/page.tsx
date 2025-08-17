@@ -8,7 +8,7 @@ type Props = {
 };
 const Page = async ({ params }: Props) => {
 	const { id } = await params;
-	const property = await getPropertyById(Number(id));
+	const property = await getPropertyById(id);
 
 	if (!property) {
 		return (

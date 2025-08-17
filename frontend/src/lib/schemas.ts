@@ -44,6 +44,11 @@ export const homePageBookingSchema = z
 				message: "Check-out date must be after check-in date.",
 				path: ["stepThree", "checkout"],
 			});
+			ctx.addIssue({
+				code: "custom",
+				message: "Check-in date must be before check-out date.",
+				path: ["stepTwo", "checkin"],
+			});
 		}
 	});
 

@@ -1,48 +1,40 @@
 "use client";
 import { MapPin, ShieldHalf } from "lucide-react";
-import { bookingDetailsSchema } from "@lib/schemas";
-import { useFormContext } from "react-hook-form";
-import { z } from "zod";
 import dayjs from "dayjs";
 import { RootState } from "@lib/features/store";
 import { useSelector } from "react-redux";
 import { formatCurrency } from "@lib/utils";
 import PropertyCarousel from "@components/PropertyCarousel";
-import { useQuery } from "@tanstack/react-query";
+import type { SummaryData } from "@lib/type";
 import { apiService } from "@lib/apiService";
-import { isAxiosError } from "axios";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { useSearchParams } from "next/navigation";
+import { isAxiosError } from "axios";
 
-const BookingSummary = () => {
-	const searchParams = useSearchParams();
-	const propertyId = searchParams.get("id");
-
+const BookingSummary = ({
+	summaryData,
+	propertyId,
+}: {
+	summaryData: SummaryData;
+	propertyId: string;
+}) => {
 	const booking = useSelector((state: RootState) => state.booking);
-	const { watch } = useFormContext<z.infer<typeof bookingDetailsSchema>>();
-	const adultCount = watch("adults");
-	const childCount = watch("children");
-	const infantCount = watch("infants");
-	const checkInDate = watch("checkIn");
-	const checkOutDate = watch("checkOut");
-	const nights =
-		checkInDate && checkOutDate
-			? dayjs(checkOutDate).diff(dayjs(checkInDate), "day")
-			: 0;
+	const nights = summaryData.nights;
+
 	const nightsLabel = nights === 1 ? "1 Night" : `${nights} Nights`;
-	const formattedCheckIn = checkInDate
-		? dayjs(checkInDate).format("ddd, MMM D")
+	const formattedCheckIn = summaryData.checkInDate
+		? dayjs(summaryData.checkInDate).format("ddd, MMM D")
 		: "";
-	const formattedCheckOut = checkOutDate
-		? dayjs(checkOutDate).format("ddd, MMM D")
+	const formattedCheckOut = summaryData.checkOutDate
+		? dayjs(summaryData.checkOutDate).format("ddd, MMM D")
 		: "";
 
-	const ratePerNight = booking.price;
+	const ratePerNight = summaryData.baseAmount;
 	const subtotal = ratePerNight * nights;
-	const serviceFee = subtotal * 0.05;
+	const serviceFee = summaryData.serviceFee;
 	const totalAmount = subtotal + serviceFee;
 	const location = booking.location;
-	const name = booking.name;
+	// const name = booking.name;
 
 	const images = [
 		"/apartment-images/IMG_5673.JPG",
@@ -53,44 +45,12 @@ const BookingSummary = () => {
 		"/apartment-images/IMG_5678.JPG",
 	];
 
-
-	const checkIn = checkInDate
-		? dayjs(checkInDate).format("YYYY-MM-DD")
-		: "";
-		const checkOut = checkOutDate
-		? dayjs(checkOutDate).format("YYYY-MM-DD")
-		: "";	
-	const params = {
-		propertyId: propertyId,
-		adults: adultCount,
-		children: childCount,
-		infants: infantCount,
-		checkIn: checkIn,
-		checkOut: checkOut,
-	};
-
-	const getSummary = useQuery({
-		queryKey: ["bookingSummary", params],
+	const getProperty = useQuery({
+		queryKey: ["property", propertyId],
 		queryFn: async () => {
 			try {
-				const queryString = new URLSearchParams(
-					Object.entries(params).reduce(
-						(acc, [key, value]) => {
-							if (
-								value !== undefined &&
-								value !== null &&
-								value !== ""
-							) {
-								acc[key] = String(value);
-							}
-							return acc;
-						},
-						{} as Record<string, string>
-					)
-				).toString();
-
 				const response = await apiService.get(
-					`/bookings/pricing?${queryString}`
+					`/properties/${propertyId}`
 				);
 				return response;
 			} catch (error) {
@@ -109,20 +69,21 @@ const BookingSummary = () => {
 
 				throw new Error(errorMessage);
 			}
- 		},
+		},
 		enabled: Boolean(propertyId),
-		retry:false
+		retry: false,
 	});
 
-
 	return (
-		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
+		<div className="order-[-1] md:order-2 flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
 			<div className="flex flex-col gap-[5px]">
 				<div className="w-full rounded-xl -mt-1">
 					<PropertyCarousel images={images} />
 				</div>
 				<div className="flex justify-center items-center">
-					<p className="text-[18px] font-semibold">{name}</p>
+					<p className="text-[18px] font-semibold">
+						{getProperty?.data?.data?.name}
+					</p>
 				</div>
 				<div className="flex justify-center items-center gap-[5px]">
 					<MapPin color="red" fontSize={"10px"} />
@@ -168,9 +129,12 @@ const BookingSummary = () => {
 					</div>
 					<div>
 						<p className="text-[14px] font-[500]">
-							{adultCount} Adult{adultCount !== 1 && "s"},{" "}
-							{childCount} Child{childCount !== 1 && "ren"},{" "}
-							{infantCount} Infant{infantCount > 0 && "s"}
+							{summaryData.adults} Adult
+							{summaryData.adults !== 1 && "s"},{" "}
+							{summaryData.children} Child
+							{summaryData.children !== 1 && "ren"},{" "}
+							{summaryData.infants} Infant
+							{summaryData.infants > 1 ? "s" : ''}
 						</p>
 					</div>
 				</div>

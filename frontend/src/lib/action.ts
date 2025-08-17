@@ -24,10 +24,10 @@ export async function getSessionUser() {
 
 	return {
 		user: {
-			id: session.user.id,
-			name: session.user.name,
-			email: session.user.email,
-			isLoggedIn: session.user.isLoggedIn,
+			id: session.user?.id,
+			name: session.user?.name,
+			email: session.user?.email,
+			isLoggedIn: session.user?.isLoggedIn,
 		},
 	};
 }

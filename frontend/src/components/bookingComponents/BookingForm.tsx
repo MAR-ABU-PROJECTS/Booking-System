@@ -32,11 +32,10 @@ import GuestCounterTwo from "@components/GuestCounterTwo";
 import { useState } from "react";
 import dayjs from "dayjs";
 
-
 type Props = {
-	isSubmitting: boolean
-}
-const BookingForm = ({isSubmitting}: Props) => {
+	isSubmitting: boolean;
+};
+const BookingForm = ({ isSubmitting }: Props) => {
 	const { control } = useFormContext<z.infer<typeof bookingDetailsSchema>>();
 	const [open, setOpen] = useState(false);
 	const [openSec, setOpenSec] = useState(false);
@@ -283,7 +282,6 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="text"
-									
 											placeholder="Enter First Name"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -311,7 +309,6 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="text"
-										
 											placeholder="Enter Last Name"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -339,7 +336,6 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="email"
-										
 											placeholder="youremail@example.com"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -366,7 +362,6 @@ const BookingForm = ({isSubmitting}: Props) => {
 										</Label>
 										<Input
 											type="number"
-									
 											placeholder="+234 XXX XXXX XXX"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -402,12 +397,12 @@ const BookingForm = ({isSubmitting}: Props) => {
 							)}
 						/>
 
-						<div className="flex justify-between items-center gap-[20px]">
+						<div className="">
 							<Controller
 								control={control}
 								name="idType"
 								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
+									<div className="grid w-full items-center gap-1">
 										<Label>
 											ID Type
 											<span className="text-red-600">
@@ -447,32 +442,8 @@ const BookingForm = ({isSubmitting}: Props) => {
 								)}
 							/>
 
-							<Controller
-								control={control}
-								name="idNumber"
-								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
-										<Label>
-											ID Number
-											<span className="text-red-600">
-												*
-											</span>
-										</Label>
-										<Input
-											type="number"
-										
-											placeholder="Enter ID Number"
-											className="border-2 border-[#f7d5b0]"
-											{...field}
-										/>
-										{fieldState.error && (
-											<p className="text-sm text-red-600">
-												{fieldState.error.message}
-											</p>
-										)}
-									</div>
-								)}
-							/>
+
+
 						</div>
 
 						<Controller
@@ -637,13 +608,12 @@ const BookingForm = ({isSubmitting}: Props) => {
 								control={control}
 								name="arrivalTime"
 								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
+									<div className="grid w-full items-center gap-1">
 										<Label htmlFor="time-picker">
 											Estimated Arrival Time
 										</Label>
 										<Input
 											type="time"
-										
 											className="bg-background border-2 border-[#f7d5b0] appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 											{...field}
 										/>
@@ -656,47 +626,7 @@ const BookingForm = ({isSubmitting}: Props) => {
 								)}
 							/>
 
-							<Controller
-								control={control}
-								name="purpose"
-								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
-										<Label>Purpose of Visit</Label>
-										<Select
-											value={field.value}
-											onValueChange={field.onChange}
-										>
-											<SelectTrigger className="w-[full] border-2 border-[#f7d5b0]">
-												<SelectValue placeholder="Select Purpose" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectGroup>
-													<SelectItem value="business">
-														Business
-													</SelectItem>
-													<SelectItem value="leisure">
-														Leisure
-													</SelectItem>
-													<SelectItem value="family-visit">
-														Family Visit
-													</SelectItem>
-													<SelectItem value="event">
-														Conference/Event
-													</SelectItem>
-													<SelectItem value="other">
-														Other
-													</SelectItem>
-												</SelectGroup>
-											</SelectContent>
-										</Select>
-										{fieldState.error && (
-											<p className="text-sm text-red-600">
-												{fieldState.error.message}
-											</p>
-										)}
-									</div>
-								)}
-							/>
+							
 						</div>
 
 						<div className="w-full h-full p-[10px] bg-[#fef9f3] border-2 border-[#f7d5b0] rounded-xl">
@@ -755,7 +685,9 @@ const BookingForm = ({isSubmitting}: Props) => {
 					disabled={isSubmitting}
 					type="submit"
 				>
-			  {isSubmitting ? "⏳ Processing..." : "🔒 Complete Secure Booking"}
+					{isSubmitting
+						? "⏳ Processing..."
+						: "🔒 Complete Secure Booking"}
 				</Button>
 			</div>
 		</div>

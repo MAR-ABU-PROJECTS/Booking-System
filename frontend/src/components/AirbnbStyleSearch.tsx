@@ -32,28 +32,28 @@ const AirbnbStyleSearch = () => {
 	// MAR ABU HOMES current apartments
 	const marAbuApartments = [
 		{
-			id: "cmdwwite80003wgkoehn3r6ng",
+			id: "cmeffv6gn000ugi4szmoo173w",
 			name: "WHITE-STONE",
 			location: "Victoria Island, Lagos",
 			type: "Luxury Apartment",
 			price: 85000,
 		},
 		{
-			id: "cmdwwitew000dwgkoewq2h7d9",
+			id: "cmeffv62u0003gi4s3gkrh5yh",
 			name: "ABIKE PENTHOUSE",
 			location: "Ikoyi, Lagos",
 			type: "Premium Penthouse",
 			price: 120000,
 		},
 		{
-			id: "cmdwwitf8000lwgkod167qhhq",
+			id: "cmeffv68e000dgi4s7hkurcrg",
 			name: "OBUDU VILLA",
 			location: "Lekki Phase 1, Lagos",
 			type: "Executive Villa",
 			price: 95000,
 		},
 		{
-			id: "cmdwwitfh000uwgkom0t5wj8u",
+			id: "cmeffv6ck000lgi4s2rb6qqdk",
 			name: "ZIRCON",
 			location: "Banana Island, Lagos",
 			type: "Luxury Suite",
@@ -77,7 +77,7 @@ const AirbnbStyleSearch = () => {
 		},
 	});
 
-	function flattenErrors(errorObj: any): string[] {
+	function flattenErrors(errorObj: unknown): string[] {
 		if (!errorObj) return [];
 
 		return Object.values(errorObj).flatMap((error) => {
