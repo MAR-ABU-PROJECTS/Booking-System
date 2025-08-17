@@ -9,6 +9,7 @@ import rateLimit from "express-rate-limit";
 import { PrismaClient } from "@prisma/client";
 import path from "path";
 import { swaggerSpec, swaggerUi } from "./swagger";
+import cron from "node-cron";
 
 // Load environment variables
 dotenv.config();
@@ -205,6 +206,41 @@ process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully...");
   await prisma.$disconnect();
   process.exit(0);
+});
+
+// Periodic cleanup of expired blacklisted tokens (runs daily at 3 AM)
+cron.schedule("0 3 * * *", async () => {
+  try {
+    const result = await prisma.blacklistedToken.deleteMany({
+      where: {
+        expiresAt: { lt: new Date() },
+      },
+    });
+    if (result.count > 0) {
+      console.log(`Cleaned up ${result.count} expired blacklisted tokens`);
+    }
+  } catch (err) {
+    console.error("Error cleaning blacklisted tokens:", err);
+  }
+});
+
+// Periodic cleanup of expired refresh tokens (runs daily at 3 AM)
+cron.schedule("0 3 * * *", async () => {
+  try {
+    const result = await prisma.refreshToken.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: new Date() } },
+          { revoked: true },
+        ],
+      },
+    });
+    if (result.count > 0) {
+      console.log(`Cleaned up ${result.count} expired/revoked refresh tokens`);
+    }
+  } catch (err) {
+    console.error("Error cleaning refresh tokens:", err);
+  }
 });
 
 // Start the server

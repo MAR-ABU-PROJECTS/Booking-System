@@ -70,7 +70,7 @@ export interface JWTPayload {
 export class AuthService {
   private JWT_SECRET: string;
   private JWT_EXPIRES_IN: string;
-  private JWT_REFRESH_SECRET: string;
+  public JWT_REFRESH_SECRET: string;
   private JWT_REFRESH_EXPIRES_IN: string;
 
   /**
@@ -747,6 +747,88 @@ export class AuthService {
 
     return user;
   }
+
+  /**
+   * Issue a new refresh token for the user
+   */
+  async issueRefreshToken(
+    userId: string,
+    expiresInMs: number = 7 * 24 * 60 * 60 * 1000
+  ): Promise<string> {
+    const token = crypto.randomBytes(64).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const expiresAt = new Date(Date.now() + expiresInMs);
+
+    await prisma.refreshToken.create({
+      data: {
+        tokenHash,
+        userId,
+        expiresAt,
+      },
+    });
+
+    return token;
+  }
+
+  /**
+   * Look up an opaque refresh token record to learn its owner & expiry.
+   * Returns null if the token doesn't exist.
+   */
+  public async getRefreshTokenOwner(
+    token: string
+  ): Promise<{ userId: string; expiresAt: Date; revoked: boolean } | null> {
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const found = await prisma.refreshToken.findUnique({
+      where: { tokenHash },
+      select: { userId: true, expiresAt: true, revoked: true },
+    });
+    return found ?? null;
+  }
+
+  /**
+   * Rotate refresh token
+   */
+  async rotateRefreshToken(oldToken: string, userId: string): Promise<string> {
+    const oldTokenHash = crypto
+      .createHash("sha256")
+      .update(oldToken)
+      .digest("hex");
+    const found = await prisma.refreshToken.findUnique({
+      where: { tokenHash: oldTokenHash },
+    });
+
+    if (
+      !found ||
+      found.revoked ||
+      found.expiresAt < new Date() ||
+      found.userId !== userId
+    ) {
+      throw new Error("Invalid or expired refresh token");
+    }
+
+    // Revoke old token
+    await prisma.refreshToken.update({
+      where: { tokenHash: oldTokenHash },
+      data: { revoked: true },
+    });
+
+    // Issue new token
+    return await this.issueRefreshToken(userId);
+  }
+
+  /**
+   * Issue a new access token
+   */
+  public issueAccessToken(user: AuthUser): string {
+    const payload: JWTPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    };
+    return jwt.sign(payload, this.JWT_SECRET, {
+      expiresIn: String(this.JWT_EXPIRES_IN),
+    } as jwt.SignOptions);
+  }
 }
 
 // ===============================
@@ -773,6 +855,15 @@ export function requireAuth(options?: {
       }
 
       const token = authHeader.substring(7);
+
+      // Blacklist check
+      if (await isTokenBlacklisted(token)) {
+        return res.status(401).json({
+          success: false,
+          message: "Token is blacklisted",
+        });
+      }
+
       const payload = authService.verifyToken(token);
 
       // Get user data
@@ -836,4 +927,34 @@ export function optionalAuth() {
       next();
     }
   };
+}
+
+// Hash a token for secure storage
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+// Add token to blacklist
+export async function blacklistToken(
+  token: string,
+  expiresAt: Date,
+  userId?: string
+) {
+  const tokenHash = hashToken(token);
+  await prisma.blacklistedToken.create({
+    data: {
+      tokenHash,
+      expiresAt,
+      userId,
+    },
+  });
+}
+
+// Check if token is blacklisted
+export async function isTokenBlacklisted(token: string): Promise<boolean> {
+  const tokenHash = hashToken(token);
+  const found = await prisma.blacklistedToken.findUnique({
+    where: { tokenHash },
+  });
+  return !!found;
 }

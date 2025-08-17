@@ -1,4 +1,7 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 // MAR ABU PROJECTS SERVICES LLC - Authentication Routes
 const express_1 = require("express");
@@ -7,6 +10,7 @@ const authservice_1 = require("../services/authservice");
 const error_middleware_1 = require("../middlewares/error.middleware");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const router = (0, express_1.Router)();
 // Validation middleware
 const validate = (req, res, next) => {
@@ -519,14 +523,18 @@ router.get("/reset-password", (0, error_middleware_1.asyncHandler)(async (req, r
  *         description: Server error
  */
 router.post("/logout", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    await authservice_1.authService.logout(req.user.id);
-    (0, logger_middleware_1.auditLog)("USER_LOGOUT", req.user.id, {
-        email: req.user.email,
-    }, req.ip);
-    res.json({
-        success: true,
-        message: "Logout successful",
-    });
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token)
+        return res
+            .status(400)
+            .json({ success: false, message: "No token provided" });
+    // Decode token to get expiry (or use JWT library)
+    const payload = jsonwebtoken_1.default.decode(token);
+    const expiresAt = payload?.exp
+        ? new Date(payload.exp * 1000)
+        : new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await (0, authservice_1.blacklistToken)(token, expiresAt, req.user?.id);
+    res.json({ success: true, message: "Logged out and token blacklisted" });
 }));
 /**
  * @route   GET /api/v1/auth/me
@@ -812,6 +820,39 @@ router.post("/test-email", (0, error_middleware_1.asyncHandler)(async (req, res)
         return res
             .status(500)
             .json({ success: false, message: "Failed to send test email." });
+    }
+}));
+router.post("/refresh-token", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { refreshToken } = req.body;
+    if (!refreshToken)
+        return res
+            .status(400)
+            .json({ success: false, message: "Refresh token required" });
+    // Decode refresh token to get userId
+    const payload = jsonwebtoken_1.default.decode(refreshToken);
+    const userId = payload?.userId;
+    if (!userId)
+        return res
+            .status(401)
+            .json({ success: false, message: "Invalid refresh token" });
+    const user = await authservice_1.authService.getUserById(userId);
+    if (!user)
+        return res
+            .status(401)
+            .json({ success: false, message: "User not found" });
+    try {
+        const newRefreshToken = await authservice_1.authService.rotateRefreshToken(refreshToken, user.id);
+        const newAccessToken = authservice_1.authService.issueAccessToken(user);
+        res.json({
+            success: true,
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+        });
+    }
+    catch (err) {
+        res
+            .status(401)
+            .json({ success: false, message: "Invalid or expired refresh token" });
     }
 }));
 exports.default = router;

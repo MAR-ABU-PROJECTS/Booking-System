@@ -59,9 +59,92 @@ const validate = (req: any, res: any, next: any) => {
 // ===============================
 
 /**
- * @route   GET /api/v1/users/profile
+ * @route   GET /users/profile
  * @desc    Get current user profile
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/profile:
+ *   get:
+ *     summary: Get authenticated user profile
+ *     description: Retrieve the profile information of the currently authenticated user, including basic details, avatar, role, status, email verification, notification preferences, and counts of related entities.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "userId123"
+ *                     email:
+ *                       type: string
+ *                       example: "user@example.com"
+ *                     firstName:
+ *                       type: string
+ *                       example: "John"
+ *                     lastName:
+ *                       type: string
+ *                       example: "Doe"
+ *                     phone:
+ *                       type: string
+ *                       example: "+234-801-234-5678"
+ *                     avatar:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "/uploads/avatars/avatar123.jpg"
+ *                     role:
+ *                       type: string
+ *                       example: "CUSTOMER"
+ *                     status:
+ *                       type: string
+ *                       example: "ACTIVE"
+ *                     emailVerified:
+ *                       type: boolean
+ *                       example: true
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-08-17T23:59:59.000Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-08-18T10:30:00.000Z"
+ *                     notificationPreferences:
+ *                       type: object
+ *                       additionalProperties: true
+ *                       example: { email: true, sms: false }
+ *                     _count:
+ *                       type: object
+ *                       properties:
+ *                         bookings:
+ *                           type: integer
+ *                           example: 5
+ *                         hostedProperties:
+ *                           type: integer
+ *                           example: 2
+ *                         reviews:
+ *                           type: integer
+ *                           example: 3
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
  */
 router.get(
   '/profile',
@@ -104,9 +187,111 @@ router.get(
 )
 
 /**
- * @route   PUT /api/v1/users/profile
+ * @route   PUT /users/profile
  * @desc    Update user profile
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/profile:
+ *   put:
+ *     summary: Update authenticated user profile
+ *     description: Update the profile information of the currently authenticated user, including personal details such as name, phone, bio, date of birth, and address information.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: "John"
+ *               lastName:
+ *                 type: string
+ *                 example: "Doe"
+ *               phone:
+ *                 type: string
+ *                 example: "+2348012345678"
+ *               bio:
+ *                 type: string
+ *                 maxLength: 500
+ *                 example: "Passionate web developer."
+ *               dateOfBirth:
+ *                 type: string
+ *                 format: date
+ *                 example: "1990-05-20"
+ *               address:
+ *                 type: string
+ *                 example: "123 Main Street"
+ *               city:
+ *                 type: string
+ *                 example: "Lagos"
+ *               country:
+ *                 type: string
+ *                 example: "Nigeria"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Profile updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "userId123"
+ *                     email:
+ *                       type: string
+ *                       example: "user@example.com"
+ *                     firstName:
+ *                       type: string
+ *                       example: "John"
+ *                     lastName:
+ *                       type: string
+ *                       example: "Doe"
+ *                     phone:
+ *                       type: string
+ *                       example: "+2348012345678"
+ *                     avatar:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "/uploads/avatars/avatar123.jpg"
+ *                     bio:
+ *                       type: string
+ *                       example: "Passionate web developer."
+ *                     dateOfBirth:
+ *                       type: string
+ *                       format: date
+ *                       example: "1990-05-20"
+ *                     address:
+ *                       type: string
+ *                       example: "123 Main Street"
+ *                     city:
+ *                       type: string
+ *                       example: "Lagos"
+ *                     country:
+ *                       type: string
+ *                       example: "Nigeria"
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 router.put(
   '/profile',
@@ -162,9 +347,66 @@ router.put(
 )
 
 /**
- * @route   POST /api/v1/users/avatar
+ * @route   POST /users/avatar
  * @desc    Upload user avatar
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/avatar:
+ *   post:
+ *     summary: Upload or update user avatar
+ *     description: Uploads a new avatar image for the currently authenticated user. If an existing avatar exists, it will be deleted.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *                 description: "Avatar image file to upload"
+ *     responses:
+ *       200:
+ *         description: Avatar updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Avatar updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "userId123"
+ *                     firstName:
+ *                       type: string
+ *                       example: "John"
+ *                     lastName:
+ *                       type: string
+ *                       example: "Doe"
+ *                     avatar:
+ *                       type: string
+ *                       example: "/uploads/avatars/avatar123.jpg"
+ *       400:
+ *         description: Avatar image is required or validation error
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 router.post(
   '/avatar',
@@ -217,9 +459,38 @@ router.post(
 )
 
 /**
- * @route   DELETE /api/v1/users/avatar
+ * @route   DELETE /users/avatar
  * @desc    Delete user avatar
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/avatar:
+ *   delete:
+ *     summary: Delete user avatar
+ *     description: Deletes the currently authenticated user's avatar image from the filesystem and updates their profile record.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Avatar deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Avatar deleted successfully"
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 router.delete(
   '/avatar',
@@ -257,9 +528,62 @@ router.delete(
 )
 
 /**
- * @route   PUT /api/v1/users/password
+ * @route   PUT /users/password
  * @desc    Change user password
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/password:
+ *   put:
+ *     summary: Change user password
+ *     description: Allows the currently authenticated user to update their password after verifying the current password.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *               - confirmPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 example: "OldPassword123!"
+ *               newPassword:
+ *                 type: string
+ *                 example: "NewStrongPassword@123"
+ *               confirmPassword:
+ *                 type: string
+ *                 example: "NewStrongPassword@123"
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Password changed successfully"
+ *       400:
+ *         description: Invalid current password or validation failed
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
  */
 router.put(
   '/password',
@@ -320,9 +644,124 @@ router.put(
 )
 
 /**
- * @route   GET /api/v1/users/dashboard
+ * @route   GET /users/dashboard
  * @desc    Get user dashboard data
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/dashboard:
+ *   get:
+ *     summary: Retrieve dashboard data
+ *     description: Returns dashboard information based on the authenticated user's role (Customer or Admin/Host).
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   oneOf:
+ *                     - description: Customer dashboard
+ *                       properties:
+ *                         bookings:
+ *                           type: object
+ *                           properties:
+ *                             recent:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                                 properties:
+ *                                   id: { type: string }
+ *                                   checkInDate: { type: string, format: date }
+ *                                   checkOutDate: { type: string, format: date }
+ *                                   status: { type: string }
+ *                                   property:
+ *                                     type: object
+ *                                     properties:
+ *                                       id: { type: string }
+ *                                       name: { type: string }
+ *                                       type: { type: string }
+ *                                       city: { type: string }
+ *                                       images: { type: array, items: { type: string } }
+ *                             upcoming:
+ *                               type: array
+ *                               items:
+ *                                 $ref: '#/components/schemas/Booking'
+ *                             total: { type: integer }
+ *                         reviews:
+ *                           type: object
+ *                           properties:
+ *                             total: { type: integer }
+ *                         favorites:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id: { type: string }
+ *                               property:
+ *                                 type: object
+ *                                 properties:
+ *                                   id: { type: string }
+ *                                   name: { type: string }
+ *                                   type: { type: string }
+ *                                   city: { type: string }
+ *                                   baseRate: { type: number }
+ *                                   images: { type: array, items: { type: string } }
+ *                     - description: Admin/Host dashboard
+ *                       properties:
+ *                         properties:
+ *                           type: object
+ *                           properties:
+ *                             total: { type: integer }
+ *                             active: { type: integer }
+ *                             pending: { type: integer }
+ *                         bookings:
+ *                           type: object
+ *                           properties:
+ *                             recent:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                                 properties:
+ *                                   id: { type: string }
+ *                                   status: { type: string }
+ *                                   property: { type: object, properties: { name: { type: string } } }
+ *                                   customer: { type: object, properties: { firstName: { type: string }, lastName: { type: string }, email: { type: string } } }
+ *                             total: { type: integer }
+ *                             pending: { type: integer }
+ *                         earnings:
+ *                           type: object
+ *                           properties:
+ *                             total: { type: number }
+ *                         reviews:
+ *                           type: object
+ *                           properties:
+ *                             recent:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                                 properties:
+ *                                   id: { type: string }
+ *                                   rating: { type: integer }
+ *                                   comment: { type: string }
+ *                                   customer: { type: object, properties: { firstName: { type: string }, lastName: { type: string } } }
+ *                                   property: { type: object, properties: { name: { type: string } } }
+ *                             total: { type: integer }
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 router.get(
   '/dashboard',
@@ -489,9 +928,50 @@ router.get(
 )
 
 /**
- * @route   POST /api/v1/users/favorites/:propertyId
+ * @route   POST /users/favorites/:propertyId
  * @desc    Add property to favorites
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/favorites/{propertyId}:
+ *   post:
+ *     summary: Add a property to user's favorites
+ *     description: Allows an authenticated user to mark a property as a favorite. 
+ *                  Cannot favorite the same property more than once.
+ *     tags:
+ *       - Favorites
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the property to add to favorites
+ *     responses:
+ *       200:
+ *         description: Property added to favorites successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Property added to favorites
+ *       400:
+ *         description: Property is already in favorites
+ *       404:
+ *         description: Property not found
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 router.post(
   '/favorites/:propertyId',
@@ -538,9 +1018,47 @@ router.post(
 )
 
 /**
- * @route   DELETE /api/v1/users/favorites/:propertyId
+ * @route   DELETE /users/favorites/:propertyId
  * @desc    Remove property from favorites
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/favorites/{propertyId}:
+ *   delete:
+ *     summary: Remove a property from user's favorites
+ *     description: Allows an authenticated user to remove a property from their favorites list.
+ *     tags:
+ *       - Favorites
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the property to remove from favorites
+ *     responses:
+ *       200:
+ *         description: Property removed from favorites successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Property removed from favorites
+ *       404:
+ *         description: Favorite entry not found
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 router.delete(
   '/favorites/:propertyId',
@@ -565,9 +1083,87 @@ router.delete(
 )
 
 /**
- * @route   GET /api/v1/users/favorites
+ * @route   GET /users/favorites
  * @desc    Get user's favorite properties
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/favorites:
+ *   get:
+ *     summary: Get list of user's favorite properties
+ *     description: Retrieve a paginated list of properties the authenticated user has favorited, including average ratings and review counts.
+ *     tags:
+ *       - Favorites
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: List of favorite properties with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     favorites:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           property:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               name:
+ *                                 type: string
+ *                               averageRating:
+ *                                 type: number
+ *                               reviewCount:
+ *                                 type: integer
+ *                               host:
+ *                                 type: object
+ *                                 properties:
+ *                                   firstName:
+ *                                     type: string
+ *                                   lastName:
+ *                                     type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         pages:
+ *                           type: integer
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 router.get(
   '/favorites',
@@ -640,9 +1236,59 @@ router.get(
 )
 
 /**
- * @route   DELETE /api/v1/users/account
+ * @route   DELETE /users/account
  * @desc    Delete user account
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /users/account:
+ *   delete:
+ *     summary: Delete user account
+ *     description: Deletes the authenticated user's account after password verification and confirmation. Active bookings must be completed or cancelled before deletion.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *               - confirmDelete
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 description: User's current password
+ *               confirmDelete:
+ *                 type: string
+ *                 enum: [DELETE]
+ *                 description: Must confirm deletion by typing "DELETE"
+ *     responses:
+ *       200:
+ *         description: Account deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Account deleted successfully
+ *       400:
+ *         description: Invalid password or active bookings prevent deletion
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
  */
 router.delete(
   '/account',

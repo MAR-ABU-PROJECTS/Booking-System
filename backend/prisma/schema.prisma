@@ -45,20 +45,23 @@ model User {
   verificationToken       String?
   verificationTokenExpiry DateTime?
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  lastLoginAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  lastLoginAt         DateTime?
 
   // Relations
-  auditLogs        AuditLog[]
-  bookings         Booking[]      @relation("CustomerBookings")
-  notifications    Notification[]
-  hostedProperties Property[]     @relation("PropertyHost")
-  receipts         Receipt[] // Fixed: renamed from receipts
-  reviews          Review[]
-  payments         Payment[] // NEW: Added payments relation
-  favorites        Favorite[] // NEW: Added favorites relation
-  media            Media[]        @relation("UserMedia") // <-- Added media relation
+  auditLogs           AuditLog[]
+  bookings            Booking[]      @relation("CustomerBookings")
+  notifications       Notification[]
+  hostedProperties    Property[]     @relation("PropertyHost")
+  receipts            Receipt[] // Fixed: renamed from receipts
+  reviews             Review[]
+  payments            Payment[] // NEW: Added payments relation
+  favorites           Favorite[] // NEW: Added favorites relation
+  media               Media[]        @relation("UserMedia") // <-- Added media relation
+  blacklistedTokens   BlacklistedToken[] // <-- Added blacklistedTokens relation
+  refreshTokens       RefreshToken[] // <-- Added refreshTokens relation
+  savedSearches       SavedSearch[] // <-- Added savedSearches relation
 
   @@index([email])
   @@index([resetToken])
@@ -487,6 +490,7 @@ model SystemSetting {
   category    String   @default("General")
   description String?
   dataType    String   @default("string")
+  isPublic    Boolean  @default(false)   // Allows public/system vs internal settings
   updatedBy   String? // NEW
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -516,6 +520,82 @@ model Media {
   updatedAt     DateTime @updatedAt
 
   uploader User @relation("UserMedia", fields: [uploadedBy], references: [id])
+}
+
+// ===============================
+// BLACKLISTEDTOKEN (New model)
+// ===============================
+model BlacklistedToken {
+  id            String    @id @default(uuid())
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  userId        String?   // Optional: link to User if needed
+  User          User?     @relation(fields: [userId], references: [id])
+}
+
+// ===============================
+// REFRESHEDTOKEN (NEW MODEL)
+// ===============================
+model RefreshToken {
+  id         String   @id @default(uuid())
+  tokenHash  String   @unique
+  userId     String
+  User       User     @relation(fields: [userId], references: [id])
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  revoked    Boolean  @default(false)
+}
+
+// ===============================
+// EMAIL QUEUE (NEW MODEL)
+// ===============================
+
+model EmailQueue {
+  id          String   @id @default(uuid())
+  to          String
+  subject     String
+  html        String
+  type        String
+  status      String   @default("pending") // pending, processing, sent, failed
+  attempts    Int      @default(0)
+  error       String?
+  scheduledAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, scheduledAt])
+}
+
+// ===============================
+// PROMO CODES (NEW MODEL)
+// ===============================
+
+model PromoCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  description String?
+  discount    Float    // e.g. 10 for 10% off
+  active      Boolean  @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ===============================
+// SAVED SEARCH (NEW MODEL)
+// ===============================
+model SavedSearch {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  query       Json
+  resultCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ===============================

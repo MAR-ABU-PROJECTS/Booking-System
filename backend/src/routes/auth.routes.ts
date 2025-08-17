@@ -2,11 +2,16 @@ import { UserStatus } from "@prisma/client";
 // MAR ABU PROJECTS SERVICES LLC - Authentication Routes
 import { Router } from "express";
 import { body, validationResult } from "express-validator";
-import { authService, requireAuth } from "../services/authservice";
+import {
+  authService,
+  requireAuth,
+  blacklistToken,
+} from "../services/authservice";
 import { asyncHandler } from "../middlewares/error.middleware";
 import { AppError } from "../middlewares/error.middleware";
 import { auditLog } from "../middlewares/logger.middleware";
 import { emailService } from "../services/emailservice";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 
@@ -606,21 +611,21 @@ router.post(
   "/logout",
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
-    await authService.logout(req.user.id);
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token)
+      return res
+        .status(400)
+        .json({ success: false, message: "No token provided" });
 
-    auditLog(
-      "USER_LOGOUT",
-      req.user.id,
-      {
-        email: req.user.email,
-      },
-      req.ip
-    );
+    // Decode token to get expiry (or use JWT library)
+    const payload: any = jwt.decode(token);
+    const expiresAt = payload?.exp
+      ? new Date(payload.exp * 1000)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    res.json({
-      success: true,
-      message: "Logout successful",
-    });
+    await blacklistToken(token, expiresAt, req.user?.id);
+
+    res.json({ success: true, message: "Logged out and token blacklisted" });
   })
 );
 
@@ -950,6 +955,49 @@ router.post(
       return res
         .status(500)
         .json({ success: false, message: "Failed to send test email." });
+    }
+  })
+);
+
+router.post(
+  "/refresh-token",
+  asyncHandler(async (req: any, res: any) => {
+    const { refreshToken } = req.body;
+    if (!refreshToken)
+      return res
+        .status(400)
+        .json({ success: false, message: "Refresh token required" });
+
+    // Decode refresh token to get userId
+    const payload: any = jwt.decode(refreshToken);
+    const userId = payload?.userId;
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid refresh token" });
+
+    const user = await authService.getUserById(userId);
+    if (!user)
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found" });
+
+    try {
+      const newRefreshToken = await authService.rotateRefreshToken(
+        refreshToken,
+        user.id
+      );
+      const newAccessToken = authService.issueAccessToken(user);
+
+      res.json({
+        success: true,
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      });
+    } catch (err) {
+      res
+        .status(401)
+        .json({ success: false, message: "Invalid or expired refresh token" });
     }
   })
 );

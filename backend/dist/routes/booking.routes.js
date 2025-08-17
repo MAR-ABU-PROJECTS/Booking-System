@@ -524,7 +524,7 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
         const costs = calculateBookingCosts(property, data.checkIn, data.checkOut);
         // Generate booking number
         const bookingCode = `MAR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-        // Create booking
+        // Create booking with status APPROVED
         const booking = await server_1.prisma.booking.create({
             data: {
                 bookingCode,
@@ -544,8 +544,10 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
                 cleaningFee: costs.cleaningFee,
                 serviceFee: costs.serviceFee,
                 total: costs.total,
-                status: client_1.BookingStatus.PENDING,
+                status: client_1.BookingStatus.APPROVED, // <-- Auto-approve
                 paymentStatus: client_1.PaymentStatus.PENDING,
+                approvedBy: req.user.id,
+                approvedAt: new Date(),
             },
             include: {
                 property: {
@@ -569,26 +571,9 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
                 },
             },
         });
-        // Create notification for property host
-        await server_1.prisma.notification.create({
-            data: {
-                userId: property.hostId,
-                type: "BOOKING_REQUEST",
-                title: "New Booking Request",
-                message: `${req.user.firstName} ${req.user.lastName} has requested to book ${property.name}`,
-                metadata: {
-                    bookingId: booking.id,
-                    bookingCode: booking.bookingCode,
-                },
-            },
-        });
-        // Send email notifications
-        await Promise.all([
-            emailservice_1.emailService.sendBookingConfirmation(data.guestEmail, booking),
-            property.host && property.host.email
-                ? emailservice_1.emailService.sendHostBookingNotification(property.host.email, booking)
-                : Promise.resolve(),
-        ]);
+        // Send booking confirmation and approval emails to user
+        await emailservice_1.emailService.sendBookingConfirmation(data.guestEmail, booking);
+        await emailservice_1.emailService.sendBookingApprovedEmail(data.guestEmail, booking);
         (0, logger_middleware_1.auditLog)("BOOKING_CREATED", req.user.id, {
             bookingId: booking.id,
             bookingCode: booking.bookingCode,
@@ -596,7 +581,7 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
         }, req.ip);
         res.status(201).json({
             success: true,
-            message: "Booking created successfully. Awaiting host approval.",
+            message: "Booking created and auto-approved. Please check your email for confirmation and payment instructions.",
             data: booking,
         });
     }
@@ -782,31 +767,6 @@ router.patch("/:id/status", (0, authservice_1.requireAuth)({ role: client_1.User
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Booking ID to cancel
- *     requestBody:
- *       required: false
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               reason:
- *                 type: string
- *                 description: Optional reason for cancellation
- *     responses:
- *       200:
- *         description: Booking cancelled successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
  *         name: id
  *         required: true
  *         schema:

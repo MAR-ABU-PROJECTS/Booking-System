@@ -35,7 +35,7 @@ const getDateRanges = () => {
 // ===============================
 /**
  * @swagger
- * /api/v1/dashboard/customer:
+ * /dashboard/customer:
  *   get:
  *     summary: Get customer dashboard data
  *     description: Retrieve comprehensive dashboard statistics for customers including bookings, favorites, and spending analytics
@@ -286,7 +286,7 @@ router.get("/customer", (0, authservice_1.requireAuth)({ role: client_1.UserRole
 // ===============================
 /**
  * @swagger
- * /api/v1/dashboard/host:
+ * /dashboard/host:
  *   get:
  *     summary: Get property host dashboard data
  *     description: Retrieve comprehensive dashboard analytics for property hosts including earnings, bookings, and property performance
@@ -580,7 +580,7 @@ router.get("/host", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
 // ===============================
 /**
  * @swagger
- * /api/v1/dashboard/admin:
+ * /dashboard/admin:
  *   get:
  *     summary: Get admin dashboard data
  *     description: Retrieve comprehensive system-wide analytics and metrics for administrators
@@ -925,7 +925,7 @@ router.get("/admin", (0, authservice_1.requireAuth)({ role: client_1.UserRole.AD
 // ===============================
 /**
  * @swagger
- * /api/v1/dashboard/quick-actions:
+ * /dashboard/quick-actions:
  *   get:
  *     summary: Get quick actions based on user role
  *     description: Retrieve personalized quick actions and shortcuts based on the authenticated user's role and current state

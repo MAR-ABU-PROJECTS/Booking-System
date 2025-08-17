@@ -4,11 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailService = exports.EmailService = void 0;
+exports.enqueueEmail = enqueueEmail;
 // MAR ABU PROJECTS SERVICES LLC - Email Service (Gmail | Resend)
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const resend_1 = require("resend");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const constants_1 = require("../utils/constants");
+const server_1 = require("../server");
 class EmailService {
     safeBookingProperty(property) {
         return property && typeof property === "object"
@@ -570,3 +572,23 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
 }
 exports.EmailService = EmailService;
 exports.emailService = new EmailService();
+async function enqueueEmail(options, type, scheduledAt) {
+    await server_1.prisma.emailQueue.create({
+        data: {
+            to: options.to,
+            subject: options.subject,
+            html: options.html,
+            type,
+            scheduledAt: scheduledAt ?? new Date(),
+        },
+    });
+}
+// Usage example in your password reset flow:
+// await enqueueEmail(
+//   {
+//     to: user.email,
+//     subject: "Password Reset",
+//     html: resetHtml,
+//   },
+//   "passwordReset"
+// );

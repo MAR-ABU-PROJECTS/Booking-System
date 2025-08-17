@@ -4,6 +4,7 @@ exports.bookingService = exports.BookingService = exports.bookingActionSchema = 
 // MAR ABU PROJECTS SERVICES LLC - Booking Management Service
 const client_1 = require("@prisma/client");
 const zod_1 = require("zod");
+const emailservice_1 = require("./emailservice");
 const prisma = new client_1.PrismaClient();
 // ===============================
 // VALIDATION SCHEMAS
@@ -145,10 +146,18 @@ class BookingService {
         const serviceFeeRate = property.serviceFee || 0.05;
         const serviceFee = Math.round((baseAmount + cleaningFee) * serviceFeeRate);
         const taxes = 0; // Add tax calculation if needed
-        let discounts = 0; // Add discount calculation if needed
+        let discounts = 0;
         if (promoCode) {
             // Lookup promo code and apply discount
-            discounts = 0;
+            const promo = await prisma.promoCode.findUnique({
+                where: { code: promoCode },
+            });
+            if (promo &&
+                promo.active &&
+                (!promo.startDate || promo.startDate <= new Date()) &&
+                (!promo.endDate || promo.endDate >= new Date())) {
+                discounts = Math.round((baseAmount + cleaningFee) * (promo.discount / 100));
+            }
         }
         const totalAmount = baseAmount + cleaningFee + serviceFee + taxes - discounts;
         return {
@@ -176,7 +185,7 @@ class BookingService {
             // Calculate nights
             const nights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) /
                 (1000 * 60 * 60 * 24));
-            // Create booking
+            // Create booking with status APPROVED
             const booking = await prisma.booking.create({
                 data: {
                     bookingCode,
@@ -199,8 +208,10 @@ class BookingService {
                     taxes: pricing.taxes,
                     discount: pricing.discounts,
                     total: pricing.totalAmount,
-                    status: client_1.BookingStatus.PENDING,
+                    status: client_1.BookingStatus.APPROVED, // <-- Auto-approve
                     paymentStatus: client_1.PaymentStatus.PENDING,
+                    approvedBy: customerId,
+                    approvedAt: new Date(),
                 },
                 include: {
                     customer: {
@@ -233,8 +244,11 @@ class BookingService {
                 propertyName: booking.property.name,
                 totalAmount: booking.total,
             });
+            // Send booking confirmation and approval emails to user
+            await emailservice_1.emailService.sendBookingConfirmation(booking.guestEmail, booking);
+            await emailservice_1.emailService.sendBookingApprovedEmail(booking.guestEmail, booking);
             // Send notifications (implement notification service)
-            await this.sendBookingNotifications(booking, "CREATED");
+            await this.sendBookingNotifications(booking, "APPROVED");
             return booking;
         }
         catch (error) {

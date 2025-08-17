@@ -8,6 +8,7 @@ import {
   PaymentMethod,
 } from "@prisma/client";
 import { z } from "zod";
+import { emailService } from "./emailservice"
 
 const prisma = new PrismaClient();
 
@@ -300,10 +301,22 @@ export class BookingService {
     const serviceFeeRate = property.serviceFee || 0.05;
     const serviceFee = Math.round((baseAmount + cleaningFee) * serviceFeeRate);
     const taxes = 0; // Add tax calculation if needed
-    let discounts = 0; // Add discount calculation if needed
+    let discounts = 0;
     if (promoCode) {
       // Lookup promo code and apply discount
-      discounts = 0;
+      const promo = await prisma.promoCode.findUnique({
+        where: { code: promoCode },
+      });
+      if (
+        promo &&
+        promo.active &&
+        (!promo.startDate || promo.startDate <= new Date()) &&
+        (!promo.endDate || promo.endDate >= new Date())
+      ) {
+        discounts = Math.round(
+          (baseAmount + cleaningFee) * (promo.discount / 100)
+        );
+      }
     }
 
     const totalAmount =
@@ -350,7 +363,7 @@ export class BookingService {
           (1000 * 60 * 60 * 24)
       );
 
-      // Create booking
+      // Create booking with status APPROVED
       const booking = await prisma.booking.create({
         data: {
           bookingCode,
@@ -373,8 +386,10 @@ export class BookingService {
           taxes: pricing.taxes,
           discount: pricing.discounts,
           total: pricing.totalAmount,
-          status: BookingStatus.PENDING,
+          status: BookingStatus.APPROVED, // <-- Auto-approve
           paymentStatus: PaymentStatus.PENDING,
+          approvedBy: customerId,
+          approvedAt: new Date(),
         },
         include: {
           customer: {
@@ -409,8 +424,12 @@ export class BookingService {
         totalAmount: booking.total,
       });
 
+      // Send booking confirmation and approval emails to user
+      await emailService.sendBookingConfirmation(booking.guestEmail, booking);
+      await emailService.sendBookingApprovedEmail(booking.guestEmail, booking);
+
       // Send notifications (implement notification service)
-      await this.sendBookingNotifications(booking, "CREATED");
+      await this.sendBookingNotifications(booking, "APPROVED");
 
       return booking as BookingWithDetails;
     } catch (error) {

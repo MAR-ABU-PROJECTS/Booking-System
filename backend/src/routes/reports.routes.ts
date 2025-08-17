@@ -81,9 +81,197 @@ const getDateRange = (
 // ===============================
 
 /**
- * @route   GET /api/v1/reports/bookings
+ * @route   GET /reports/bookings
  * @desc    Generate booking reports
  * @access  Admin, Property Host
+ */
+/**
+ * @swagger
+ * /reports/bookings:
+ *   get:
+ *     summary: Generate booking reports
+ *     description: Generate detailed booking reports with summary statistics. Results can be filtered by date range, property, host, and status. Supports export formats (JSON, CSV, Excel, PDF).
+ *     tags:
+ *       - Reports
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering bookings
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering bookings
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [today, yesterday, week, month, quarter, year]
+ *         description: Predefined period filter (overrides startDate and endDate if provided)
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [json, csv, excel, pdf]
+ *           default: json
+ *         description: Output format
+ *       - in: query
+ *         name: propertyId
+ *         schema:
+ *           type: string
+ *         description: Filter by property ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, CONFIRMED, COMPLETED, CANCELLED]
+ *         description: Filter by booking status
+ *       - in: query
+ *         name: hostId
+ *         schema:
+ *           type: string
+ *         description: Filter by host ID (admin only)
+ *     responses:
+ *       200:
+ *         description: Booking report generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     meta:
+ *                       type: object
+ *                       properties:
+ *                         title:
+ *                           type: string
+ *                           example: Booking Report
+ *                         period:
+ *                           type: object
+ *                           properties:
+ *                             start:
+ *                               type: string
+ *                               format: date-time
+ *                             end:
+ *                               type: string
+ *                               format: date-time
+ *                         generatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                         generatedBy:
+ *                           type: string
+ *                           example: "Admin User"
+ *                         filters:
+ *                           type: object
+ *                           example:
+ *                             propertyId: "prop_123"
+ *                             status: "CONFIRMED"
+ *                             hostId: "host_456"
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         totalBookings:
+ *                           type: integer
+ *                           example: 120
+ *                         totalRevenue:
+ *                           type: number
+ *                           example: 850000
+ *                         averageBookingValue:
+ *                           type: number
+ *                           example: 7083.33
+ *                         statusBreakdown:
+ *                           type: object
+ *                           example:
+ *                             CONFIRMED:
+ *                               count: 80
+ *                               revenue: 600000
+ *                             CANCELLED:
+ *                               count: 20
+ *                               revenue: 0
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           bookingCode:
+ *                             type: string
+ *                             example: "BK12345"
+ *                           propertyName:
+ *                             type: string
+ *                             example: "Seaside Villa"
+ *                           propertyType:
+ *                             type: string
+ *                             example: "Villa"
+ *                           propertyCity:
+ *                             type: string
+ *                             example: "Lagos"
+ *                           hostName:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           hostEmail:
+ *                             type: string
+ *                             example: "john@example.com"
+ *                           customerName:
+ *                             type: string
+ *                             example: "Jane Smith"
+ *                           customerEmail:
+ *                             type: string
+ *                             example: "jane@example.com"
+ *                           customerPhone:
+ *                             type: string
+ *                             example: "+2348012345678"
+ *                           checkIn:
+ *                             type: string
+ *                             format: date-time
+ *                           checkOut:
+ *                             type: string
+ *                             format: date-time
+ *                           nights:
+ *                             type: integer
+ *                             example: 3
+ *                           adults:
+ *                             type: integer
+ *                             example: 2
+ *                           children:
+ *                             type: integer
+ *                             example: 1
+ *                           baseAmount:
+ *                             type: number
+ *                             example: 50000
+ *                           cleaningFee:
+ *                             type: number
+ *                             example: 5000
+ *                           serviceFee:
+ *                             type: number
+ *                             example: 2000
+ *                           total:
+ *                             type: number
+ *                             example: 57000
+ *                           status:
+ *                             type: string
+ *                             example: "CONFIRMED"
+ *                           paymentStatus:
+ *                             type: string
+ *                             example: "PAID"
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           completeAt:
+ *                             type: string
+ *                             format: date-time
+ *       403:
+ *         description: Not authorized to generate booking reports
  */
 router.get(
   "/bookings",
@@ -271,9 +459,200 @@ router.get(
 // ===============================
 
 /**
- * @route   GET /api/v1/reports/revenue
+ * @route   GET /reports/revenue
  * @desc    Generate revenue reports
  * @access  Admin, Property Host
+ */
+/**
+ * @swagger
+ * /reports/revenue:
+ *   get:
+ *     summary: Generate revenue reports
+ *     description: Generate detailed revenue reports grouped by time (day, week, month) or entity (property, host). Includes booking count, revenue breakdown, and average booking value. Supports export formats (JSON, CSV, Excel, PDF).
+ *     tags:
+ *       - Reports
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering completed bookings
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering completed bookings
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [today, yesterday, week, month, quarter, year]
+ *         description: Predefined period filter (overrides startDate and endDate if provided)
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [json, csv, excel, pdf]
+ *           default: json
+ *         description: Output format
+ *       - in: query
+ *         name: groupBy
+ *         schema:
+ *           type: string
+ *           enum: [day, week, month, property, host]
+ *           default: month
+ *         description: Group revenue data by time period or entity
+ *       - in: query
+ *         name: propertyId
+ *         schema:
+ *           type: string
+ *         description: Filter by property ID
+ *       - in: query
+ *         name: hostId
+ *         schema:
+ *           type: string
+ *         description: Filter by host ID (admin only)
+ *     responses:
+ *       200:
+ *         description: Revenue report generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     meta:
+ *                       type: object
+ *                       properties:
+ *                         title:
+ *                           type: string
+ *                           example: Revenue Report
+ *                         period:
+ *                           type: object
+ *                           properties:
+ *                             start:
+ *                               type: string
+ *                               format: date-time
+ *                             end:
+ *                               type: string
+ *                               format: date-time
+ *                         groupBy:
+ *                           type: string
+ *                           example: month
+ *                         generatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                         generatedBy:
+ *                           type: string
+ *                           example: "Admin User"
+ *                         filters:
+ *                           type: object
+ *                           example:
+ *                             propertyId: "prop_123"
+ *                             hostId: "host_456"
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         totalBookings:
+ *                           type: integer
+ *                           example: 350
+ *                         totalRevenue:
+ *                           type: number
+ *                           example: 1250000
+ *                         propertyRevenue:
+ *                           type: number
+ *                           example: 1000000
+ *                         serviceFeeRevenue:
+ *                           type: number
+ *                           example: 200000
+ *                         cleaningFeeRevenue:
+ *                           type: number
+ *                           example: 50000
+ *                         avgBookingValue:
+ *                           type: number
+ *                           example: 3571.43
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         oneOf:
+ *                           - type: object
+ *                             description: Grouped by time (day/week/month)
+ *                             properties:
+ *                               date:
+ *                                 type: string
+ *                                 format: date
+ *                                 example: "2025-08-01"
+ *                               year:
+ *                                 type: integer
+ *                                 example: 2025
+ *                               month:
+ *                                 type: integer
+ *                                 example: 8
+ *                               bookingCount:
+ *                                 type: integer
+ *                                 example: 120
+ *                               totalRevenue:
+ *                                 type: number
+ *                                 example: 500000
+ *                               propertyRevenue:
+ *                                 type: number
+ *                                 example: 400000
+ *                               serviceFeeRevenue:
+ *                                 type: number
+ *                                 example: 80000
+ *                               cleaningFeeRevenue:
+ *                                 type: number
+ *                                 example: 20000
+ *                               avgBookingValue:
+ *                                 type: number
+ *                                 example: 4166.67
+ *                           - type: object
+ *                             description: Grouped by property
+ *                             properties:
+ *                               propertyId:
+ *                                 type: string
+ *                                 example: "prop_123"
+ *                               propertyName:
+ *                                 type: string
+ *                                 example: "Ocean View Apartment"
+ *                               propertyType:
+ *                                 type: string
+ *                                 example: "Apartment"
+ *                               propertyCity:
+ *                                 type: string
+ *                                 example: "Lagos"
+ *                               hostName:
+ *                                 type: string
+ *                                 example: "John Doe"
+ *                               bookingCount:
+ *                                 type: integer
+ *                                 example: 25
+ *                               totalRevenue:
+ *                                 type: number
+ *                                 example: 200000
+ *                               propertyRevenue:
+ *                                 type: number
+ *                                 example: 160000
+ *                               serviceFeeRevenue:
+ *                                 type: number
+ *                                 example: 30000
+ *                               cleaningFeeRevenue:
+ *                                 type: number
+ *                                 example: 10000
+ *                               avgBookingValue:
+ *                                 type: number
+ *                                 example: 8000
+ *       403:
+ *         description: Not authorized to generate revenue reports
  */
 router.get(
   "/revenue",
@@ -487,9 +866,162 @@ router.get(
 // ===============================
 
 /**
- * @route   GET /api/v1/reports/property-performance
+ * @route   GET /reports/property-performance
  * @desc    Generate property performance reports
  * @access  Admin, Property Host
+ */
+/**
+ * @swagger
+ * /reports/property-performance:
+ *   get:
+ *     summary: Generate Property Performance Report
+ *     description: Returns detailed performance metrics for properties (revenue, occupancy, rating, conversion, etc.).
+ *     tags:
+ *       - Reports
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for report period (ISO8601 format).
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for report period (ISO8601 format).
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [month, quarter, year]
+ *           default: quarter
+ *         description: Predefined period shortcut.
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [json, csv, excel, pdf]
+ *           default: json
+ *         description: Report output format.
+ *       - in: query
+ *         name: propertyId
+ *         schema:
+ *           type: string
+ *         description: Filter by specific property ID.
+ *       - in: query
+ *         name: hostId
+ *         schema:
+ *           type: string
+ *         description: Filter by specific host ID.
+ *     responses:
+ *       200:
+ *         description: Property performance report generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     meta:
+ *                       type: object
+ *                       properties:
+ *                         title:
+ *                           type: string
+ *                           example: Property Performance Report
+ *                         period:
+ *                           type: object
+ *                           properties:
+ *                             start:
+ *                               type: string
+ *                               format: date-time
+ *                             end:
+ *                               type: string
+ *                               format: date-time
+ *                         generatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                         generatedBy:
+ *                           type: string
+ *                         filters:
+ *                           type: object
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         totalProperties:
+ *                           type: integer
+ *                         totalRevenue:
+ *                           type: number
+ *                         totalBookings:
+ *                           type: integer
+ *                         avgOccupancyRate:
+ *                           type: number
+ *                         avgRating:
+ *                           type: number
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           propertyId:
+ *                             type: string
+ *                           propertyName:
+ *                             type: string
+ *                           propertyType:
+ *                             type: string
+ *                           city:
+ *                             type: string
+ *                           state:
+ *                             type: string
+ *                           hostName:
+ *                             type: string
+ *                           hostEmail:
+ *                             type: string
+ *                           metrics:
+ *                             type: object
+ *                             properties:
+ *                               totalBookings:
+ *                                 type: integer
+ *                               confirmedBookings:
+ *                                 type: integer
+ *                               cancelledBookings:
+ *                                 type: integer
+ *                               totalRevenue:
+ *                                 type: number
+ *                               avgBookingValue:
+ *                                 type: number
+ *                               totalNights:
+ *                                 type: integer
+ *                               totalGuests:
+ *                                 type: integer
+ *                               avgGuestsPerBooking:
+ *                                 type: number
+ *                               occupancyRate:
+ *                                 type: number
+ *                               conversionRate:
+ *                                 type: number
+ *                               avgRating:
+ *                                 type: number
+ *                               totalReviews:
+ *                                 type: integer
+ *                               revenuePerNight:
+ *                                 type: number
+ *       400:
+ *         description: Invalid query parameters
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (only admins allowed)
+ *       500:
+ *         description: Server error
  */
 router.get(
   "/property-performance",
@@ -727,9 +1259,154 @@ router.get(
 // ===============================
 
 /**
- * @route   GET /api/v1/reports/customers
+ * @route   GET /reports/customers
  * @desc    Generate customer analysis reports
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /reports/customers:
+ *   get:
+ *     summary: Generate Customer Analysis Report
+ *     description: Returns customer insights including bookings, spending, ratings, and segmentation (new, returning, VIP).
+ *     tags:
+ *       - Reports
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for report period (ISO8601 format).
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for report period (ISO8601 format).
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [month, quarter, year]
+ *           default: quarter
+ *         description: Predefined period shortcut.
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [json, csv, excel, pdf]
+ *           default: json
+ *         description: Report output format.
+ *       - in: query
+ *         name: segment
+ *         schema:
+ *           type: string
+ *           enum: [new, returning, vip, all]
+ *           default: all
+ *         description: Filter customers by segment.
+ *     responses:
+ *       200:
+ *         description: Customer analysis report generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     meta:
+ *                       type: object
+ *                       properties:
+ *                         title:
+ *                           type: string
+ *                           example: Customer Analysis Report
+ *                         period:
+ *                           type: object
+ *                           properties:
+ *                             start:
+ *                               type: string
+ *                               format: date-time
+ *                             end:
+ *                               type: string
+ *                               format: date-time
+ *                         segment:
+ *                           type: string
+ *                           example: all
+ *                         generatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                         generatedBy:
+ *                           type: string
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         totalCustomers:
+ *                           type: integer
+ *                         newCustomers:
+ *                           type: integer
+ *                         returningCustomers:
+ *                           type: integer
+ *                         vipCustomers:
+ *                           type: integer
+ *                         totalRevenue:
+ *                           type: number
+ *                         avgCustomerValue:
+ *                           type: number
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           customerId:
+ *                             type: string
+ *                           firstName:
+ *                             type: string
+ *                           lastName:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           phone:
+ *                             type: string
+ *                           joinedAt:
+ *                             type: string
+ *                             format: date-time
+ *                           segment:
+ *                             type: string
+ *                             enum: [new, returning, vip]
+ *                           metrics:
+ *                             type: object
+ *                             properties:
+ *                               totalBookings:
+ *                                 type: integer
+ *                               completedBookings:
+ *                                 type: integer
+ *                               totalSpent:
+ *                                 type: number
+ *                               avgSpendPerBooking:
+ *                                 type: number
+ *                               totalReviews:
+ *                                 type: integer
+ *                               avgRating:
+ *                                 type: number
+ *                               lastBooking:
+ *                                 type: string
+ *                                 format: date-time
+ *                                 nullable: true
+ *       400:
+ *         description: Invalid query parameters
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (only admins allowed)
+ *       500:
+ *         description: Server error
  */
 router.get(
   "/customers",
@@ -1022,9 +1699,58 @@ async function generatePDFReport(
 }
 
 /**
- * @route   GET /api/v1/reports/available
+ * @route   GET /reports/available
  * @desc    Get available report types
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /reports/available:
+ *   get:
+ *     summary: Get available reports
+ *     description: Returns a list of report types available to the authenticated user based on their role.
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully fetched available reports
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: bookings
+ *                       name:
+ *                         type: string
+ *                         example: Booking Reports
+ *                       description:
+ *                         type: string
+ *                         example: Detailed booking analysis and trends
+ *                       access:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                           example: ADMIN
+ *                       formats:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                           example: pdf
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - User role not allowed to access reports
  */
 router.get(
   "/available",
