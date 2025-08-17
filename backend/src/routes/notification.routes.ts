@@ -28,12 +28,12 @@ const validate = (req: any, res: any, next: any) => {
 // ===============================
 
 /**
- * @openapi
+ * @swagger
  * /notifications:
  *   get:
  *     summary: Get user notifications
- *     tags:
- *       - Notifications
+ *     description: Retrieve a paginated list of notifications for the authenticated user, with optional filters.
+ *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -41,25 +41,27 @@ const validate = (req: any, res: any, next: any) => {
  *         name: page
  *         schema:
  *           type: integer
- *         description: Page number
+ *           default: 1
+ *         description: Page number for pagination.
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Number of notifications per page
+ *           default: 20
+ *         description: Number of notifications per page.
  *       - in: query
  *         name: read
  *         schema:
  *           type: boolean
- *         description: Filter by read status
+ *         description: Filter notifications by read status (`true` or `false`).
  *       - in: query
  *         name: type
  *         schema:
  *           type: string
- *         description: Filter by notification type
+ *         description: Filter notifications by type.
  *     responses:
  *       200:
- *         description: List of notifications
+ *         description: List of notifications with pagination and unread count.
  *         content:
  *           application/json:
  *             schema:
@@ -67,6 +69,7 @@ const validate = (req: any, res: any, next: any) => {
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 data:
  *                   type: object
  *                   properties:
@@ -76,17 +79,24 @@ const validate = (req: any, res: any, next: any) => {
  *                         $ref: '#/components/schemas/Notification'
  *                     unreadCount:
  *                       type: integer
+ *                       example: 3
  *                     pagination:
  *                       type: object
  *                       properties:
  *                         page:
  *                           type: integer
+ *                           example: 1
  *                         limit:
  *                           type: integer
+ *                           example: 20
  *                         total:
  *                           type: integer
+ *                           example: 52
  *                         pages:
  *                           type: integer
+ *                           example: 3
+ *       401:
+ *         description: Unauthorized - authentication required.
  */
 router.get(
   "/",
@@ -132,10 +142,11 @@ router.get(
 );
 
 /**
- * @openapi
+ * @swagger
  * /notifications/{id}:
  *   get:
- *     summary: Get notification details
+ *     summary: Get a single notification by ID
+ *     description: Fetch a specific notification belonging to the authenticated user. Marks the notification as read if it hasn't been read yet.
  *     tags:
  *       - Notifications
  *     security:
@@ -144,12 +155,12 @@ router.get(
  *       - in: path
  *         name: id
  *         required: true
+ *         description: Notification ID
  *         schema:
  *           type: string
- *         description: Notification ID
  *     responses:
  *       200:
- *         description: Notification details
+ *         description: Notification retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -157,8 +168,35 @@ router.get(
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/Notification'
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "notif_123"
+ *                     userId:
+ *                       type: string
+ *                       example: "user_456"
+ *                     type:
+ *                       type: string
+ *                       example: "BOOKING_CONFIRMED"
+ *                     message:
+ *                       type: string
+ *                       example: "Your booking has been confirmed"
+ *                     read:
+ *                       type: boolean
+ *                       example: true
+ *                     readAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-08-16T22:05:12.000Z"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-08-10T15:45:30.000Z"
+ *       403:
+ *         description: Not authorized to view this notification
  *       404:
  *         description: Notification not found
  */
@@ -200,24 +238,24 @@ router.get(
 );
 
 /**
- * @openapi
+ * @swagger
  * /notifications/{id}/mark-read:
  *   put:
- *     summary: Mark notification as read
- *     tags:
- *       - Notifications
+ *     summary: Mark a notification as read
+ *     description: Updates the specified notification, marking it as read and recording the read timestamp.
+ *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
+ *       - name: id
+ *         in: path
  *         required: true
  *         schema:
  *           type: string
  *         description: Notification ID
  *     responses:
  *       200:
- *         description: Notification marked as read
+ *         description: Notification successfully marked as read
  *         content:
  *           application/json:
  *             schema:
@@ -227,8 +265,13 @@ router.get(
  *                   type: boolean
  *                 message:
  *                   type: string
+ *                   example: Notification marked as read
  *                 data:
  *                   $ref: '#/components/schemas/Notification'
+ *       403:
+ *         description: Not authorized to update this notification
+ *       404:
+ *         description: Notification not found
  */
 router.put(
   "/:id/mark-read",
@@ -264,17 +307,17 @@ router.put(
 );
 
 /**
- * @openapi
+ * @swagger
  * /notifications/mark-all-read:
  *   put:
  *     summary: Mark all notifications as read
- *     tags:
- *       - Notifications
+ *     description: Marks all unread notifications for the authenticated user as read and records the read timestamp.
+ *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: All notifications marked as read
+ *         description: All notifications successfully marked as read
  *         content:
  *           application/json:
  *             schema:
@@ -282,8 +325,12 @@ router.put(
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
+ *                   example: All notifications marked as read
+ *       401:
+ *         description: Unauthorized, missing or invalid token
  */
 router.put(
   "/mark-all-read",
@@ -317,21 +364,21 @@ router.put(
 );
 
 /**
- * @openapi
+ * @swagger
  * /notifications/{id}:
  *   delete:
- *     summary: Delete notification
- *     tags:
- *       - Notifications
+ *     summary: Delete a notification
+ *     description: Deletes a specific notification that belongs to the authenticated user.
+ *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
- *         description: Notification ID
+ *         required: true
+ *         description: The ID of the notification to delete
  *     responses:
  *       200:
  *         description: Notification deleted successfully
@@ -342,8 +389,16 @@ router.put(
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
+ *                   example: Notification deleted successfully
+ *       401:
+ *         description: Unauthorized, missing or invalid token
+ *       403:
+ *         description: Forbidden, user does not own this notification
+ *       404:
+ *         description: Notification not found
  */
 router.delete(
   "/:id",
@@ -383,17 +438,17 @@ router.delete(
 );
 
 /**
- * @openapi
+ * @swagger
  * /notifications/clear-all:
  *   delete:
- *     summary: Clear all notifications for user
- *     tags:
- *       - Notifications
+ *     summary: Clear all notifications
+ *     description: Deletes all notifications for the authenticated user.
+ *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: All notifications cleared
+ *         description: All notifications cleared successfully
  *         content:
  *           application/json:
  *             schema:
@@ -401,8 +456,12 @@ router.delete(
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
+ *                   example: 5 notifications cleared successfully
+ *       401:
+ *         description: Unauthorized, missing or invalid token
  */
 router.delete(
   "/clear-all",
@@ -429,17 +488,17 @@ router.delete(
 );
 
 /**
- * @openapi
+ * @swagger
  * /notifications/unread-count:
  *   get:
- *     summary: Get unread notification count
- *     tags:
- *       - Notifications
+ *     summary: Get unread notifications count
+ *     description: Returns the total number of unread notifications for the authenticated user.
+ *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Unread notification count
+ *         description: Unread notifications count retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -447,11 +506,15 @@ router.delete(
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 data:
  *                   type: object
  *                   properties:
  *                     unreadCount:
  *                       type: integer
+ *                       example: 3
+ *       401:
+ *         description: Unauthorized, missing or invalid token
  */
 router.get(
   "/unread-count",
@@ -472,12 +535,12 @@ router.get(
 );
 
 /**
- * @openapi
+ * @swagger
  * /notifications/preferences:
  *   post:
- *     summary: Update notification preferences
- *     tags:
- *       - Notifications
+ *     summary: Update user notification preferences
+ *     description: Allows the authenticated user to update their notification preferences (email, push, SMS, booking, reviews, promotions).
+ *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -489,19 +552,25 @@ router.get(
  *             properties:
  *               emailNotifications:
  *                 type: boolean
+ *                 example: true
  *               pushNotifications:
  *                 type: boolean
+ *                 example: false
  *               smsNotifications:
  *                 type: boolean
+ *                 example: true
  *               bookingUpdates:
  *                 type: boolean
+ *                 example: true
  *               reviewNotifications:
  *                 type: boolean
+ *                 example: false
  *               promotionalEmails:
  *                 type: boolean
+ *                 example: true
  *     responses:
  *       200:
- *         description: Preferences updated
+ *         description: Preferences updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -509,8 +578,10 @@ router.get(
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
+ *                   example: Notification preferences updated successfully
  *                 data:
  *                   type: object
  *                   properties:
@@ -526,37 +597,10 @@ router.get(
  *                       type: boolean
  *                     promotionalEmails:
  *                       type: boolean
- *   get:
- *     summary: Get notification preferences
- *     tags:
- *       - Notifications
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Preferences object
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     emailNotifications:
- *                       type: boolean
- *                     pushNotifications:
- *                       type: boolean
- *                     smsNotifications:
- *                       type: boolean
- *                     bookingUpdates:
- *                       type: boolean
- *                     reviewNotifications:
- *                       type: boolean
- *                     promotionalEmails:
- *                       type: boolean
+ *       400:
+ *         description: Validation error (invalid or missing fields)
+ *       401:
+ *         description: Unauthorized, missing or invalid token
  */
 router.post(
   "/preferences",
@@ -614,17 +658,18 @@ router.post(
 );
 
 /**
- * @openapi
+ * @swagger
  * /notifications/preferences:
  *   get:
- *     summary: Get notification preferences
+ *     summary: Get user notification preferences
+ *     description: Returns the user's saved notification preferences, or default values if not set.
  *     tags:
  *       - Notifications
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Preferences object
+ *         description: Successfully retrieved notification preferences
  *         content:
  *           application/json:
  *             schema:
@@ -647,6 +692,10 @@ router.post(
  *                       type: boolean
  *                     promotionalEmails:
  *                       type: boolean
+ *       401:
+ *         description: Unauthorized - Missing or invalid token
+ *       404:
+ *         description: User not found
  */
 router.get(
   "/preferences",
@@ -683,8 +732,14 @@ router.get(
 
 /**
  * @route   POST /notifications/broadcast
- * @desc    Send broadcast notification to all users
- * @access  Admin only
+ * @desc    Broadcast a notification to all users (optionally filtered by role)
+ * @access  Admin
+ * @body    {string} title - Notification title
+ * @body    {string} message - Notification message
+ * @body    {string} type - Notification type
+ * @body    {string} [userRole] - Optional user role to target
+ * @body    {boolean} [urgent=false] - Mark as urgent
+ * @returns {object} recipientCount, title, message, type
  */
 router.post(
   "/broadcast",
@@ -760,6 +815,80 @@ router.post(
  * @route   GET /notifications/admin/stats
  * @desc    Get notification statistics
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /notifications/admin/stats:
+ *   get:
+ *     summary: Get notification statistics (Admin only)
+ *     description: Returns aggregated statistics on notifications including counts, read rate, type distribution, and recent activity.
+ *     tags:
+ *       - Notifications (Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notification statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalNotifications:
+ *                       type: integer
+ *                       example: 120
+ *                     unreadNotifications:
+ *                       type: integer
+ *                       example: 30
+ *                     readRate:
+ *                       type: number
+ *                       format: float
+ *                       example: 75.0
+ *                     typeDistribution:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: integer
+ *                       example:
+ *                         SYSTEM: 50
+ *                         ALERT: 40
+ *                         INFO: 30
+ *                     recentActivity:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           title:
+ *                             type: string
+ *                           message:
+ *                             type: string
+ *                           type:
+ *                             type: string
+ *                           urgent:
+ *                             type: boolean
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           user:
+ *                             type: object
+ *                             properties:
+ *                               firstName:
+ *                                 type: string
+ *                               lastName:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin only)
  */
 router.get(
   "/admin/stats",

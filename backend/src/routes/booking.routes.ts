@@ -587,7 +587,7 @@ router.post(
       // Generate booking number
       const bookingCode = `MAR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-      // Create booking
+      // Create booking with status APPROVED
       const booking = await prisma.booking.create({
         data: {
           bookingCode,
@@ -607,8 +607,10 @@ router.post(
           cleaningFee: costs.cleaningFee,
           serviceFee: costs.serviceFee,
           total: costs.total,
-          status: BookingStatus.PENDING,
+          status: BookingStatus.APPROVED, // <-- Auto-approve
           paymentStatus: PaymentStatus.PENDING,
+          approvedBy: req.user.id,
+          approvedAt: new Date(),
         },
         include: {
           property: {
@@ -633,30 +635,9 @@ router.post(
         },
       });
 
-      // Create notification for property host
-      await prisma.notification.create({
-        data: {
-          userId: property.hostId,
-          type: "BOOKING_REQUEST",
-          title: "New Booking Request",
-          message: `${req.user.firstName} ${req.user.lastName} has requested to book ${property.name}`,
-          metadata: {
-            bookingId: booking.id,
-            bookingCode: booking.bookingCode,
-          },
-        },
-      });
-
-      // Send email notifications
-      await Promise.all([
-        emailService.sendBookingConfirmation(data.guestEmail, booking),
-        property.host && property.host.email
-          ? emailService.sendHostBookingNotification(
-              property.host.email,
-              booking
-            )
-          : Promise.resolve(),
-      ]);
+      // Send booking confirmation and approval emails to user
+      await emailService.sendBookingConfirmation(data.guestEmail, booking);
+      await emailService.sendBookingApprovedEmail(data.guestEmail, booking);
 
       auditLog(
         "BOOKING_CREATED",
@@ -671,7 +652,8 @@ router.post(
 
       res.status(201).json({
         success: true,
-        message: "Booking created successfully. Awaiting host approval.",
+        message:
+          "Booking created and auto-approved. Please check your email for confirmation and payment instructions.",
         data: booking,
       });
     } catch (error) {
@@ -882,31 +864,6 @@ router.patch(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Booking ID to cancel
- *     requestBody:
- *       required: false
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               reason:
- *                 type: string
- *                 description: Optional reason for cancellation
- *     responses:
- *       200:
- *         description: Booking cancelled successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
  *         name: id
  *         required: true
  *         schema:

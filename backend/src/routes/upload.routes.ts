@@ -108,9 +108,95 @@ const processImage = async (
 // ===============================
 
 /**
- * @route   POST /api/v1/uploads/images
+ * @route   POST /uploads/images
  * @desc    Upload multiple images
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /uploads/images:
+ *   post:
+ *     summary: Upload multiple images
+ *     description: Allows authenticated users to upload multiple images. Each image will be optimized and a thumbnail will be generated.
+ *     tags:
+ *       - Uploads
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Up to 10 images to upload
+ *     responses:
+ *       201:
+ *         description: Images uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "3 images uploaded successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       fileName:
+ *                         type: string
+ *                       originalName:
+ *                         type: string
+ *                       fileSize:
+ *                         type: number
+ *                       url:
+ *                         type: string
+ *                       optimizedUrl:
+ *                         type: string
+ *                       thumbnailUrl:
+ *                         type: string
+ *                       uploadedAt:
+ *                         type: string
+ *                         format: date-time
+ *       400:
+ *         description: No images uploaded or invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "No images uploaded"
+ *       500:
+ *         description: Server error while processing images
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to process images"
  */
 router.post(
   "/images",
@@ -218,9 +304,126 @@ router.post(
 );
 
 /**
- * @route   POST /api/v1/uploads/images/property/:propertyId
+ * @route   POST /uploads/images/property/:propertyId
  * @desc    Upload images for a property
  * @access  Property Host, Admin
+ */
+/**
+ * @swagger
+ * /uploads/images/property/{propertyId}:
+ *   post:
+ *     summary: Upload multiple images for a specific property
+ *     description: Allows the property owner or admin to upload multiple images for a property. Each image will be optimized and a thumbnail will be generated.
+ *     tags:
+ *       - Uploads
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the property to upload images for
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Up to 20 images to upload
+ *     responses:
+ *       201:
+ *         description: Images uploaded successfully for the property
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "3 images uploaded for property"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       fileName:
+ *                         type: string
+ *                       originalName:
+ *                         type: string
+ *                       fileSize:
+ *                         type: number
+ *                       url:
+ *                         type: string
+ *                       thumbnailUrl:
+ *                         type: string
+ *                       uploadedAt:
+ *                         type: string
+ *                         format: date-time
+ *       400:
+ *         description: No images uploaded or invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "No images uploaded"
+ *       403:
+ *         description: Unauthorized to upload images for this property
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Not authorized to upload images for this property"
+ *       404:
+ *         description: Property not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Property not found"
+ *       500:
+ *         description: Server error while processing images
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to upload property images"
  */
 router.post(
   "/images/property/:propertyId",
@@ -368,9 +571,100 @@ router.post(
 // ===============================
 
 /**
- * @route   POST /api/v1/uploads/documents
+ * @route   POST /uploads/documents
  * @desc    Upload documents
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /uploads/documents:
+ *   post:
+ *     summary: Upload multiple documents
+ *     description: Allows authenticated users to upload multiple documents with optional category and description. Each document is saved in the system and recorded in the database.
+ *     tags:
+ *       - Uploads
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               documents:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Up to 5 documents to upload
+ *               category:
+ *                 type: string
+ *                 enum: [ID, RECEIPT, CONTRACT, OTHER]
+ *                 description: Optional document category
+ *               description:
+ *                 type: string
+ *                 description: Optional description of the documents
+ *     responses:
+ *       201:
+ *         description: Documents uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "3 documents uploaded successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       fileName:
+ *                         type: string
+ *                       originalName:
+ *                         type: string
+ *                       fileSize:
+ *                         type: number
+ *                       url:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       uploadedAt:
+ *                         type: string
+ *                         format: date-time
+ *       400:
+ *         description: No documents uploaded or invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "No documents uploaded"
+ *       500:
+ *         description: Server error while processing documents
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to upload documents"
  */
 router.post(
   "/documents",
@@ -456,9 +750,134 @@ router.post(
 // ===============================
 
 /**
- * @route   GET /api/v1/uploads/media
+ * @route   GET /uploads/media
  * @desc    Get user's uploaded media
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /uploads/media:
+ *   get:
+ *     summary: Get media files with filters and pagination
+ *     description: Retrieve media files uploaded by the authenticated user or accessible to the admin, with optional filters by type, entity, and pagination.
+ *     tags:
+ *       - Uploads
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [IMAGE, DOCUMENT, VIDEO, AUDIO]
+ *         description: Filter media by type
+ *       - in: query
+ *         name: entityType
+ *         schema:
+ *           type: string
+ *           enum: [PROPERTY, USER, BOOKING]
+ *         description: Filter media by entity type
+ *       - in: query
+ *         name: entityId
+ *         schema:
+ *           type: string
+ *         description: Filter media by entity ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: List of media files with pagination info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     media:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           fileName:
+ *                             type: string
+ *                           originalName:
+ *                             type: string
+ *                           fileSize:
+ *                             type: number
+ *                           type:
+ *                             type: string
+ *                           entityType:
+ *                             type: string
+ *                           entityId:
+ *                             type: string
+ *                           url:
+ *                             type: string
+ *                           optimizedUrl:
+ *                             type: string
+ *                             nullable: true
+ *                           thumbnailUrl:
+ *                             type: string
+ *                             nullable: true
+ *                           uploadedBy:
+ *                             type: object
+ *                             properties:
+ *                               firstName:
+ *                                 type: string
+ *                               lastName:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         pages:
+ *                           type: integer
+ *       400:
+ *         description: Invalid query parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid query parameters"
+ *       401:
+ *         description: Unauthorized access
+ *       500:
+ *         description: Internal server error
  */
 router.get(
   "/media",
@@ -537,9 +956,71 @@ router.get(
 );
 
 /**
- * @route   DELETE /api/v1/uploads/media/:id
+ * @route   DELETE /uploads/media/:id
  * @desc    Delete media file
  * @access  Protected (owner, admin)
+ */
+/**
+ * @swagger
+ * /uploads/media/{id}:
+ *   delete:
+ *     summary: Delete a media file by ID
+ *     description: Delete a media file uploaded by the authenticated user. Admins can delete any file.
+ *     tags:
+ *       - Uploads
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the media file to delete
+ *     responses:
+ *       200:
+ *         description: Media file deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Media file deleted successfully"
+ *       401:
+ *         description: Unauthorized access
+ *       403:
+ *         description: Not authorized to delete this media file
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Not authorized to delete this file"
+ *       404:
+ *         description: Media file not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Media file not found"
+ *       500:
+ *         description: Internal server error
  */
 router.delete(
   "/media/:id",
@@ -606,9 +1087,71 @@ router.delete(
 );
 
 /**
- * @route   PUT /api/v1/uploads/media/:id
+ * @route   PUT /uploads/media/:id
  * @desc    Update media metadata
  * @access  Protected (owner, admin)
+ */
+/**
+ * @swagger
+ * /uploads/media/{id}:
+ *   put:
+ *     summary: Update media metadata
+ *     description: Update metadata (description, alt text, caption, primary status) for a specific media file. Users can update their own files; admins can update any.
+ *     tags:
+ *       - Uploads
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the media file to update
+ *     requestBody:
+ *       description: Metadata fields to update
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               description:
+ *                 type: string
+ *                 example: "Front view of the property"
+ *               alt:
+ *                 type: string
+ *                 example: "Property exterior"
+ *               caption:
+ *                 type: string
+ *                 example: "Spacious 3-bedroom apartment"
+ *               isPrimary:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Media metadata updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Media metadata updated successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Media'
+ *       401:
+ *         description: Unauthorized access
+ *       403:
+ *         description: Not authorized to update this media file
+ *       404:
+ *         description: Media file not found
+ *       500:
+ *         description: Internal server error
  */
 router.put(
   "/media/:id",
@@ -671,9 +1214,62 @@ router.put(
 );
 
 /**
- * @route   POST /api/v1/uploads/media/:id/reorder
+ * @route   POST /uploads/media/:id/reorder
  * @desc    Reorder media files for an entity
  * @access  Protected (owner, admin)
+ */
+/**
+ * @swagger
+ * /uploads/media/reorder:
+ *   post:
+ *     summary: Reorder media files for a specific entity
+ *     description: Update the display order of media files associated with a PROPERTY, USER, or BOOKING entity. Only the entity owner or admin can reorder media.
+ *     tags:
+ *       - Uploads
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: Media IDs in the new order, with the entity type and ID
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               mediaIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["mediaId1", "mediaId2", "mediaId3"]
+ *               entityType:
+ *                 type: string
+ *                 enum: ["PROPERTY", "USER", "BOOKING"]
+ *                 example: "PROPERTY"
+ *               entityId:
+ *                 type: string
+ *                 example: "propertyId123"
+ *     responses:
+ *       200:
+ *         description: Media files reordered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Media files reordered successfully"
+ *       401:
+ *         description: Unauthorized access
+ *       403:
+ *         description: Not authorized to reorder media for this entity
+ *       404:
+ *         description: Entity not found
+ *       500:
+ *         description: Internal server error
  */
 router.post(
   "/media/reorder",
@@ -743,9 +1339,94 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/uploads/stats
+ * @route   GET /uploads/stats
  * @desc    Get upload statistics
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /uploads/media/stats:
+ *   get:
+ *     summary: Get media statistics
+ *     description: Retrieve media statistics including total files, total size, breakdown by type, and recent uploads. Regular users see only their own media; admins see their uploads.
+ *     tags:
+ *       - Uploads
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Media statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         totalFiles:
+ *                           type: integer
+ *                           example: 125
+ *                         totalSize:
+ *                           type: integer
+ *                           example: 524288000
+ *                         storageUsed:
+ *                           type: string
+ *                           example: "52.4%"
+ *                     byType:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           type:
+ *                             type: string
+ *                             example: "IMAGE"
+ *                           _count:
+ *                             type: object
+ *                             properties:
+ *                               type:
+ *                                 type: integer
+ *                                 example: 80
+ *                           _sum:
+ *                             type: object
+ *                             properties:
+ *                               fileSize:
+ *                                 type: integer
+ *                                 example: 314572800
+ *                     recentUploads:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "mediaId123"
+ *                           fileName:
+ *                             type: string
+ *                             example: "image1.jpg"
+ *                           originalName:
+ *                             type: string
+ *                             example: "vacation.jpg"
+ *                           type:
+ *                             type: string
+ *                             example: "IMAGE"
+ *                           fileSize:
+ *                             type: integer
+ *                             example: 524288
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-08-17T23:59:59.000Z"
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
 router.get(
   "/stats",

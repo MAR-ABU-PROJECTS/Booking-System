@@ -36,9 +36,60 @@ function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
 // ===============================
 
 /**
- * @route   GET /api/v1/settings/system
+ * @route   GET /settings/system
  * @desc    Get system settings
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /settings/system:
+ *   get:
+ *     summary: Get system settings
+ *     description: Retrieve all system settings grouped by category. Only accessible to admin users.
+ *     tags:
+ *       - Settings
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved system settings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         key:
+ *                           type: string
+ *                           example: "siteName"
+ *                         value:
+ *                           type: string
+ *                           example: "MAR ABU Projects Services"
+ *                         type:
+ *                           type: string
+ *                           example: "string"
+ *                         description:
+ *                           type: string
+ *                           example: "The name of the platform"
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-08-15T12:34:56.000Z"
+ *       401:
+ *         description: Unauthorized (not logged in or not an admin)
+ *       403:
+ *         description: Forbidden (user does not have required role)
+ *       500:
+ *         description: Internal server error
  */
 router.get(
   "/system",
@@ -75,9 +126,72 @@ router.get(
 );
 
 /**
- * @route   PUT /api/v1/settings/system
+ * @route   PUT /settings/system
  * @desc    Update system settings
  * @access  Super Admin only
+ */
+/**
+ * @swagger
+ * /settings/system:
+ *   put:
+ *     summary: Update system settings (Admin only)
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               settings:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - key
+ *                     - value
+ *                   properties:
+ *                     key:
+ *                       type: string
+ *                       example: "site_name"
+ *                     value:
+ *                       type: string
+ *                       example: "My Website"
+ *                     type:
+ *                       type: string
+ *                       enum: [string, number, boolean, json]
+ *                       example: "string"
+ *                     description:
+ *                       type: string
+ *                       example: "The name of the website"
+ *                     category:
+ *                       type: string
+ *                       example: "General"
+ *     responses:
+ *       200:
+ *         description: System settings updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "System settings updated successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/SystemSetting'
+ *       400:
+ *         description: Validation or type error
+ *       401:
+ *         description: Unauthorized
  */
 router.put(
   "/system",
@@ -88,70 +202,64 @@ router.put(
     body("settings.*.value").notEmpty().withMessage("Setting value required"),
     body("settings.*.type")
       .optional()
-      .isIn(["string", "number", "boolean", "json"]),
+      .isIn(["string", "number", "boolean", "json"])
+      .withMessage("Invalid type, must be string, number, boolean, or json"),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
     const { settings } = req.body;
 
-    // Validate and update each systemSetting
-    const updatedSettings = [];
-    for (const systemSetting of settings) {
-      const {
-        key,
-        value,
-        type = "string",
-        description,
-        category = "general",
-        isPublic = false,
-      } = systemSetting;
-
-      // Validate value based on type
-      let processedValue: Prisma.InputJsonValue = value;
-      if (type === "number") {
-        processedValue = parseFloat(value);
-        if (isNaN(processedValue)) {
-          throw new AppError(
-            `Invalid number value for systemSetting ${key}`,
-            400
-          );
-        }
-      } else if (type === "boolean") {
-        processedValue = value === "true" || value === true;
-      } else if (type === "json") {
-        try {
-          processedValue =
-            typeof value === "string" ? JSON.parse(value) : value;
-        } catch (error) {
-          throw new AppError(
-            `Invalid JSON value for systemSetting ${key}`,
-            400
-          );
-        }
-        processedValue = processedValue as Prisma.InputJsonValue;
-      }
-
-      // Update or create systemSetting
-      const updated = await prisma.systemSetting.upsert({
-        where: { key },
-        update: {
-          value: processedValue,
-          dataType: type,
-          description,
-          category,
-        },
-        create: {
+    // Process and upsert all settings in a transaction
+    const updatedSettings = await prisma.$transaction(
+      settings.map((systemSetting: any) => {
+        const {
           key,
-          value: processedValue,
-          dataType: type,
+          value,
+          type = "string",
           description,
-          category,
-        },
-      });
+          category = "general",
+        } = systemSetting;
 
-      updatedSettings.push(updated);
-    }
+        // Convert value to correct type
+        let processedValue: Prisma.InputJsonValue = value;
+        if (type === "number") {
+          processedValue = parseFloat(value);
+          if (isNaN(processedValue)) {
+            throw new AppError(`Invalid number value for ${key}`, 400);
+          }
+        } else if (type === "boolean") {
+          processedValue = value === "true" || value === true;
+        } else if (type === "json") {
+          try {
+            processedValue =
+              typeof value === "string" ? JSON.parse(value) : value;
+          } catch {
+            throw new AppError(`Invalid JSON value for ${key}`, 400);
+          }
+        }
 
+        return prisma.systemSetting.upsert({
+          where: { key },
+          update: {
+            value: processedValue,
+            dataType: type,
+            description,
+            category,
+            updatedBy: req.user.id,
+          },
+          create: {
+            key,
+            value: processedValue,
+            dataType: type,
+            description,
+            category,
+            updatedBy: req.user.id,
+          },
+        });
+      })
+    );
+
+    // Log audit
     auditLog(
       "SYSTEM_SETTINGS_UPDATED",
       req.user.id,
@@ -171,16 +279,41 @@ router.put(
 );
 
 /**
- * @route   GET /api/v1/settings/public
+ * @route   GET /settings/public
  * @desc    Get public system settings
  * @access  Public
+ */
+/**
+ * @swagger
+ * /settings/public:
+ *   get:
+ *     summary: Get public system settings (no authentication required)
+ *     tags:
+ *       - System Settings
+ *     responses:
+ *       200:
+ *         description: Public system settings grouped by category
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: object
+ *                     additionalProperties:
+ *                       type: object
  */
 router.get(
   "/public",
   asyncHandler(async (req: any, res: any) => {
     const publicSettings = await prisma.systemSetting.findMany({
       where: {
-        // Add filter for isPublic if your schema supports it
+        isPublic: true
       },
       select: {
         key: true,
@@ -190,18 +323,15 @@ router.get(
       },
     });
 
-    // Group by category
-    const groupedSettings = publicSettings.reduce(
-      (groups, systemSetting) => {
-        const category = systemSetting.category || "general";
-        if (!groups[category]) {
-          groups[category] = {};
-        }
-        groups[category][systemSetting.key] = systemSetting.value;
-        return groups;
-      },
-      {} as Record<string, any>
-    );
+    // Group settings by category
+    const groupedSettings = publicSettings.reduce((groups, setting) => {
+      const category = setting.category || "general";
+      if (!groups[category]) {
+        groups[category] = {};
+      }
+      groups[category][setting.key] = setting.value;
+      return groups;
+    }, {} as Record<string, Record<string, any>>);
 
     res.json({
       success: true,
@@ -215,9 +345,68 @@ router.get(
 // ===============================
 
 /**
- * @route   GET /api/v1/settings/booking
+ * @route   GET /settings/booking
  * @desc    Get booking-related settings
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /settings/booking:
+ *   get:
+ *     summary: Get booking-related system settings
+ *     description: Returns booking-specific settings, with defaults applied if not set.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []   # Admin access required
+ *     responses:
+ *       200:
+ *         description: Booking settings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     defaultServiceFeePercentage:
+ *                       type: number
+ *                       example: 10
+ *                     maxAdvanceBookingDays:
+ *                       type: number
+ *                       example: 365
+ *                     minAdvanceBookingHours:
+ *                       type: number
+ *                       example: 24
+ *                     cancellationGracePeriodHours:
+ *                       type: number
+ *                       example: 24
+ *                     autoApprovalEnabled:
+ *                       type: boolean
+ *                       example: false
+ *                     instantBookingEnabled:
+ *                       type: boolean
+ *                       example: true
+ *                     requireHostApproval:
+ *                       type: boolean
+ *                       example: true
+ *                     maxGuestsPerBooking:
+ *                       type: number
+ * example:
+ *   success: true
+ *   data:
+ *     defaultServiceFeePercentage: 10
+ *     maxAdvanceBookingDays: 365
+ *     minAdvanceBookingHours: 24
+ *     cancellationGracePeriodHours: 24
+ *     autoApprovalEnabled: false
+ *     instantBookingEnabled: true
+ *     requireHostApproval: true
+ *     maxGuestsPerBooking: 16
  */
 router.get(
   "/booking",
@@ -227,13 +416,10 @@ router.get(
       where: { category: "booking" },
     });
 
-    const settings = bookingSettings.reduce(
-      (acc, systemSetting) => {
-        acc[systemSetting.key] = systemSetting.value;
-        return acc;
-      },
-      {} as Record<string, any>
-    );
+    const settings = bookingSettings.reduce((acc, systemSetting) => {
+      acc[systemSetting.key] = systemSetting.value;
+      return acc;
+    }, {} as Record<string, any>);
 
     // Set defaults if not found
     const defaultSettings = {
@@ -256,9 +442,71 @@ router.get(
 );
 
 /**
- * @route   PUT /api/v1/settings/booking
+ * @route   PUT /settings/booking
  * @desc    Update booking settings
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /settings/booking:
+ *   put:
+ *     summary: Update booking-related system settings
+ *     description: Admin-only route to update booking settings.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               defaultServiceFeePercentage:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 50
+ *               maxAdvanceBookingDays:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 730
+ *               minAdvanceBookingHours:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 168
+ *               cancellationGracePeriodHours:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 168
+ *               autoApprovalEnabled:
+ *                 type: boolean
+ *               instantBookingEnabled:
+ *                 type: boolean
+ *               requireHostApproval:
+ *                 type: boolean
+ *               maxGuestsPerBooking:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 50
+ *     responses:
+ *       200:
+ *         description: Booking settings updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Booking settings updated successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/SystemSetting'
  */
 router.put(
   "/booking",
@@ -316,9 +564,38 @@ router.put(
 );
 
 /**
- * @route   GET /api/v1/settings/payment
+ * @route   GET /settings/payment
  * @desc    Get payment settings
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /settings/payment:
+ *   get:
+ *     summary: Get payment-related system settings
+ *     description: Admin-only route to retrieve all payment-related settings from the system.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Payment settings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   additionalProperties: true
+ *                   example:
+ *                     defaultPaymentGateway: "stripe"
+ *                     maxTransactionAmount: 100000
+ *                     allowPartialPayments: true
  */
 router.get(
   "/payment",
@@ -344,9 +621,86 @@ router.get(
 );
 
 /**
- * @route   PUT /api/v1/settings/payment
+ * @route   PUT /settings/payment
  * @desc    Update payment settings
  * @access  Super Admin only
+ */
+/**
+ * @swagger
+ * /settings/payment:
+ *   put:
+ *     summary: Update payment-related system settings
+ *     description: Admin-only route to update payment configuration settings. Sensitive keys are not returned in the response.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: Payment settings to update
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               paystackEnabled:
+ *                 type: boolean
+ *                 example: true
+ *               flutterwaveEnabled:
+ *                 type: boolean
+ *                 example: false
+ *               bankTransferEnabled:
+ *                 type: boolean
+ *                 example: true
+ *               paystackPublicKey:
+ *                 type: string
+ *                 example: "pk_test_xxxxx"
+ *               flutterwavePublicKey:
+ *                 type: string
+ *                 example: "FLWPUBK_TEST-xxxx"
+ *               defaultCurrency:
+ *                 type: string
+ *                 enum: [NGN, USD, GBP, EUR]
+ *                 example: "NGN"
+ *               paymentTimeoutMinutes:
+ *                 type: integer
+ *                 minimum: 5
+ *                 maximum: 1440
+ *                 example: 15
+ *     responses:
+ *       200:
+ *         description: Payment settings updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Payment settings updated successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       key:
+ *                         type: string
+ *                         example: "paystackEnabled"
+ *                       value:
+ *                         type: boolean
+ *                         example: true
+ *                       dataType:
+ *                         type: string
+ *                         example: "boolean"
+ *                       category:
+ *                         type: string
+ *                         example: "payment"
+ *                       updatedBy:
+ *                         type: string
+ *                         example: "adminUserId"
  */
 router.put(
   "/payment",
@@ -414,9 +768,40 @@ router.put(
 // ===============================
 
 /**
- * @route   GET /api/v1/settings/email
+ * @route   GET /settings/email
  * @desc    Get email settings
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /settings/email:
+ *   get:
+ *     summary: Get email-related system settings
+ *     description: Admin-only route to retrieve email configuration settings. Sensitive credentials are hidden in the response.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Email settings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   description: Key-value pairs of email settings. Sensitive keys are masked.
+ *                   example:
+ *                     smtpHost: "smtp.mailtrap.io"
+ *                     smtpPort: 587
+ *                     smtpUser: "user@example.com"
+ *                     smtpPassword: "***HIDDEN***"
+ *                     emailApiKey: "***HIDDEN***"
  */
 router.get(
   "/email",
@@ -450,9 +835,87 @@ router.get(
 );
 
 /**
- * @route   PUT /api/v1/settings/email
+ * @route   PUT /settings/email
  * @desc    Update email settings
  * @access  Super Admin only
+ */
+/**
+ * @swagger
+ * /settings/email:
+ *   put:
+ *     summary: Update email-related system settings
+ *     description: Admin-only route to update email configuration settings such as SMTP or email provider options.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               emailEnabled:
+ *                 type: boolean
+ *                 example: true
+ *               smtpHost:
+ *                 type: string
+ *                 example: "smtp.mailtrap.io"
+ *               smtpPort:
+ *                 type: integer
+ *                 example: 587
+ *               smtpUsername:
+ *                 type: string
+ *                 example: "user@example.com"
+ *               smtpPassword:
+ *                 type: string
+ *                 example: "supersecret"
+ *               fromEmail:
+ *                 type: string
+ *                 format: email
+ *                 example: "no-reply@example.com"
+ *               fromName:
+ *                 type: string
+ *                 example: "Support Team"
+ *               replyToEmail:
+ *                 type: string
+ *                 format: email
+ *                 example: "support@example.com"
+ *               emailProvider:
+ *                 type: string
+ *                 enum: ["smtp", "sendgrid", "mailgun"]
+ *                 example: "smtp"
+ *     responses:
+ *       200:
+ *         description: Email settings updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Email settings updated successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       key:
+ *                         type: string
+ *                       value:
+ *                         type: string
+ *                       dataType:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
  */
 router.put(
   "/email",
@@ -521,9 +984,60 @@ router.put(
 );
 
 /**
- * @route   POST /api/v1/settings/email/test
+ * @route   POST /settings/email/test
  * @desc    Send test email
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /settings/email/test:
+ *   post:
+ *     summary: Send a test email
+ *     description: Admin-only route to send a test email to verify email configuration.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "admin@example.com"
+ *     responses:
+ *       200:
+ *         description: Test email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Test email sent successfully"
+ *       500:
+ *         description: Failed to send test email
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to send test email"
  */
 router.post(
   "/email/test",
@@ -560,9 +1074,61 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/settings/company
+ * @route   GET /settings/company
  * @desc    Get company information settings
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /settings/company:
+ *   get:
+ *     summary: Get company settings
+ *     description: Admin-only route to fetch all company-related settings, with default values if not set.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Company settings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     companyName:
+ *                       type: string
+ *                       example: "MAR Abu Projects Services LLC"
+ *                     companyEmail:
+ *                       type: string
+ *                       example: "info@marabuprojects.com"
+ *                     companyPhone:
+ *                       type: string
+ *                       example: "+234-XXX-XXX-XXXX"
+ *                     companyAddress:
+ *                       type: string
+ *                       example: "Nigeria"
+ *                     companyWebsite:
+ *                       type: string
+ *                       example: "https://marabuprojects.com"
+ *                     supportEmail:
+ *                       type: string
+ *                       example: "support@marabuprojects.com"
+ *                     termsUrl:
+ *                       type: string
+ *                       example: "/terms"
+ *                     privacyUrl:
+ *                       type: string
+ *                       example: "/privacy"
+ *                     aboutUrl:
+ *                       type: string
+ *                       example: "/about"
  */
 router.get(
   "/company",
@@ -602,9 +1168,95 @@ router.get(
 );
 
 /**
- * @route   PUT /api/v1/settings/company
+ * @route   PUT /settings/company
  * @desc    Update company settings
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /settings/company:
+ *   put:
+ *     summary: Update company settings
+ *     description: Admin-only route to update company-related settings.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: Company settings to update
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               companyName:
+ *                 type: string
+ *                 example: "MAR Abu Projects Services LLC"
+ *               companyEmail:
+ *                 type: string
+ *                 format: email
+ *                 example: "info@marabuprojects.com"
+ *               companyPhone:
+ *                 type: string
+ *                 example: "+234-XXX-XXX-XXXX"
+ *               companyAddress:
+ *                 type: string
+ *                 example: "Nigeria"
+ *               companyWebsite:
+ *                 type: string
+ *                 format: uri
+ *                 example: "https://marabuprojects.com"
+ *               supportEmail:
+ *                 type: string
+ *                 format: email
+ *                 example: "support@marabuprojects.com"
+ *               termsUrl:
+ *                 type: string
+ *                 example: "/terms"
+ *               privacyUrl:
+ *                 type: string
+ *                 example: "/privacy"
+ *               aboutUrl:
+ *                 type: string
+ *                 example: "/about"
+ *               companyLogo:
+ *                 type: string
+ *                 format: uri
+ *                 example: "https://marabuprojects.com/logo.png"
+ *               companyDescription:
+ *                 type: string
+ *                 example: "Leading property management service in Nigeria."
+ *     responses:
+ *       200:
+ *         description: Company settings updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Company settings updated successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       key:
+ *                         type: string
+ *                       value:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       dataType:
+ *                         type: string
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
  */
 router.put(
   "/company",
@@ -681,9 +1333,67 @@ router.put(
 // ===============================
 
 /**
- * @route   POST /api/v1/settings/maintenance
+ * @route   POST /settings/maintenance
  * @desc    Enable/disable maintenance mode
  * @access  Super Admin only
+ */
+/**
+ * @swagger
+ * /settings/maintenance:
+ *   post:
+ *     summary: Enable or disable maintenance mode
+ *     description: Admin-only route to toggle system maintenance mode and optionally provide a message and estimated end time.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: Maintenance mode settings
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - enabled
+ *             properties:
+ *               enabled:
+ *                 type: boolean
+ *                 example: true
+ *               message:
+ *                 type: string
+ *                 example: "The system will be down for maintenance."
+ *               estimatedEnd:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-08-20T18:30:00Z"
+ *     responses:
+ *       200:
+ *         description: Maintenance mode updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Maintenance mode enabled"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     maintenanceMode:
+ *                       type: boolean
+ *                       example: true
+ *                     message:
+ *                       type: string
+ *                       example: "The system will be down for maintenance."
+ *                     estimatedEnd:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-08-20T18:30:00Z"
  */
 router.post(
   "/maintenance",
@@ -763,9 +1473,51 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/settings/backup
+ * @route   GET /settings/backup
  * @desc    Get system backup settings
  * @access  Super Admin only
+ */
+/**
+ * @swagger
+ * /settings/backup:
+ *   get:
+ *     summary: Get backup system settings and status
+ *     description: Admin-only route to retrieve backup-related settings and the current backup status.
+ *     tags:
+ *       - System Settings
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Backup settings and status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     lastBackup:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T10:30:00Z"
+ *                     nextScheduled:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-16T10:30:00Z"
+ *                     status:
+ *                       type: string
+ *                       example: "healthy"
+ *                     size:
+ *                       type: string
+ *                       example: "2.4GB"
+ *                     location:
+ *                       type: string
+ *                       example: "AWS S3"
  */
 router.get(
   "/backup",

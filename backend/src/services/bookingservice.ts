@@ -8,6 +8,7 @@ import {
   PaymentMethod,
 } from "@prisma/client";
 import { z } from "zod";
+import { emailService } from "./emailservice"
 
 const prisma = new PrismaClient();
 
@@ -362,7 +363,7 @@ export class BookingService {
           (1000 * 60 * 60 * 24)
       );
 
-      // Create booking
+      // Create booking with status APPROVED
       const booking = await prisma.booking.create({
         data: {
           bookingCode,
@@ -385,8 +386,10 @@ export class BookingService {
           taxes: pricing.taxes,
           discount: pricing.discounts,
           total: pricing.totalAmount,
-          status: BookingStatus.PENDING,
+          status: BookingStatus.APPROVED, // <-- Auto-approve
           paymentStatus: PaymentStatus.PENDING,
+          approvedBy: customerId,
+          approvedAt: new Date(),
         },
         include: {
           customer: {
@@ -421,8 +424,12 @@ export class BookingService {
         totalAmount: booking.total,
       });
 
+      // Send booking confirmation and approval emails to user
+      await emailService.sendBookingConfirmation(booking.guestEmail, booking);
+      await emailService.sendBookingApprovedEmail(booking.guestEmail, booking);
+
       // Send notifications (implement notification service)
-      await this.sendBookingNotifications(booking, "CREATED");
+      await this.sendBookingNotifications(booking, "APPROVED");
 
       return booking as BookingWithDetails;
     } catch (error) {

@@ -41,6 +41,82 @@ const validate = (req: any, res: any, next: any) => {
  * @desc    Initialize payment for a booking
  * @access  Protected (booking owner)
  */
+/**
+ * @swagger
+ * /notifications/broadcast:
+ *   post:
+ *     summary: Broadcast a notification to all users (optionally filtered by role)
+ *     description: Admins can send a broadcast notification to all users, or limit the broadcast to a specific user role.
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - message
+ *               - type
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "System Maintenance"
+ *               message:
+ *                 type: string
+ *                 example: "The system will be down for maintenance at midnight."
+ *               type:
+ *                 type: string
+ *                 enum: [INFO, ALERT, REMINDER, WARNING]
+ *                 example: "ALERT"
+ *               userRole:
+ *                 type: string
+ *                 enum: [ADMIN, USER, MANAGER]
+ *                 description: Optional - Target only users with this role
+ *               urgent:
+ *                 type: boolean
+ *                 default: false
+ *                 example: true
+ *     responses:
+ *       201:
+ *         description: Broadcast notification sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Broadcast notification sent to 25 users"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     recipientCount:
+ *                       type: integer
+ *                       example: 25
+ *                     title:
+ *                       type: string
+ *                       example: "System Maintenance"
+ *                     message:
+ *                       type: string
+ *                       example: "The system will be down for maintenance at midnight."
+ *                     type:
+ *                       type: string
+ *                       example: "ALERT"
+ *       400:
+ *         description: Validation error (missing fields or invalid type)
+ *       401:
+ *         description: Unauthorized (not logged in or not admin)
+ *       403:
+ *         description: Forbidden (insufficient role permissions)
+ *       500:
+ *         description: Server error
+ */
 router.post(
   "/initialize",
   requireAuth(),
@@ -242,6 +318,83 @@ router.post(
  * @route   POST /api/v1/payments/verify/:reference
  * @desc    Verify payment status
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /payments/verify/{reference}:
+ *   post:
+ *     summary: Verify a payment by reference
+ *     description: Verifies the status of a payment with Paystack, Flutterwave, or manually for bank transfers. Updates booking and payment records if successful.
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: reference
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Payment reference to verify
+ *     responses:
+ *       200:
+ *         description: Payment verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Payment verified successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     payment:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "pay_12345"
+ *                         reference:
+ *                           type: string
+ *                           example: "MAR_abc123_1699999999999"
+ *                         amount:
+ *                           type: number
+ *                           example: 50000
+ *                         status:
+ *                           type: string
+ *                           enum: [PENDING, PAID, FAILED]
+ *                           example: "PAID"
+ *                         paidAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-08-16T12:34:56.000Z"
+ *                     booking:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "book_98765"
+ *                         bookingCode:
+ *                           type: string
+ *                           example: "BK123456"
+ *                         paymentStatus:
+ *                           type: string
+ *                           enum: [PENDING, PAID, FAILED]
+ *                           example: "PAID"
+ *       400:
+ *         description: Payment verification failed
+ *       401:
+ *         description: Unauthorized (not logged in)
+ *       403:
+ *         description: Forbidden (user not authorized to verify this payment)
+ *       404:
+ *         description: Payment not found
+ *       500:
+ *         description: Server error
  */
 router.post(
   "/verify/:reference",
@@ -485,6 +638,52 @@ router.post(
  * @desc    Handle Paystack webhook
  * @access  Public (webhook)
  */
+/**
+ * @swagger
+ * /webhook/paystack:
+ *   post:
+ *     summary: Paystack webhook endpoint
+ *     description: |
+ *       This endpoint is called by Paystack to notify your system about payment events.
+ *       **Note:** This is an internal webhook endpoint and should not be called directly by clients.
+ *     tags:
+ *       - Webhooks
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               event:
+ *                 type: string
+ *                 example: charge.success
+ *               data:
+ *                 type: object
+ *                 description: Paystack payment data payload
+ *                 example:
+ *                   reference: "7PVGX8MEk85tgeEpVDtD"
+ *                   amount: 500000
+ *                   status: "success"
+ *     parameters:
+ *       - in: header
+ *         name: x-paystack-signature
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Paystack webhook signature for verifying authenticity
+ *     responses:
+ *       200:
+ *         description: Webhook processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ */
 router.post(
   "/webhook/paystack",
   asyncHandler(async (req: any, res: any) => {
@@ -551,66 +750,131 @@ router.post(
  * @desc    Handle Flutterwave webhook
  * @access  Public (webhook)
  */
+/**
+ * @swagger
+ * /webhook/flutterwave:
+ *   post:
+ *     summary: Flutterwave Webhook
+ *     description: |
+ *       Endpoint to receive and process **Flutterwave webhook events**.  
+ *       Currently listens for `charge.completed` events where the status is `successful`.  
+ *       On success, updates the related payment and booking records.
+ *       
+ *       ⚠️ This endpoint is intended **for Flutterwave servers only**.  
+ *       Do not call it manually from your client.
+ *     tags:
+ *       - Webhooks
+ *     requestBody:
+ *       required: true
+ *       description: Webhook payload sent from Flutterwave.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               event:
+ *                 type: string
+ *                 example: charge.completed
+ *               data:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: string
+ *                     example: successful
+ *                   tx_ref:
+ *                     type: string
+ *                     example: FLW-MOCK-123456
+ *                   amount:
+ *                     type: number
+ *                     example: 5000
+ *                   currency:
+ *                     type: string
+ *                     example: NGN
+ *     responses:
+ *       200:
+ *         description: Webhook processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Invalid webhook signature
+ *       500:
+ *         description: Server error while processing webhook
+ */
 router.post(
   "/webhook/flutterwave",
   asyncHandler(async (req: any, res: any) => {
     const signature = req.headers["verif-hash"];
 
-    // Verify webhook signature
+    // Verify webhook signature (prefer using raw body if required)
     const isValid = flutterwaveService.verifyWebhookSignature(
       req.body,
       signature
     );
     if (!isValid) {
-      throw new AppError("Invalid webhook signature", 400);
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid webhook signature" });
     }
 
-    const { event, data } = req.body;
+    try {
+      const { event, data } = req.body;
 
-    if (event === "charge.completed" && data.status === "successful") {
-      const reference = data.tx_ref;
+      if (event === "charge.completed" && data.status === "successful") {
+        const reference = data.tx_ref;
 
-      const payment = await prisma.payment.findUnique({
-        where: { reference: reference },
-        include: { booking: true },
-      });
-
-      if (payment && payment.status === PaymentStatus.PENDING) {
-        // Update payment status
-        await prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: PaymentStatus.PAID,
-            paidAt: new Date(),
-            gatewayResponse: data,
-          },
+        const payment = await prisma.payment.findUnique({
+          where: { reference },
+          include: { booking: true },
         });
 
-        // Update booking
-        await prisma.booking.update({
-          where: { id: payment.bookingId },
-          data: {
-            paymentStatus: PaymentStatus.PAID,
-            paidAmount: payment.amount,
-            paidAt: new Date(),
-          },
-        });
+        if (payment && payment.status === PaymentStatus.PENDING) {
+          await prisma.$transaction([
+            prisma.payment.update({
+              where: { id: payment.id },
+              data: {
+                status: PaymentStatus.PAID,
+                paidAt: new Date(),
+                gatewayResponse: data,
+              },
+            }),
+            prisma.booking.update({
+              where: { id: payment.bookingId },
+              data: {
+                paymentStatus: PaymentStatus.PAID,
+                paidAmount: payment.amount,
+                paidAt: new Date(),
+              },
+            }),
+          ]);
 
-        auditLog(
-          "WEBHOOK_PAYMENT_SUCCESS",
-          "system",
-          {
-            paymentId: payment.id,
-            bookingId: payment.bookingId,
-            reference,
-            provider: "flutterwave",
-          },
-          req.ip
-        );
+          auditLog(
+            "WEBHOOK_PAYMENT_SUCCESS",
+            "system",
+            {
+              paymentId: payment.id,
+              bookingId: payment.bookingId,
+              reference,
+              provider: "flutterwave",
+              amount: payment.amount,
+              currency: data.currency,
+            },
+            req.ip
+          );
+        }
       }
-    }
 
-    res.status(200).json({ success: true });
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      // Log but still acknowledge receipt to avoid retries
+      console.error("Flutterwave webhook error:", error);
+      return res.status(200).json({ success: true });
+    }
   })
 );
 
@@ -622,6 +886,114 @@ router.post(
  * @route   GET /api/v1/payments
  * @desc    Get payment history
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /payments:
+ *   get:
+ *     summary: Get list of payments
+ *     description: Retrieve paginated payments. Customers only see their own payments, admins see payments for properties they host.
+ *     tags:
+ *       - Payments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of records per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, COMPLETED, FAILED, REFUNDED]
+ *         description: Filter by payment status
+ *       - in: query
+ *         name: paymentMethod
+ *         schema:
+ *           type: string
+ *           enum: [CREDIT_CARD, PAYPAL, BANK_TRANSFER, CASH]
+ *         description: Filter by payment method
+ *       - in: query
+ *         name: bookingId
+ *         schema:
+ *           type: string
+ *         description: Filter by booking ID
+ *     responses:
+ *       200:
+ *         description: List of payments with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     payments:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           amount:
+ *                             type: number
+ *                           status:
+ *                             type: string
+ *                           paymentMethod:
+ *                             type: string
+ *                           booking:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               bookingCode:
+ *                                 type: string
+ *                               property:
+ *                                 type: object
+ *                                 properties:
+ *                                   name:
+ *                                     type: string
+ *                                   city:
+ *                                     type: string
+ *                               customer:
+ *                                 type: object
+ *                                 properties:
+ *                                   firstName:
+ *                                     type: string
+ *                                   lastName:
+ *                                     type: string
+ *                                   email:
+ *                                     type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         pages:
+ *                           type: integer
+ *       401:
+ *         description: Unauthorized - missing or invalid token
+ *       403:
+ *         description: Forbidden - insufficient role permissions
+ *       500:
+ *         description: Server error
  */
 router.get(
   "/",
@@ -700,6 +1072,91 @@ router.get(
  * @desc    Get payment details
  * @access  Protected (authorized users only)
  */
+/**
+ * @swagger
+ * /payments/{id}:
+ *   get:
+ *     summary: Get payment details by ID
+ *     description: Retrieve detailed information about a specific payment, including related booking, property, and customer details. 
+ *                  Access is restricted to the payment’s customer, the host of the property, or an admin.
+ *     tags:
+ *       - Payments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: Unique identifier of the payment
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved payment details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "pay_123456"
+ *                     amount:
+ *                       type: number
+ *                       example: 50000
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, COMPLETED, FAILED, REFUNDED]
+ *                       example: COMPLETED
+ *                     paymentMethod:
+ *                       type: string
+ *                       enum: [CARD, BANK_TRANSFER, PAYPAL]
+ *                       example: CARD
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-08-16T14:32:21.000Z"
+ *                     booking:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "booking_abc123"
+ *                         bookingCode:
+ *                           type: string
+ *                           example: "BK-2025-001"
+ *                         property:
+ *                           type: object
+ *                           properties:
+ *                             name:
+ *                               type: string
+ *                               example: "Ocean View Apartment"
+ *                             hostId:
+ *                               type: string
+ *                               example: "user_host_789"
+ *                         customer:
+ *                           type: object
+ *                           properties:
+ *                             firstName:
+ *                               type: string
+ *                               example: "John"
+ *                             lastName:
+ *                               type: string
+ *                               example: "Doe"
+ *                             email:
+ *                               type: string
+ *                               example: "john.doe@example.com"
+ *       403:
+ *         description: Not authorized to view this payment
+ *       404:
+ *         description: Payment not found
+ */
 router.get(
   "/:id",
   requireAuth(),
@@ -751,6 +1208,87 @@ router.get(
  * @route   POST /api/v1/payments/:id/refund
  * @desc    Process refund
  * @access  Admin only
+ */
+/**
+ * @swagger
+ * /payments/{id}/refund:
+ *   post:
+ *     summary: Refund a payment
+ *     description: Initiates a refund for a specific payment. Only admins can process refunds. Refunds can be partial (if an `amount` is provided) or full (default).  
+ *     tags:
+ *       - Payments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: Unique identifier of the payment to refund
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 description: Amount to refund. Defaults to full payment amount if not provided.
+ *                 example: 25000
+ *               reason:
+ *                 type: string
+ *                 description: Reason for refund
+ *                 example: "Guest canceled booking"
+ *     responses:
+ *       200:
+ *         description: Refund processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Refund processed successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "refund_abc123"
+ *                     paymentId:
+ *                       type: string
+ *                       example: "pay_123456"
+ *                     amount:
+ *                       type: number
+ *                       example: 25000
+ *                     reason:
+ *                       type: string
+ *                       example: "Guest canceled booking"
+ *                     status:
+ *                       type: string
+ *                       enum: [PROCESSING, COMPLETED, FAILED]
+ *                       example: COMPLETED
+ *                     processedBy:
+ *                       type: string
+ *                       example: "admin_user_001"
+ *                     processedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-08-16T15:45:12.000Z"
+ *       400:
+ *         description: Invalid refund request (e.g. refund amount exceeds payment amount, or payment not paid)
+ *       403:
+ *         description: Not authorized (only admins can refund)
+ *       404:
+ *         description: Payment not found
+ *       500:
+ *         description: Failed to process refund with payment provider
  */
 router.post(
   "/:id/refund",

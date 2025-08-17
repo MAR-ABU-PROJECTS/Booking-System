@@ -26,9 +26,225 @@ const validate = (req, res, next) => {
 // PROPERTY SEARCH ROUTES
 // ===============================
 /**
- * @route   GET /api/v1/search/properties
+ * @route   GET /search/properties
  * @desc    Advanced property search with filters
  * @access  Public
+ */
+/**
+ * @swagger
+ * /search/properties:
+ *   get:
+ *     summary: Advanced property search with filters
+ *     description: Search properties with text, location, price range, amenities, availability, and geospatial filters.
+ *     tags:
+ *       - Search
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Free text search across name, description, city, and address
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: country
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [APARTMENT, HOUSE, VILLA, CABIN, COTTAGE, BUNGALOW] # Example values, replace with PropertyType enum
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *       - in: query
+ *         name: bedrooms
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *       - in: query
+ *         name: bathrooms
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *       - in: query
+ *         name: maxGuests
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: amenities
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *         style: form
+ *         explode: false
+ *         description: Comma-separated list of amenities
+ *       - in: query
+ *         name: checkIn
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: checkOut
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, rating, distance, popularity, newest]
+ *         default: popularity
+ *       - in: query
+ *         name: order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         default: desc
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *         default: 20
+ *       - in: query
+ *         name: latitude
+ *         schema:
+ *           type: number
+ *         description: Used with longitude & radius for geo search
+ *       - in: query
+ *         name: longitude
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: radius
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         default: 50
+ *         description: Radius in kilometers for geo search
+ *     responses:
+ *       200:
+ *         description: Properties found successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     properties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           city:
+ *                             type: string
+ *                           country:
+ *                             type: string
+ *                           type:
+ *                             type: string
+ *                           baseRate:
+ *                             type: number
+ *                           averageRating:
+ *                             type: number
+ *                             example: 4.5
+ *                           reviewCount:
+ *                             type: integer
+ *                             example: 12
+ *                           bookingCount:
+ *                             type: integer
+ *                             example: 34
+ *                           popularityScore:
+ *                             type: number
+ *                             example: 56.7
+ *                           distance:
+ *                             type: number
+ *                             nullable: true
+ *                             example: 12.3
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 20
+ *                         total:
+ *                           type: integer
+ *                           example: 134
+ *                         pages:
+ *                           type: integer
+ *                           example: 7
+ *                     facets:
+ *                       type: object
+ *                       properties:
+ *                         cities:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               name:
+ *                                 type: string
+ *                               count:
+ *                                 type: integer
+ *                         types:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               name:
+ *                                 type: string
+ *                               count:
+ *                                 type: integer
+ *                         priceRange:
+ *                           type: object
+ *                           properties:
+ *                             min:
+ *                               type: number
+ *                               example: 50
+ *                             max:
+ *                               type: number
+ *                               example: 1200
+ *                     searchParams:
+ *                       type: object
+ *                       additionalProperties: true
+ *       400:
+ *         description: Invalid query parameter(s)
+ *       500:
+ *         description: Internal server error
  */
 router.get("/properties", (0, authservice_1.optionalAuth)(), [
     (0, express_validator_1.query)("q")
@@ -326,9 +542,93 @@ router.get("/properties", (0, authservice_1.optionalAuth)(), [
     });
 }));
 /**
- * @route   GET /api/v1/search/suggestions
+ * @route   GET /search/suggestions
  * @desc    Get search suggestions for autocomplete
  * @access  Public
+ */
+/**
+ * @swagger
+ * /search/suggestions:
+ *   get:
+ *     summary: Get search suggestions for autocomplete
+ *     description: Returns autocomplete suggestions for cities and/or properties based on a query string.
+ *     tags:
+ *       - Search
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 2
+ *         description: The search query string (must be at least 2 characters).
+ *       - in: query
+ *         name: type
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [cities, properties, all]
+ *           default: all
+ *         description: The type of suggestions to return (cities, properties, or all).
+ *     responses:
+ *       200:
+ *         description: Suggestions successfully retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     cities:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           text:
+ *                             type: string
+ *                             example: "Lagos, Lagos State, Nigeria"
+ *                           type:
+ *                             type: string
+ *                             example: "city"
+ *                           count:
+ *                             type: integer
+ *                             example: 12
+ *                     properties:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "prop_12345"
+ *                           text:
+ *                             type: string
+ *                             example: "Seaside Villa"
+ *                           subtitle:
+ *                             type: string
+ *                             example: "Lagos, Lagos State"
+ *                           type:
+ *                             type: string
+ *                             example: "property"
+ *                           propertyType:
+ *                             type: string
+ *                             example: "apartment"
+ *                           price:
+ *                             type: number
+ *                             example: 250
+ *                           image:
+ *                             type: string
+ *                             nullable: true
+ *                             example: "https://example.com/property.jpg"
+ *       400:
+ *         description: Invalid query parameter(s)
+ *       500:
+ *         description: Internal server error
  */
 router.get("/suggestions", [
     (0, express_validator_1.query)("q")
@@ -401,9 +701,142 @@ router.get("/suggestions", [
     });
 }));
 /**
- * @route   GET /api/v1/search/filters
+ * @route   GET /search/filters
  * @desc    Get available filters for search
  * @access  Public
+ */
+/**
+ * @swagger
+ * /properties/filters:
+ *   get:
+ *     summary: Get available property filters
+ *     description: Returns filter options for properties, including cities, types, price ranges, amenities, bedrooms, bathrooms, and sorting options.
+ *     tags:
+ *       - Properties
+ *     responses:
+ *       200:
+ *         description: Filter options retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     locations:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "Lagos, Lagos State"
+ *                           value:
+ *                             type: string
+ *                             example: "Lagos"
+ *                           count:
+ *                             type: integer
+ *                             example: 120
+ *                     propertyTypes:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "Apartment"
+ *                           value:
+ *                             type: string
+ *                             example: "Apartment"
+ *                           count:
+ *                             type: integer
+ *                             example: 50
+ *                     priceRange:
+ *                       type: object
+ *                       properties:
+ *                         min:
+ *                           type: number
+ *                           example: 15000
+ *                         max:
+ *                           type: number
+ *                           example: 250000
+ *                         average:
+ *                           type: number
+ *                           example: 75000
+ *                         suggestions:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               label:
+ *                                 type: string
+ *                                 example: "Budget (Under ₦25,000)"
+ *                               min:
+ *                                 type: number
+ *                                 example: 0
+ *                               max:
+ *                                 type: number
+ *                                 example: 25000
+ *                     amenities:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "Pool"
+ *                           value:
+ *                             type: string
+ *                             example: "Pool"
+ *                           count:
+ *                             type: integer
+ *                             example: 25
+ *                     bedrooms:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "2 bedrooms"
+ *                           value:
+ *                             type: integer
+ *                             example: 2
+ *                           count:
+ *                             type: integer
+ *                             example: 40
+ *                     bathrooms:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "1 bathroom"
+ *                           value:
+ *                             type: integer
+ *                             example: 1
+ *                           count:
+ *                             type: integer
+ *                             example: 30
+ *                     sortOptions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "Price: Low to High"
+ *                           value:
+ *                             type: string
+ *                             example: "price"
+ *                           order:
+ *                             type: string
+ *                             example: "asc"
  */
 router.get("/filters", (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const [cities, types, priceRange, amenities, bedrooms, bathrooms] = await Promise.all([
@@ -508,9 +941,144 @@ router.get("/filters", (0, error_middleware_1.asyncHandler)(async (req, res) => 
     });
 }));
 /**
- * @route   GET /api/v1/search/popular
+ * @route   GET /search/popular
  * @desc    Get popular destinations and properties
  * @access  Public
+ */
+/**
+ * @swagger
+ * /search/filters:
+ *   get:
+ *     summary: Get available filters for search
+ *     description: Returns available filters such as locations, property types, price ranges, amenities, bedrooms, and bathrooms for property search.
+ *     tags:
+ *       - Search
+ *     responses:
+ *       200:
+ *         description: Filters successfully retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     locations:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "Lagos, Lagos State"
+ *                           value:
+ *                             type: string
+ *                             example: "Lagos"
+ *                           count:
+ *                             type: integer
+ *                             example: 25
+ *                     propertyTypes:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "Apartment"
+ *                           value:
+ *                             type: string
+ *                             example: "apartment"
+ *                           count:
+ *                             type: integer
+ *                             example: 120
+ *                     priceRange:
+ *                       type: object
+ *                       properties:
+ *                         min:
+ *                           type: number
+ *                           example: 10000
+ *                         max:
+ *                           type: number
+ *                           example: 500000
+ *                         average:
+ *                           type: number
+ *                           example: 75000
+ *                         suggestions:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               label:
+ *                                 type: string
+ *                                 example: "Mid-range (₦25,000 - ₦75,000)"
+ *                               min:
+ *                                 type: number
+ *                                 example: 25000
+ *                               max:
+ *                                 type: number
+ *                                 example: 75000
+ *                     amenities:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "WiFi"
+ *                           value:
+ *                             type: string
+ *                             example: "WiFi"
+ *                           count:
+ *                             type: integer
+ *                             example: 340
+ *                     bedrooms:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "2 bedrooms"
+ *                           value:
+ *                             type: integer
+ *                             example: 2
+ *                           count:
+ *                             type: integer
+ *                             example: 80
+ *                     bathrooms:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "1 bathroom"
+ *                           value:
+ *                             type: integer
+ *                             example: 1
+ *                           count:
+ *                             type: integer
+ *                             example: 95
+ *                     sortOptions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           label:
+ *                             type: string
+ *                             example: "Price: Low to High"
+ *                           value:
+ *                             type: string
+ *                             example: "price"
+ *                           order:
+ *                             type: string
+ *                             example: "asc"
+ *       500:
+ *         description: Internal server error
  */
 router.get("/popular", (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const [popularCities, featuredProperties, trendingSearches] = await Promise.all([
@@ -611,9 +1179,73 @@ router.get("/popular", (0, error_middleware_1.asyncHandler)(async (req, res) => 
     });
 }));
 /**
- * @route   POST /api/v1/search/save
+ * @route   POST /search/save
  * @desc    Save search query for user
  * @access  Protected
+ */
+/**
+ * @swagger
+ * /search/save:
+ *   post:
+ *     summary: Save search query for user
+ *     description: Allows an authenticated user to save a search query with a custom name.
+ *     tags: [Search]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - query
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "My Apartment Search"
+ *               query:
+ *                 type: object
+ *                 example: { "location": "Lagos", "priceRange": "50000-100000", "bedrooms": 2 }
+ *     responses:
+ *       201:
+ *         description: Search saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Search saved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "search_12345"
+ *                     userId:
+ *                       type: string
+ *                       example: "user_abc123"
+ *                     name:
+ *                       type: string
+ *                       example: "My Apartment Search"
+ *                     query:
+ *                       type: object
+ *                       example: { "location": "Lagos", "priceRange": "50000-100000", "bedrooms": 2 }
+ *                     resultCount:
+ *                       type: integer
+ *                       example: 0
+ *       400:
+ *         description: Bad request - Invalid or missing parameters
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       500:
+ *         description: Server error
  */
 router.post("/save", 
 // requireAuth(), // Uncomment if you want to require authentication
@@ -640,23 +1272,71 @@ router.post("/save",
     // })
 }));
 /**
- * @route   GET /api/v1/search/saved
+ * @route   GET /search/saved
  * @desc    Get user's saved searches
  * @access  Protected
  */
-router.get("/saved", 
-// requireAuth(), // Uncomment if you want to require authentication
-(0, error_middleware_1.asyncHandler)(async (req, res) => {
+/**
+ * @swagger
+ * /search/saved:
+ *   get:
+ *     summary: Get user's saved searches
+ *     description: Retrieve all saved search queries for the authenticated user.
+ *     tags:
+ *       - Search
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of saved searches retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: "search_12345"
+ *                       userId:
+ *                         type: string
+ *                         example: "user_67890"
+ *                       name:
+ *                         type: string
+ *                         example: "My Lagos Apartment Search"
+ *                       query:
+ *                         type: object
+ *                         example: { "location": "Lagos", "priceRange": "500-1000" }
+ *                       resultCount:
+ *                         type: integer
+ *                         example: 15
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-08-16T10:15:30.000Z"
+ *       401:
+ *         description: Authentication required
+ *       500:
+ *         description: Server error
+ */
+router.get("/saved", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     if (!req.user) {
         throw new error_middleware_2.AppError("Authentication required to view saved searches", 401);
     }
-    // const savedSearches = await prisma.savedSearch.findMany({
-    //   where: { userId: req.user.id },
-    //   orderBy: { createdAt: 'desc' },
-    // })
-    // res.json({
-    //   success: true,
-    //   data: savedSearches,
-    // })
+    const savedSearches = await server_1.prisma.savedSearch.findMany({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: 'desc' },
+    });
+    res.json({
+        success: true,
+        data: savedSearches,
+    });
 }));
 exports.default = router;
