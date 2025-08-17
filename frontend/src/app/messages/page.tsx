@@ -1,13 +1,12 @@
 import React from "react";
-import AirbnbStyleNavigation from "@components/AirbnbStyleNavigation";
+import AuthGuard from "@components/AuthGuard";
+import Messages from "@components/Messages";
 
 const page = () => {
 	return (
-		<>
-			<AirbnbStyleNavigation whiteBg/>
-
-			<h1>Messages</h1>
-		</>
+		<AuthGuard>
+			<Messages />
+		</AuthGuard>
 	);
 };
 

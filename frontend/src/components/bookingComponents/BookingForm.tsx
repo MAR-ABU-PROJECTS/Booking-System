@@ -32,8 +32,10 @@ import GuestCounterTwo from "@components/GuestCounterTwo";
 import { useState } from "react";
 import dayjs from "dayjs";
 
-
-const BookingForm = () => {
+type Props = {
+	isSubmitting: boolean;
+};
+const BookingForm = ({ isSubmitting }: Props) => {
 	const { control } = useFormContext<z.infer<typeof bookingDetailsSchema>>();
 	const [open, setOpen] = useState(false);
 	const [openSec, setOpenSec] = useState(false);
@@ -63,7 +65,7 @@ const BookingForm = () => {
 						<div className="flex w-full items-center gap-[10px]">
 							<Controller
 								control={control}
-								name="checkInDate"
+								name="checkIn"
 								render={({ field, fieldState }) => (
 									<div className="flex flex-col w-full gap-1">
 										<Label
@@ -127,7 +129,7 @@ const BookingForm = () => {
 
 							<Controller
 								control={control}
-								name="checkOutDate"
+								name="checkOut"
 								render={({ field, fieldState }) => (
 									<div className="flex flex-col w-full gap-1">
 										<Label
@@ -193,7 +195,7 @@ const BookingForm = () => {
 							<p className="text-[16px] font-bold capitalize">
 								Number of guests
 							</p>
-							<div className="flex flex-col lg:flex-row justify-between items-center gap-[20px]">
+							<div className="flex flex-col lg:grid lg:grid-cols-2 justify-between items-center gap-[20px]">
 								<Controller
 									control={control}
 									name="adults"
@@ -233,6 +235,25 @@ const BookingForm = () => {
 										</div>
 									)}
 								/>
+								<Controller
+									control={control}
+									name="infants"
+									render={({ field, fieldState }) => (
+										<div className="flex flex-col w-full gap-1">
+											<GuestCounterTwo
+												title="			Infants"
+												subtitle="Under 2"
+												value={field.value}
+												onChange={field.onChange}
+											/>
+											{fieldState.error && (
+												<p className="text-sm text-red-600">
+													{fieldState.error.message}
+												</p>
+											)}
+										</div>
+									)}
+								/>
 							</div>
 						</div>
 					</div>
@@ -261,7 +282,6 @@ const BookingForm = () => {
 										</Label>
 										<Input
 											type="text"
-											id="firstname"
 											placeholder="Enter First Name"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -289,7 +309,6 @@ const BookingForm = () => {
 										</Label>
 										<Input
 											type="text"
-											id="lastname"
 											placeholder="Enter Last Name"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -306,7 +325,7 @@ const BookingForm = () => {
 						<div className="flex justify-between items-center gap-[20px]">
 							<Controller
 								control={control}
-								name="email"
+								name="guestEmail"
 								render={({ field, fieldState }) => (
 									<div className="grid w-full max-w-sm items-center gap-1">
 										<Label>
@@ -317,7 +336,6 @@ const BookingForm = () => {
 										</Label>
 										<Input
 											type="email"
-											id="email"
 											placeholder="youremail@example.com"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -333,7 +351,7 @@ const BookingForm = () => {
 
 							<Controller
 								control={control}
-								name="phone"
+								name="guestPhone"
 								render={({ field, fieldState }) => (
 									<div className="grid w-full max-w-sm items-center gap-1">
 										<Label>
@@ -344,7 +362,6 @@ const BookingForm = () => {
 										</Label>
 										<Input
 											type="number"
-											id="number"
 											placeholder="+234 XXX XXXX XXX"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
@@ -380,12 +397,12 @@ const BookingForm = () => {
 							)}
 						/>
 
-						<div className="flex justify-between items-center gap-[20px]">
+						<div className="">
 							<Controller
 								control={control}
 								name="idType"
 								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
+									<div className="grid w-full items-center gap-1">
 										<Label>
 											ID Type
 											<span className="text-red-600">
@@ -425,32 +442,8 @@ const BookingForm = () => {
 								)}
 							/>
 
-							<Controller
-								control={control}
-								name="idNumber"
-								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
-										<Label>
-											ID Number
-											<span className="text-red-600">
-												*
-											</span>
-										</Label>
-										<Input
-											type="number"
-											id="number"
-											placeholder="Enter ID Number"
-											className="border-2 border-[#f7d5b0]"
-											{...field}
-										/>
-										{fieldState.error && (
-											<p className="text-sm text-red-600">
-												{fieldState.error.message}
-											</p>
-										)}
-									</div>
-								)}
-							/>
+
+
 						</div>
 
 						<Controller
@@ -615,13 +608,12 @@ const BookingForm = () => {
 								control={control}
 								name="arrivalTime"
 								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
+									<div className="grid w-full items-center gap-1">
 										<Label htmlFor="time-picker">
 											Estimated Arrival Time
 										</Label>
 										<Input
 											type="time"
-											defaultValue="Pick Time"
 											className="bg-background border-2 border-[#f7d5b0] appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 											{...field}
 										/>
@@ -634,47 +626,7 @@ const BookingForm = () => {
 								)}
 							/>
 
-							<Controller
-								control={control}
-								name="purpose"
-								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
-										<Label>Purpose of Visit</Label>
-										<Select
-											value={field.value}
-											onValueChange={field.onChange}
-										>
-											<SelectTrigger className="w-[full] border-2 border-[#f7d5b0]">
-												<SelectValue placeholder="Select Purpose" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectGroup>
-													<SelectItem value="business">
-														Business
-													</SelectItem>
-													<SelectItem value="leisure">
-														Leisure
-													</SelectItem>
-													<SelectItem value="family-visit">
-														Family Visit
-													</SelectItem>
-													<SelectItem value="event">
-														Conference/Event
-													</SelectItem>
-													<SelectItem value="other">
-														Other
-													</SelectItem>
-												</SelectGroup>
-											</SelectContent>
-										</Select>
-										{fieldState.error && (
-											<p className="text-sm text-red-600">
-												{fieldState.error.message}
-											</p>
-										)}
-									</div>
-								)}
-							/>
+							
 						</div>
 
 						<div className="w-full h-full p-[10px] bg-[#fef9f3] border-2 border-[#f7d5b0] rounded-xl">
@@ -729,10 +681,13 @@ const BookingForm = () => {
 				</div>
 				<hr className="h-px my-[10px] bg-[#f7d5b0] border-0" />
 				<Button
-					className="hover:bg-[#F4A857] py-[15px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
+					className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
+					disabled={isSubmitting}
 					type="submit"
 				>
-					🔒 Complete Secure Booking
+					{isSubmitting
+						? "⏳ Processing..."
+						: "🔒 Complete Secure Booking"}
 				</Button>
 			</div>
 		</div>

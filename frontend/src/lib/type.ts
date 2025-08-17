@@ -1,5 +1,5 @@
 export type Property = {
-	id: number;
+	id: string;
 	status?: string;
 	desc: string;
 	name: string;
@@ -34,3 +34,19 @@ export type Property = {
 //   guests: 6,
 //   isSuperhost: true,
 // },
+
+
+export type SummaryData = {
+	checkInDate: string;
+	checkOutDate: string;
+	nights: number;
+	adults: number;
+	children: number;
+	infants: number;
+	baseAmount: number;
+	serviceFee: number;
+	total: number;
+	property:{
+		name:string
+	}
+};

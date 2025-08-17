@@ -4,21 +4,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
 import GuestCounter from "@components/GuestCounter";
 import { Calendar } from "@components/ui/calendar";
-import { useDispatch} from "react-redux";
+import { useDispatch } from "react-redux";
 import { updateBooking } from "@lib/features/bookingSlice";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { homePageBookingSchema } from "@lib/schemas";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import {z} from "zod"
+import { z } from "zod";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
 const AirbnbStyleSearch = () => {
+	dayjs.extend(isSameOrBefore);
 	const [activeTab, setActiveTab] = useState<string | null>(null);
 	const router = useRouter();
 
-
-	const dispatch = useDispatch()
+	const dispatch = useDispatch();
 
 	const handleTabClick = (tab: string) => {
 		setActiveTab(activeTab === tab ? null : tab);
@@ -31,24 +32,28 @@ const AirbnbStyleSearch = () => {
 	// MAR ABU HOMES current apartments
 	const marAbuApartments = [
 		{
+			id: "cmeffv6gn000ugi4szmoo173w",
 			name: "WHITE-STONE",
 			location: "Victoria Island, Lagos",
 			type: "Luxury Apartment",
 			price: 85000,
 		},
 		{
+			id: "cmeffv62u0003gi4s3gkrh5yh",
 			name: "ABIKE PENTHOUSE",
 			location: "Ikoyi, Lagos",
 			type: "Premium Penthouse",
 			price: 120000,
 		},
 		{
+			id: "cmeffv68e000dgi4s7hkurcrg",
 			name: "OBUDU VILLA",
 			location: "Lekki Phase 1, Lagos",
 			type: "Executive Villa",
 			price: 95000,
 		},
 		{
+			id: "cmeffv6ck000lgi4s2rb6qqdk",
 			name: "ZIRCON",
 			location: "Banana Island, Lagos",
 			type: "Luxury Suite",
@@ -59,7 +64,7 @@ const AirbnbStyleSearch = () => {
 	const form = useForm({
 		resolver: zodResolver(homePageBookingSchema),
 		defaultValues: {
-			stepOne: { location: "", name:"" },
+			stepOne: { location: "", name: "", id: "" },
 			stepTwo: { checkin: undefined },
 			stepThree: { checkout: undefined },
 			stepFour: {
@@ -71,6 +76,23 @@ const AirbnbStyleSearch = () => {
 			},
 		},
 	});
+
+	function flattenErrors(errorObj: unknown): string[] {
+		if (!errorObj) return [];
+
+		return Object.values(errorObj).flatMap((error) => {
+			if (!error) return [];
+			if (typeof error === "object" && "message" in error) {
+				return [error.message as string];
+			}
+			if (typeof error === "object") {
+				return flattenErrors(error);
+			}
+			return [];
+		});
+	}
+
+	const allErrorMessages = flattenErrors(form.formState.errors);
 
 	const location = form.watch("stepOne.location");
 
@@ -84,15 +106,34 @@ const AirbnbStyleSearch = () => {
 
 	const onSubmit = (data: z.infer<typeof homePageBookingSchema>) => {
 		handleClose();
-		dispatch(updateBooking({ key: "location", value: data.stepOne.location }));
+		dispatch(updateBooking({ key: "id", value: data.stepOne.id }));
+		dispatch(
+			updateBooking({ key: "location", value: data.stepOne.location })
+		);
 		dispatch(updateBooking({ key: "name", value: data.stepOne.name }));
-		dispatch(updateBooking({ key: "price", value: data.stepOne.price }));
-		dispatch(updateBooking({ key: "checkIn", value: data.stepTwo.checkin }));
-		dispatch(updateBooking({ key: "checkOut", value: data.stepThree.checkout }));
-		dispatch(updateBooking({ key: "adults", value: data.stepFour.Guests.adults }));
-		dispatch(updateBooking({ key: "children", value: data.stepFour.Guests.children }));
-		dispatch(updateBooking({ key: "infants", value: data.stepFour.Guests.infants }));
-		router.push("/booking");
+		
+		dispatch(
+			updateBooking({ key: "checkIn", value: data.stepTwo.checkin })
+		);
+		dispatch(
+			updateBooking({ key: "checkOut", value: data.stepThree.checkout })
+		);
+		dispatch(
+			updateBooking({ key: "adults", value: data.stepFour.Guests.adults })
+		);
+		dispatch(
+			updateBooking({
+				key: "children",
+				value: data.stepFour.Guests.children,
+			})
+		);
+		dispatch(
+			updateBooking({
+				key: "infants",
+				value: data.stepFour.Guests.infants,
+			})
+		);
+		router.push(`/booking?id=${data.stepOne.id}`);
 	};
 
 	return (
@@ -227,9 +268,10 @@ const AirbnbStyleSearch = () => {
 																"stepOne.name",
 																apartment.name
 															);
+															
 															form.setValue(
-																"stepOne.price",
-																apartment.price
+																"stepOne.id",
+																apartment.id
 															);
 															const isValid =
 																await form.trigger(
@@ -339,19 +381,27 @@ const AirbnbStyleSearch = () => {
 													<Calendar
 														className="w-full max-w-[400px]"
 														mode="single"
-														disabled={(date) => {
-															const checkinDay =
-																dayjs(
-																	checkIn
-																).startOf(
-																	"day"
-																);
-															return dayjs(
+														// disabled={(date) => {
+														// 	const checkinDay =
+														// 		dayjs(
+														// 			checkIn
+														// 		).startOf(
+														// 			"day"
+														// 		);
+														// 	return dayjs(
+														// 		date
+														// 	).isBefore(
+														// 		checkinDay
+														// 	);
+														// }}
+														disabled={(date) =>
+															dayjs(
 																date
-															).isBefore(
-																checkinDay
-															);
-														}}
+															).isSameOrBefore(
+																checkIn,
+																"day"
+															)
+														}
 														onSelect={(date) => {
 															field.onChange(
 																date
@@ -443,8 +493,31 @@ const AirbnbStyleSearch = () => {
 												Save
 											</button>
 										</div>
+
+										<div>
+											<p className="text-sm text-red-600">
+												{/* {fieldState.error.message} */}
+											</p>
+										</div>
 									</div>
 								)}
+
+								<div className="flex justify-end">
+									{allErrorMessages.length > 0 && (
+										<ul className="space-y-1 text-right pr-6 pb-6">
+											{allErrorMessages.map(
+												(msg, idx) => (
+													<li
+														key={idx}
+														className="text-[15px] text-red-600"
+													>
+														{msg}
+													</li>
+												)
+											)}
+										</ul>
+									)}
+								</div>
 							</motion.div>
 						)}
 					</AnimatePresence>

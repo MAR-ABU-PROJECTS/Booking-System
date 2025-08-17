@@ -1,13 +1,16 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getSessionUser } from "@lib/action";
+import { getIronSession } from "iron-session";
+import { cookies } from "next/headers";
+import { SessionData, sessionOptions } from "@lib/session";
 
 export async function middleware(request: NextRequest) {
-	const { user, redirectTo } = await getSessionUser();
+	const session = await getIronSession<SessionData>(
+		await cookies(),
+		sessionOptions
+	);
 
-	if (!user?.isLoggedIn) {
-		return NextResponse.redirect(
-			new URL(redirectTo || "log-in", request.url)
-		);
+	if (!session?.user?.isLoggedIn) {
+		return NextResponse.redirect(new URL("/log-in", request.url));
 	}
 
 	return NextResponse.next();
@@ -15,4 +18,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
 	matcher: ["/wishlist", "/messages"],
+	
 };

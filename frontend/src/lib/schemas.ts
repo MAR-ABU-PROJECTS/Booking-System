@@ -1,76 +1,86 @@
 import { z } from "zod";
 
-export const homePageBookingSchema = z.object({
-	stepOne: z.object({
-		location: z.string().min(1, "please select location"),
-		name: z.string().min(1, "please select location"),
-		price: z.number(),
-	}),
-	stepTwo: z.object({
-		checkin: z.date({
-			error: (issue) =>
-				issue.input === undefined
-					? "Please select a check-in date"
-					: "Invalid check-in date",
+export const homePageBookingSchema = z
+	.object({
+		stepOne: z.object({
+			id: z.string().refine((val) => val.trim().length > 0, {
+				message: "",
+			}),
+			location: z.string().min(1, "please select location"),
+			name: z.string().refine((val) => val.trim().length > 0, {
+				message: "",
+			}),
 		}),
-	}),
-	stepThree: z.object({
-		checkout: z.date({
-			error: (issue) =>
-				issue.input === undefined
-					? "Please select a check-out date"
-					: "Invalid check-out date",
+		stepTwo: z.object({
+			checkin: z
+				.date({
+					error: (issue) =>
+						issue.input === undefined
+							? "Please select a check-in date"
+							: "Invalid check-in date",
+				})
+				.default(new Date()),
 		}),
-	}),
-	stepFour: z.object({
-		Guests: z.object({
-			adults: z.number().min(1, "Atleast 1 adult"),
-			children: z.number().min(0),
-			infants: z.number().min(0),
+		stepThree: z.object({
+			checkout: z.date({
+				error: (issue) =>
+					issue.input === undefined
+						? "Please select a check-out date"
+						: "Invalid check-out date",
+			}),
 		}),
-	}),
-});
+		stepFour: z.object({
+			Guests: z.object({
+				adults: z.number().min(1, "Atleast 1 adult"),
+				children: z.number().min(0),
+				infants: z.number().min(0),
+			}),
+		}),
+	})
+	.superRefine((data, ctx) => {
+		if (data.stepThree.checkout <= data.stepTwo.checkin) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Check-out date must be after check-in date.",
+				path: ["stepThree", "checkout"],
+			});
+			ctx.addIssue({
+				code: "custom",
+				message: "Check-in date must be before check-out date.",
+				path: ["stepTwo", "checkin"],
+			});
+		}
+	});
 
 export const bookingDetailsSchema = z
 	.object({
-		// Booking Dates
-
-		checkInDate: z.date({
+		checkIn: z.date({
 			error: (issue) =>
 				issue.input === undefined
 					? "Please select a check-in date"
 					: "Invalid check-in date",
 		}),
-		checkOutDate: z.date({
+		checkOut: z.date({
 			error: (issue) =>
 				issue.input === undefined
 					? "Please select a check-out date"
 					: "Invalid check-out date",
 		}),
-
-		// Guests
 		adults: z.number().min(1, "At least 1 adult is required"),
 		children: z.number().min(0),
-
-		// Guest Info
+		infants: z.number().min(0),
 		firstName: z.string().min(1, "First name is required"),
 		lastName: z.string().min(1, "Last name is required"),
-		email: z
+		guestEmail: z
 			.string()
 			.min(1, "email address is required")
 			.email("Invalid email address"),
-		phone: z.string().min(10, "Phone number is required"),
+		guestPhone: z.string().min(10, "Phone number is required"),
 		address: z.string().min(1, "Billing address is required"),
-
-		// ID
 		idType: z.string().min(1, "Select an ID type"),
 		idNumber: z.string().min(1, "Enter your ID number"),
 		emergencyContact: z.string().min(1, "Emergency contact is required"),
-
-		// Payment
 		paymentMethod: z.string().min(1, "Select a payment method"),
-
-		// Additional Info
 		additionalInfo: z.string().optional(),
 		arrivalTime: z
 			.string()
@@ -87,6 +97,13 @@ export const bookingDetailsSchema = z
 				code: "custom",
 				message: "Please agree to the terms to continue.",
 				path: ["agree"],
+			});
+		}
+		if (data.checkOut <= data.checkIn) {
+			ctx.addIssue({
+				code: "custom",
+				message: "Check-out date must be after check-in date.",
+				path: ["checkOut"],
 			});
 		}
 	});
