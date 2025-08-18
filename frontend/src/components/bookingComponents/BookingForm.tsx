@@ -26,7 +26,7 @@ import {
 } from "@components/ui/select";
 import { Checkbox } from "@components/ui/checkbox";
 import { Controller, useFormContext } from "react-hook-form";
-import { bookingDetailsSchema } from "@lib/schemas";
+import { createBookingSchema } from "@lib/schemas";
 import { z } from "zod";
 import GuestCounterTwo from "@components/GuestCounterTwo";
 import { useState } from "react";
@@ -36,7 +36,7 @@ type Props = {
 	isSubmitting: boolean;
 };
 const BookingForm = ({ isSubmitting }: Props) => {
-	const { control } = useFormContext<z.infer<typeof bookingDetailsSchema>>();
+	const { control } = useFormContext<z.infer<typeof createBookingSchema>>();
 	const [open, setOpen] = useState(false);
 	const [openSec, setOpenSec] = useState(false);
 
@@ -268,21 +268,21 @@ const BookingForm = ({ isSubmitting }: Props) => {
 						</p>
 					</div>
 					<div className="flex flex-col gap-[20px]">
-						<div className="flex justify-between items-center gap-[20px]">
+						<div className="flex items-center gap-[20px] flex-1">
 							<Controller
 								control={control}
-								name="firstName"
+								name="guestName"
 								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
+									<div className="grid w-full items-center gap-1">
 										<Label>
-											First Name
+											Full Name
 											<span className="text-red-600">
 												*
 											</span>
 										</Label>
 										<Input
 											type="text"
-											placeholder="Enter First Name"
+											placeholder="Enter Full Name"
 											className="border-2 border-[#f7d5b0]"
 											{...field}
 										/>
@@ -296,7 +296,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 								)}
 							/>
 
-							<Controller
+							{/* <Controller
 								control={control}
 								name="lastName"
 								render={({ field, fieldState }) => (
@@ -320,7 +320,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 										)}
 									</div>
 								)}
-							/>
+							/> */}
 						</div>
 						<div className="flex justify-between items-center gap-[20px]">
 							<Controller
@@ -585,7 +585,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 					<div className="flex flex-col gap-[20px]">
 						<Controller
 							control={control}
-							name="additionalInfo"
+							name="specialRequests"
 							render={({ field, fieldState }) => (
 								<div className="flex flex-col w-full gap-1">
 									<Label>Special Requests or Comments</Label>

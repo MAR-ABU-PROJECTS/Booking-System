@@ -4,9 +4,9 @@ import { toast } from "react-toastify";
 import Navbar from "@components/Navigation";
 import BookingForm from "@components/bookingComponents/BookingForm";
 import BookingSummary from "@components/bookingComponents/BookingSummary";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm, FormProvider, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { bookingDetailsSchema } from "@lib/schemas";
+import { createBookingSchema } from "@lib/schemas";
 import { z } from "zod";
 import { RootState } from "@lib/features/store";
 import { useSelector } from "react-redux";
@@ -15,12 +15,15 @@ import { isAxiosError } from "axios";
 import { apiService } from "@lib/apiService";
 import dayjs from "dayjs";
 import type {SummaryData} from "@lib/type"
+import { useDispatch } from "react-redux";
+import { resetBooking } from "@lib/features/bookingSlice";
 
 
 
 const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const user = useSelector((state: RootState) => state.auth);
+	const dispatch = useDispatch();
 	
 	const [summaryData, setSummaryData] = useState<SummaryData>({
 		checkInDate: "",
@@ -37,48 +40,45 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		}
 	});
 
-	const form = useForm<z.infer<typeof bookingDetailsSchema>>({
-		resolver: zodResolver(bookingDetailsSchema),
+	const form = useForm<z.infer<typeof createBookingSchema>>({
+		resolver: zodResolver(createBookingSchema),
 		defaultValues: {
-			checkIn: undefined,
-			checkOut: undefined,
+			propertyId:propertyId,
+			checkIn: new Date(),
+			checkOut: dayjs().add(1, "day").toDate(),
 			guestEmail: "",
-			firstName: "",
-			lastName: "",
 			address: "",
 			arrivalTime: "",
 			agree: false,
-			additionalInfo: "",
+			specialRequests: "",
 			children: 0,
-			adults: 0,
+			adults: 1,
 			infants: 0,
-			purpose: "nil",
 			guestPhone: "",
-			idNumber: "nil",
 			idType: "",
 			paymentMethod: "",
 			emergencyContact: "",
+			guestName:"",
 		},
 		mode: "onChange",
 	});
 
 	const mutation = useMutation({
-		mutationFn: async (formData: z.infer<typeof bookingDetailsSchema>) => {
+		mutationFn: async (formData: z.infer<typeof createBookingSchema>) => {
 			const checkIn = dayjs(formData.checkIn).format("YYYY-MM-DD");
 			const checkOut = dayjs(formData.checkOut).format("YYYY-MM-DD");
 
-			const name = `${formData.firstName} ${formData.lastName}`;
 			const response = await apiService.post("/bookings", {
-				propertyId: propertyId,
+				propertyId: formData.propertyId,
 				checkIn: checkIn,
 				checkOut: checkOut,
 				adults: formData.adults,
 				children: formData.children,
 				infants: formData.infants,
-				guestName: name,
+				guestName:  formData.guestName,
 				guestEmail: formData.guestEmail,
 				guestPhone: formData.guestPhone,
-				specialRequests: formData.additionalInfo,
+				specialRequests: formData?.specialRequests,
 			});
 			return response;
 		},
@@ -90,6 +90,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 					progress: undefined,
 				});
 				setSummaryData(res.data)
+				dispatch(resetBooking())
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
@@ -126,7 +127,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		},
 	});
 
-	const onSubmit = (values: z.infer<typeof bookingDetailsSchema>) => {
+	const onSubmit: SubmitHandler<z.infer<typeof createBookingSchema>> = (values) => {
 		mutation.mutate(values);
 	};
 
@@ -148,9 +149,9 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			form.setValue("guestEmail", user.user.email);
 		}
 		if (user?.user?.name) {
-			const name = user?.user?.name.split(" ");
-			form.setValue("firstName", name[0]);
-			form.setValue("lastName", name[1]);
+			
+			form.setValue("guestName", user?.user?.name);
+			
 		}
 	}, [booking, form, user]);
 

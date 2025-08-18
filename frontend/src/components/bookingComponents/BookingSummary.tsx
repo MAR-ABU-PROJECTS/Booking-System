@@ -74,6 +74,37 @@ const BookingSummary = ({
 		retry: false,
 	});
 
+	const statusColors: Record<string, string> = {
+		PENDING: "bg-yellow-100 text-yellow-800",
+		APPROVED: "bg-blue-100 text-blue-800",
+		CONFIRMED: "bg-green-100 text-green-800",
+		CANCELLED: "bg-gray-100 text-gray-800",
+		COMPLETED: "bg-green-200 text-green-900",
+		EXPIRED: "bg-red-100 text-red-800",
+		REJECTED: "bg-red-200 text-red-900",
+		CHECKED_IN: "bg-indigo-100 text-indigo-800",
+		CHECKED_OUT: "bg-purple-100 text-purple-800",
+		REFUNDED: "bg-orange-100 text-orange-800",
+	};
+
+	function BookingStatusBadge({
+		status,
+	}: {
+		status?: keyof typeof statusColors;
+	}) {
+		if (!status) return null;
+
+		return (
+			<span
+				className={`px-3 py-1 rounded-full text-sm font-medium ${
+					statusColors[status] ?? "bg-gray-100 text-gray-800"
+				}`}
+			>
+				{status.replace("_", " ")}
+			</span>
+		);
+	}
+
 	return (
 		<div className="order-[-1] md:order-2 flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
 			<div className="flex flex-col gap-[5px]">
@@ -134,7 +165,7 @@ const BookingSummary = ({
 							{summaryData.children} Child
 							{summaryData.children !== 1 && "ren"},{" "}
 							{summaryData.infants} Infant
-							{summaryData.infants > 1 ? "s" : ''}
+							{summaryData.infants > 1 ? "s" : ""}
 						</p>
 					</div>
 				</div>
@@ -150,6 +181,27 @@ const BookingSummary = ({
 							{" "}
 							{formatCurrency(ratePerNight)}
 						</p>
+					</div>
+				</div>
+				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">
+							Booking Code:
+						</p>
+					</div>
+					<div>
+						<p className="text-[14px] font-[500]"></p>
+					</div>
+				</div>
+				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">Status:</p>
+					</div>
+					<div>
+						<BookingStatusBadge status={"APPROVED"} />
 					</div>
 				</div>
 			</div>

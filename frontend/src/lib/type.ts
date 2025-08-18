@@ -17,7 +17,7 @@ export type Property = {
 	rating?: number;
 	reviews?: number;
 	guests: number;
-  isNew?:boolean;
+	isNew?: boolean;
 	type?: string;
 };
 
@@ -35,7 +35,6 @@ export type Property = {
 //   isSuperhost: true,
 // },
 
-
 export type SummaryData = {
 	checkInDate: string;
 	checkOutDate: string;
@@ -46,7 +45,93 @@ export type SummaryData = {
 	baseAmount: number;
 	serviceFee: number;
 	total: number;
-	property:{
-		name:string
-	}
+	property: {
+		name: string;
+	};
 };
+
+export enum BookingStatus {
+	PENDING = "PENDING",
+	APPROVED = "APPROVED",
+	CONFIRMED = "CONFIRMED",
+	CANCELLED = "CANCELLED",
+	COMPLETED = "COMPLETED",
+	EXPIRED = "EXPIRED",
+	REJECTED = "REJECTED",
+	CHECKED_IN = "CHECKED_IN",
+	CHECKED_OUT = "CHECKED_OUT",
+	REFUNDED = "REFUNDED",
+}
+
+export enum PaymentStatus {
+	PENDING = "PENDING",
+	PROCESSING = "PROCESSING",
+	PAID = "PAID",
+	FAILED = "FAILED",
+	REFUNDED = "REFUNDED",
+	PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED",
+	PARTIALLY_PAID = "PARTIALLY_PAID",
+	EXPIRED = "EXPIRED",
+}
+
+export enum PaymentMethod {
+	CARD = "CARD",
+	BANK_TRANSFER = "BANK_TRANSFER",
+	CASH = "CASH",
+	STRIPE = "STRIPE",
+	PAYSTACK = "PAYSTACK",
+	FLUTTERWAVE = "FLUTTERWAVE",
+}
+
+export interface Booking {
+  id: string
+  bookingCode: string
+  checkInDate: string
+  checkOutDate: string
+  nights: number
+  adults: number
+  children: number
+  infants: number
+
+  status: BookingStatus
+  paymentStatus: PaymentStatus
+
+
+  baseAmount: number
+  cleaningFee: number
+  serviceFee: number
+  taxes: number
+  discount: number
+  total: number
+  paidAmount: number
+  currency: string
+
+  guestName: string
+  guestEmail: string
+  guestPhone: string
+  guestAddress?: string
+
+  specialRequests?: string
+  arrivalTime?: string
+  source?: string
+
+  cancellationReason?: string
+  cancelledAt?: string
+  cancelledBy?: string
+  refundAmount?: number
+
+  adminNotes?: string
+  approvedBy?: string
+  approvedAt?: string
+  completedAt?: string
+  paidAt?: string
+
+  createdAt: string
+  updatedAt: string
+
+  // Relations
+  customerId: string
+  propertyId: string
+  // customer?: User
+  // property?: Property
+}
