@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { MapPin, ShieldHalf } from "lucide-react";
 import dayjs from "dayjs";
 import { RootState } from "@lib/features/store";
@@ -10,6 +11,20 @@ import { apiService } from "@lib/apiService";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
+import { Checkbox } from "@components/ui/checkbox";
+import { Label } from "@components/ui/label";
+import { Button } from "@components/ui/button";
+import {
+	Select,
+	SelectItem,
+	SelectTrigger,
+	SelectContent,
+	SelectGroup,
+	SelectValue,
+	SelectLabel,
+} from "@components/ui/select";
+import BookingStatus from "@components/BookingStatus";
+import { PaymentMethod } from "@lib/type";
 
 const BookingSummary = ({
 	summaryData,
@@ -31,10 +46,11 @@ const BookingSummary = ({
 
 	const ratePerNight = summaryData.baseAmount;
 	const subtotal = ratePerNight * nights;
+	const cleaningFee = summaryData.cleaningFee;
 	const serviceFee = summaryData.serviceFee;
-	const totalAmount = subtotal + serviceFee;
+	const taxes = summaryData.taxes;
+	const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
 	const location = booking.location;
-	// const name = booking.name;
 
 	const images = [
 		"/apartment-images/IMG_5673.JPG",
@@ -74,36 +90,16 @@ const BookingSummary = ({
 		retry: false,
 	});
 
-	const statusColors: Record<string, string> = {
-		PENDING: "bg-yellow-100 text-yellow-800",
-		APPROVED: "bg-blue-100 text-blue-800",
-		CONFIRMED: "bg-green-100 text-green-800",
-		CANCELLED: "bg-gray-100 text-gray-800",
-		COMPLETED: "bg-green-200 text-green-900",
-		EXPIRED: "bg-red-100 text-red-800",
-		REJECTED: "bg-red-200 text-red-900",
-		CHECKED_IN: "bg-indigo-100 text-indigo-800",
-		CHECKED_OUT: "bg-purple-100 text-purple-800",
-		REFUNDED: "bg-orange-100 text-orange-800",
+
+	const [checked, setChecked] = useState(false);
+	const [paymentMethod, setPaymentMethod] = useState<
+		PaymentMethod | undefined
+	>();
+
+	const onMethodChange = (value: PaymentMethod) => {
+		setPaymentMethod(value);
 	};
 
-	function BookingStatusBadge({
-		status,
-	}: {
-		status?: keyof typeof statusColors;
-	}) {
-		if (!status) return null;
-
-		return (
-			<span
-				className={`px-3 py-1 rounded-full text-sm font-medium ${
-					statusColors[status] ?? "bg-gray-100 text-gray-800"
-				}`}
-			>
-				{status.replace("_", " ")}
-			</span>
-		);
-	}
 
 	return (
 		<div className="order-[-1] md:order-2 flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
@@ -161,9 +157,9 @@ const BookingSummary = ({
 					<div>
 						<p className="text-[14px] font-[500]">
 							{summaryData.adults} Adult
-							{summaryData.adults !== 1 && "s"},{" "}
+							{summaryData.adults > 1 ? "s" : ""},{" "}
 							{summaryData.children} Child
-							{summaryData.children !== 1 && "ren"},{" "}
+							{summaryData.children > 1 ? "ren" : ""},{" "}
 							{summaryData.infants} Infant
 							{summaryData.infants > 1 ? "s" : ""}
 						</p>
@@ -191,7 +187,9 @@ const BookingSummary = ({
 						</p>
 					</div>
 					<div>
-						<p className="text-[14px] font-[500]"></p>
+						<p className="text-[14px] font-[500]">
+							{summaryData.bookingCode}
+						</p>
 					</div>
 				</div>
 				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
@@ -201,7 +199,7 @@ const BookingSummary = ({
 						<p className="text-[14px] text-[#667085]">Status:</p>
 					</div>
 					<div>
-						<BookingStatusBadge status={"APPROVED"} />
+						<BookingStatus status={summaryData?.status} />
 					</div>
 				</div>
 			</div>
@@ -241,7 +239,59 @@ const BookingSummary = ({
 					</div>
 				</div>
 			</div>
-			<div className="flex flex-col bg-[#e7f8f0] border-2 border-[#a6e4c8] py-[15px] px-[10px] rounded-xl gap-[10px]">
+
+			<div className="w-full grid items-center gap-1 mt-2">
+				<Label>
+					Preferred Payment Method
+					<span className="text-red-600">*</span>
+				</Label>
+				<Select value={paymentMethod} onValueChange={onMethodChange}>
+					<SelectTrigger className="w-full border-2 border-[#f7d5b0]">
+						<SelectValue placeholder="Select Payment Method" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectGroup>
+							<SelectLabel>Select Payment Method</SelectLabel>
+
+							<SelectItem value={PaymentMethod.PAYSTACK}>
+								Paystack
+							</SelectItem>
+							<SelectItem value={PaymentMethod.FLUTTERWAVE}>
+								Flutterwave
+							</SelectItem>
+						</SelectGroup>
+					</SelectContent>
+				</Select>
+			</div>
+
+			<div className="items-center gap-[10px] flex mt-2">
+				<Checkbox
+					id="terms"
+					checked={checked}
+					onCheckedChange={(val) => setChecked(!!val)}
+					className="bg-white border-1 border-black inline-flex !cursor-pointer"
+				/>
+				<Label
+					htmlFor="terms"
+					className="text-[12px] md:text-[14px] text-start"
+				>
+					<div>
+						I agree to the{" "}
+						<span className="text-[#F4A857] cursor-pointer hover:underline">
+							Terms and Conditions
+						</span>{" "}
+						and{" "}
+						<span className="text-[#F4A857] cursor-pointer hover:underline">
+							Privacy Policy
+						</span>{" "}
+						of MAR ABU PROJECTS SERVICES LLC{" "}
+						<span className="text-red-600">*</span>
+					</div>
+				</Label>
+			</div>
+
+			
+			<div className="flex mt-2.5 flex-col bg-[#e7f8f0] border-2 border-[#a6e4c8] py-[15px] px-[10px] rounded-xl gap-[10px]">
 				<div className="flex gap-[10px]">
 					<div className="flex w-[40px] h-[30px] p-[10px] justify-center items-center bg-[#12b76a] rounded-full">
 						<ShieldHalf color="red" />
@@ -257,6 +307,12 @@ const BookingSummary = ({
 						</p>
 					</div>
 				</div>
+			</div>
+
+			<div className="flex flex-col my-2.5">
+				<Button className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl">
+					Pay
+				</Button>
 			</div>
 		</div>
 	);

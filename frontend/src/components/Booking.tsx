@@ -14,36 +14,73 @@ import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { apiService } from "@lib/apiService";
 import dayjs from "dayjs";
-import type {SummaryData} from "@lib/type"
+import type { SummaryData } from "@lib/type";
 import { useDispatch } from "react-redux";
 import { resetBooking } from "@lib/features/bookingSlice";
-
-
 
 const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const user = useSelector((state: RootState) => state.auth);
 	const dispatch = useDispatch();
-	
+
 	const [summaryData, setSummaryData] = useState<SummaryData>({
+		id: "",
+		bookingCode: "",
 		checkInDate: "",
 		checkOutDate: "",
 		nights: 0,
 		adults: 0,
 		children: 0,
 		infants: 0,
+		status: undefined,
+		paymentStatus: undefined,
 		baseAmount: 0,
+		cleaningFee: 0,
 		serviceFee: 0,
+		taxes: 0,
+		discount: 0,
 		total: 0,
-		property:{
-			name:""
-		}
+		paidAmount: 0,
+		currency: "NGN",
+		guestName: "",
+		guestEmail: "",
+		guestPhone: "",
+		guestAddress: null,
+		specialRequests: null,
+		arrivalTime: null,
+		source: null,
+		cancellationReason: null,
+		cancelledAt: null,
+		cancelledBy: null,
+		refundAmount: null,
+		adminNotes: null,
+		approvedBy: null,
+		approvedAt: null,
+		completedAt: null,
+		paidAt: null,
+		createdAt: "",
+		updatedAt: "",
+		customerId: "",
+		propertyId: "",
+		property: {
+			name: "",
+			host: {
+				firstName: "",
+				lastName: "",
+				email: "",
+			},
+		},
+		customer: {
+			firstName: "",
+			lastName: "",
+			email: "",
+		},
 	});
 
 	const form = useForm<z.infer<typeof createBookingSchema>>({
 		resolver: zodResolver(createBookingSchema),
 		defaultValues: {
-			propertyId:propertyId,
+			propertyId: propertyId,
 			checkIn: new Date(),
 			checkOut: dayjs().add(1, "day").toDate(),
 			guestEmail: "",
@@ -58,7 +95,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			idType: "",
 			paymentMethod: "",
 			emergencyContact: "",
-			guestName:"",
+			guestName: "",
 		},
 		mode: "onChange",
 	});
@@ -75,7 +112,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 				adults: formData.adults,
 				children: formData.children,
 				infants: formData.infants,
-				guestName:  formData.guestName,
+				guestName: formData.guestName,
 				guestEmail: formData.guestEmail,
 				guestPhone: formData.guestPhone,
 				specialRequests: formData?.specialRequests,
@@ -89,8 +126,8 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 					closeOnClick: false,
 					progress: undefined,
 				});
-				setSummaryData(res.data)
-				dispatch(resetBooking())
+				setSummaryData(res.data);
+				dispatch(resetBooking());
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
@@ -127,7 +164,9 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		},
 	});
 
-	const onSubmit: SubmitHandler<z.infer<typeof createBookingSchema>> = (values) => {
+	const onSubmit: SubmitHandler<z.infer<typeof createBookingSchema>> = (
+		values
+	) => {
 		mutation.mutate(values);
 	};
 
@@ -149,9 +188,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			form.setValue("guestEmail", user.user.email);
 		}
 		if (user?.user?.name) {
-			
 			form.setValue("guestName", user?.user?.name);
-			
 		}
 	}, [booking, form, user]);
 
@@ -293,7 +330,10 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 					className="grid md:grid-cols-[60%_35%] justify-between gap-[20px] lg:gap-[40px] px-[20px] lg:px-12 pt-[100px] py-[30px] bg-[#F1F1F1]"
 				>
 					<BookingForm isSubmitting={mutation.isPending} />
-					<BookingSummary  propertyId={propertyId}  summaryData={summaryData} />
+					<BookingSummary
+						propertyId={propertyId}
+						summaryData={summaryData}
+					/>
 				</form>
 			</FormProvider>
 		</>

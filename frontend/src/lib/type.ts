@@ -35,20 +35,7 @@ export type Property = {
 //   isSuperhost: true,
 // },
 
-export type SummaryData = {
-	checkInDate: string;
-	checkOutDate: string;
-	nights: number;
-	adults: number;
-	children: number;
-	infants: number;
-	baseAmount: number;
-	serviceFee: number;
-	total: number;
-	property: {
-		name: string;
-	};
-};
+
 
 export enum BookingStatus {
 	PENDING = "PENDING",
@@ -135,3 +122,58 @@ export interface Booking {
   // customer?: User
   // property?: Property
 }
+
+
+export type SummaryData = {
+	id: string;
+	bookingCode: string;
+	checkInDate: string;
+	checkOutDate: string;
+	nights: number;
+	adults: number;
+	children: number;
+	infants: number;
+	status: BookingStatus | undefined;
+	paymentStatus: PaymentStatus | undefined;
+	baseAmount: number;
+	cleaningFee: number;
+	serviceFee: number;
+	taxes: number;
+	discount: number;
+	total: number;
+	paidAmount: number;
+	currency: string;
+	guestName: string;
+	guestEmail: string;
+	guestPhone: string;
+	guestAddress: string | null;
+	specialRequests: string | null;
+	arrivalTime: string | null;
+	source: string | null;
+	cancellationReason: string | null;
+	cancelledAt: string | null;
+	cancelledBy: string | null;
+	refundAmount: number | null;
+	adminNotes: string | null;
+	approvedBy: string | null;
+	approvedAt: string | null;
+	completedAt: string | null;
+	paidAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+	customerId: string;
+	propertyId: string;
+	property: {
+		name: string;
+		host: {
+			firstName: string;
+			lastName: string;
+			email: string;
+		};
+	};
+	customer: {
+		firstName: string;
+		lastName: string;
+		email: string;
+	};
+};
