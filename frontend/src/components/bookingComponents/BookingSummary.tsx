@@ -310,7 +310,11 @@ const BookingSummary = ({
 			</div>
 
 			<div className="flex flex-col my-2.5">
-				<Button className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl">
+				<Button className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
+
+				disabled={!paymentMethod || !checked || !totalAmount}
+				
+				>
 					Pay
 				</Button>
 			</div>
