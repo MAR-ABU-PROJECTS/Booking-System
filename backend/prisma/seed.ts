@@ -178,8 +178,19 @@ async function main() {
   for (const propertyData of properties) {
     const { amenities, ...propertyFields } = propertyData;
 
-    const property = await prisma.property.create({
-      data: {
+    const property = await prisma.property.upsert({
+      where: { name: propertyFields.name },
+      update: {
+        ...propertyFields,
+        hostId: superAdmin.id,
+        propertyAmenities: {
+          create: (amenities ?? []).map((amenity, index) => ({
+            name: amenity,
+            category: index < 3 ? "Basic" : index < 6 ? "Premium" : "Luxury",
+          })),
+        },
+      },
+      create: {
         ...propertyFields,
         hostId: superAdmin.id,
         propertyAmenities: {

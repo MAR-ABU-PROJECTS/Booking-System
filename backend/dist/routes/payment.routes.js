@@ -430,29 +430,7 @@ router.get("/callback", (0, error_middleware_1.asyncHandler)(async (req, res) =>
             (verificationResult.data.status === "successful" ||
                 verificationResult.data.status === "success");
         if (isSuccessful) {
-            // Update payment and booking status in DB
-            const payment = await server_1.prisma.payment.findUnique({
-                where: { reference: paymentReference },
-                include: { booking: true },
-            });
-            if (payment && payment.status !== client_1.PaymentStatus.PAID) {
-                await server_1.prisma.payment.update({
-                    where: { id: payment.id },
-                    data: {
-                        status: client_1.PaymentStatus.PAID,
-                        paidAt: new Date(),
-                        gatewayResponse: verificationResult.data,
-                    },
-                });
-                await server_1.prisma.booking.update({
-                    where: { id: payment.bookingId },
-                    data: {
-                        paymentStatus: client_1.PaymentStatus.PAID,
-                        paidAmount: payment.amount,
-                        paidAt: new Date(),
-                    },
-                });
-            }
+            // Optionally update payment and booking status in DB here
             return res.status(200).json({
                 success: true,
                 message: "Payment verified successfully",
@@ -460,19 +438,6 @@ router.get("/callback", (0, error_middleware_1.asyncHandler)(async (req, res) =>
             });
         }
         else {
-            // Optionally mark payment as failed
-            const payment = await server_1.prisma.payment.findUnique({
-                where: { reference: paymentReference },
-            });
-            if (payment && payment.status !== client_1.PaymentStatus.FAILED) {
-                await server_1.prisma.payment.update({
-                    where: { id: payment.id },
-                    data: {
-                        status: client_1.PaymentStatus.FAILED,
-                        gatewayResponse: verificationResult.data,
-                    },
-                });
-            }
             return res.status(400).json({
                 success: false,
                 message: "Payment verification failed",
