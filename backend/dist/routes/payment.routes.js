@@ -29,17 +29,18 @@ const validate = (req, res, next) => {
 // PAYMENT INITIATION
 // ===============================
 /**
- * @route   POST /api/v1/payments/initialize
+ * @route   POST /api/v1/payment/initialize
  * @desc    Initialize payment for a booking
  * @access  Protected (booking owner)
  */
 /**
  * @swagger
- * /notifications/broadcast:
+ * /payment/initialize:
  *   post:
- *     summary: Broadcast a notification to all users (optionally filtered by role)
- *     description: Admins can send a broadcast notification to all users, or limit the broadcast to a specific user role.
- *     tags: [Notifications]
+ *     summary: Initialize a payment for an approved booking
+ *     description: Creates a payment record and initializes the payment with the selected provider (Paystack, Flutterwave, or Bank Transfer).
+ *     tags:
+ *       - Payments
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -49,31 +50,24 @@ const validate = (req, res, next) => {
  *           schema:
  *             type: object
  *             required:
- *               - title
- *               - message
- *               - type
+ *               - bookingId
+ *               - paymentMethod
  *             properties:
- *               title:
+ *               bookingId:
  *                 type: string
- *                 example: "System Maintenance"
- *               message:
+ *                 example: "bkg_12345"
+ *               paymentMethod:
  *                 type: string
- *                 example: "The system will be down for maintenance at midnight."
- *               type:
+ *                 enum: [PAYSTACK, FLUTTERWAVE, BANK_TRANSFER]
+ *                 example: "PAYSTACK"
+ *               currency:
  *                 type: string
- *                 enum: [INFO, ALERT, REMINDER, WARNING]
- *                 example: "ALERT"
- *               userRole:
- *                 type: string
- *                 enum: [ADMIN, USER, MANAGER]
- *                 description: Optional - Target only users with this role
- *               urgent:
- *                 type: boolean
- *                 default: false
- *                 example: true
+ *                 enum: [NGN, USD, GBP, EUR]
+ *                 default: NGN
+ *                 example: "NGN"
  *     responses:
  *       201:
- *         description: Broadcast notification sent successfully
+ *         description: Payment initialized successfully
  *         content:
  *           application/json:
  *             schema:
@@ -84,30 +78,62 @@ const validate = (req, res, next) => {
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Broadcast notification sent to 25 users"
+ *                   example: "Payment initialized successfully"
  *                 data:
  *                   type: object
  *                   properties:
- *                     recipientCount:
- *                       type: integer
- *                       example: 25
- *                     title:
- *                       type: string
- *                       example: "System Maintenance"
- *                     message:
- *                       type: string
- *                       example: "The system will be down for maintenance at midnight."
- *                     type:
- *                       type: string
- *                       example: "ALERT"
+ *                     payment:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "pay_67890"
+ *                         reference:
+ *                           type: string
+ *                           example: "MAR_bkg_12345_17111223344"
+ *                         amount:
+ *                           type: number
+ *                           example: 75000
+ *                         currency:
+ *                           type: string
+ *                           example: "NGN"
+ *                         paymentMethod:
+ *                           type: string
+ *                           example: "PAYSTACK"
+ *                         status:
+ *                           type: string
+ *                           example: "PENDING"
+ *                     paymentData:
+ *                       type: object
+ *                       description: Provider-specific initialization data (redirect URL, reference, bank details, etc.)
+ *                       example:
+ *                         authorization_url: "https://checkout.paystack.com/abc123"
+ *                         access_code: "abc123"
+ *                         reference: "MAR_bkg_12345_17111223344"
  *       400:
- *         description: Validation error (missing fields or invalid type)
- *       401:
- *         description: Unauthorized (not logged in or not admin)
+ *         description: Invalid request (e.g. booking not approved, already paid, invalid method)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
- *         description: Forbidden (insufficient role permissions)
+ *         description: User not authorized to pay for this booking
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Booking not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
- *         description: Server error
+ *         description: Failed to initialize payment
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post("/initialize", (0, authservice_1.requireAuth)(), [
     (0, express_validator_1.body)("bookingId").isString().withMessage("Booking ID required"),
@@ -128,6 +154,7 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
                 select: {
                     name: true,
                     hostId: true,
+                    type: true,
                 },
             },
             customer: {
@@ -139,8 +166,12 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
             },
         },
     });
-    if (!booking) {
-        throw new error_middleware_2.AppError("Booking not found", 404);
+    // Safety check for booking and property existence
+    if (!booking || !booking.property) {
+        return res.status(404).json({
+            success: false,
+            message: "Booking or property not found",
+        });
     }
     // Check if user owns the booking
     if (booking.customerId !== req.user.id) {
@@ -156,24 +187,52 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
     }
     // Generate payment reference
     const paymentReference = `MAR_${bookingId}_${Date.now()}`;
-    // Create payment record
-    const payment = await server_1.prisma.payment.create({
-        data: {
-            bookingId,
-            userId: booking.customerId,
-            amount: booking.total,
-            currency,
-            method: paymentMethod,
-            reference: paymentReference,
-            status: client_1.PaymentStatus.PENDING,
-            gatewayResponse: {
-                customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
-                customerEmail: booking.customer.email,
-                propertyName: booking.property.name,
-                bookingCode: booking.bookingCode,
-            },
-        },
+    // Check for existing payment for this booking
+    let payment = await server_1.prisma.payment.findUnique({
+        where: { bookingId },
     });
+    if (payment) {
+        if (payment.status === client_1.PaymentStatus.PAID) {
+            throw new error_middleware_2.AppError("Booking is already paid", 400);
+        }
+        // Update existing payment record for retry
+        payment = await server_1.prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+                reference: paymentReference,
+                method: paymentMethod,
+                status: client_1.PaymentStatus.PENDING,
+                amount: booking.total,
+                currency,
+                gatewayResponse: {
+                    customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+                    customerEmail: booking.customer.email,
+                    propertyName: booking.property.name,
+                    bookingCode: booking.bookingCode,
+                },
+            },
+        });
+    }
+    else {
+        // Create new payment record
+        payment = await server_1.prisma.payment.create({
+            data: {
+                bookingId,
+                userId: booking.customerId,
+                amount: booking.total,
+                currency,
+                method: paymentMethod,
+                reference: paymentReference,
+                status: client_1.PaymentStatus.PENDING,
+                gatewayResponse: {
+                    customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+                    customerEmail: booking.customer.email,
+                    propertyName: booking.property.name,
+                    bookingCode: booking.bookingCode,
+                },
+            },
+        });
+    }
     let paymentData = {};
     try {
         // Initialize payment with selected provider
@@ -267,6 +326,13 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
         });
     }
     catch (error) {
+        // Log error for debugging
+        if (error instanceof Error) {
+            console.error(error.stack || error.message);
+        }
+        else {
+            console.error(error);
+        }
         // Update payment status to failed
         await server_1.prisma.payment.update({
             where: { id: payment.id },
@@ -275,17 +341,163 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
         throw new error_middleware_2.AppError("Failed to initialize payment", 500);
     }
 }));
+/**
+ * @route   GET /payment/callback
+ * @desc    Handle Paystack payment callback
+ * @access  Public
+ */
+/**
+ * @swagger
+ * /payment/callback:
+ *   get:
+ *     summary: Verify Paystack payment
+ *     description: Endpoint called by Paystack after payment is completed. Verifies the transaction using the provided reference or trxref.
+ *     tags:
+ *       - Payments
+ *     parameters:
+ *       - in: query
+ *         name: reference
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The payment reference returned by Paystack.
+ *       - in: query
+ *         name: trxref
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Alternative payment reference (also returned by Paystack).
+ *     responses:
+ *       200:
+ *         description: Payment verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Payment verified successfully
+ *                 data:
+ *                   type: object
+ *                   description: Paystack transaction details
+ *       400:
+ *         description: Missing or invalid payment reference / verification failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Payment verification failed
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *       500:
+ *         description: Server error during payment verification
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Payment verification error
+ */
+router.get("/callback", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { reference, trxref } = req.query;
+    // Use reference or trxref (Paystack sends both)
+    const paymentReference = reference || trxref;
+    if (!paymentReference) {
+        return res
+            .status(400)
+            .json({ success: false, message: "Missing payment reference" });
+    }
+    try {
+        // Verify payment with Paystack
+        const verificationResult = await paystackservice_1.paystackService.verifyPayment(paymentReference);
+        const isSuccessful = verificationResult.status === "success" &&
+            (verificationResult.data.status === "successful" ||
+                verificationResult.data.status === "success");
+        if (isSuccessful) {
+            // Update payment and booking status in DB
+            const payment = await server_1.prisma.payment.findUnique({
+                where: { reference: paymentReference },
+                include: { booking: true },
+            });
+            if (payment && payment.status !== client_1.PaymentStatus.PAID) {
+                await server_1.prisma.payment.update({
+                    where: { id: payment.id },
+                    data: {
+                        status: client_1.PaymentStatus.PAID,
+                        paidAt: new Date(),
+                        gatewayResponse: verificationResult.data,
+                    },
+                });
+                await server_1.prisma.booking.update({
+                    where: { id: payment.bookingId },
+                    data: {
+                        paymentStatus: client_1.PaymentStatus.PAID,
+                        paidAmount: payment.amount,
+                        paidAt: new Date(),
+                    },
+                });
+            }
+            return res.status(200).json({
+                success: true,
+                message: "Payment verified successfully",
+                data: verificationResult.data,
+            });
+        }
+        else {
+            // Optionally mark payment as failed
+            const payment = await server_1.prisma.payment.findUnique({
+                where: { reference: paymentReference },
+            });
+            if (payment && payment.status !== client_1.PaymentStatus.FAILED) {
+                await server_1.prisma.payment.update({
+                    where: { id: payment.id },
+                    data: {
+                        status: client_1.PaymentStatus.FAILED,
+                        gatewayResponse: verificationResult.data,
+                    },
+                });
+            }
+            return res.status(400).json({
+                success: false,
+                message: "Payment verification failed",
+                data: verificationResult.data,
+            });
+        }
+    }
+    catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Payment verification error",
+        });
+    }
+}));
 // ===============================
 // PAYMENT VERIFICATION
 // ===============================
 /**
- * @route   POST /api/v1/payments/verify/:reference
+ * @route   POST /api/v1/payment/verify/:reference
  * @desc    Verify payment status
  * @access  Protected
  */
 /**
  * @swagger
- * /payments/verify/{reference}:
+ * /payment/verify/{reference}:
  *   post:
  *     summary: Verify a payment by reference
  *     description: Verifies the status of a payment with Paystack, Flutterwave, or manually for bank transfers. Updates booking and payment records if successful.
@@ -552,7 +764,7 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
 // PAYMENT WEBHOOK HANDLERS
 // ===============================
 /**
- * @route   POST /api/v1/payments/webhook/paystack
+ * @route   POST /api/v1/payment/webhook/paystack
  * @desc    Handle Paystack webhook
  * @access  Public (webhook)
  */
@@ -647,7 +859,7 @@ router.post("/webhook/paystack", (0, error_middleware_1.asyncHandler)(async (req
     res.status(200).json({ success: true });
 }));
 /**
- * @route   POST /api/v1/payments/webhook/flutterwave
+ * @route   POST /api/v1/payment/webhook/flutterwave
  * @desc    Handle Flutterwave webhook
  * @access  Public (webhook)
  */
@@ -771,7 +983,7 @@ router.post("/webhook/flutterwave", (0, error_middleware_1.asyncHandler)(async (
  */
 /**
  * @swagger
- * /payments:
+ * /payment:
  *   get:
  *     summary: Get list of payments
  *     description: Retrieve paginated payments. Customers only see their own payments, admins see payments for properties they host.
@@ -938,13 +1150,13 @@ router.get("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHa
     });
 }));
 /**
- * @route   GET /api/v1/payments/:id
+ * @route   GET /api/v1/payment/:id
  * @desc    Get payment details
  * @access  Protected (authorized users only)
  */
 /**
  * @swagger
- * /payments/{id}:
+ * /payment/{id}:
  *   get:
  *     summary: Get payment details by ID
  *     description: Retrieve detailed information about a specific payment, including related booking, property, and customer details.
@@ -1066,13 +1278,13 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
     });
 }));
 /**
- * @route   POST /api/v1/payments/:id/refund
+ * @route   POST /api/v1/payment/:id/refund
  * @desc    Process refund
  * @access  Admin only
  */
 /**
  * @swagger
- * /payments/{id}/refund:
+ * /payment/{id}/refund:
  *   post:
  *     summary: Refund a payment
  *     description: Initiates a refund for a specific payment. Only admins can process refunds. Refunds can be partial (if an `amount` is provided) or full (default).

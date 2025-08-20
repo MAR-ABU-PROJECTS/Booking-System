@@ -31,7 +31,7 @@ async function main() {
       emailVerified: new Date(),
     },
   });
-  console.log(`✅ Super Admin created: ${superAdmin.email}`);
+  console.log(`✅ Admin created: ${superAdmin.email}`);
 
   // // Create Property Host
   // const propertyHost = await prisma.user.upsert({
