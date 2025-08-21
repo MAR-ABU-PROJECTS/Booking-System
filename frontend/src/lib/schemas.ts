@@ -77,16 +77,16 @@ export const createBookingSchema = z
 			.email("Invalid email address"),
 		guestPhone: z.string().min(10, "Phone number is required"),
 		address: z.string().min(1, "Billing address is required"),
-		idType: z.string().min(1, "Select an ID type"),
-		emergencyContact: z.string().min(1, "Emergency contact is required"),
-		paymentMethod: z.string().min(1, "Select a payment method"),
+		idType: z.string().optional(),
+		emergencyContact: z.string().optional(),
+		paymentMethod: z.string().optional(),
 		specialRequests: z.string().optional(),
 		arrivalTime: z
 			.string()
 			.regex(
 				/^([01]\d|2[0-3]):([0-5]\d)$/,
 				"Time must be in HH:mm format (24hr)"
-			),
+			).optional(),
 		agree: z.boolean(),
 	})
 	.superRefine((data, ctx) => {

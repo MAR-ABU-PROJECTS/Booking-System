@@ -25,6 +25,9 @@ import {
 } from "@components/ui/select";
 import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
+import { initializePaystackPayment } from "@lib/payments/paystack";
+import { initializeFlutterwavePayment } from "@lib/payments/flutterwave";
+import { useRouter } from "next/navigation";
 
 const BookingSummary = ({
 	summaryData,
@@ -35,7 +38,7 @@ const BookingSummary = ({
 }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const nights = summaryData.nights;
-
+const router = useRouter()
 	const nightsLabel = nights === 1 ? "1 Night" : `${nights} Nights`;
 	const formattedCheckIn = summaryData.checkInDate
 		? dayjs(summaryData.checkInDate).format("ddd, MMM D")
@@ -90,7 +93,6 @@ const BookingSummary = ({
 		retry: false,
 	});
 
-
 	const [checked, setChecked] = useState(false);
 	const [paymentMethod, setPaymentMethod] = useState<
 		PaymentMethod | undefined
@@ -100,11 +102,54 @@ const BookingSummary = ({
 		setPaymentMethod(value);
 	};
 
+	const handlePayment = () => {
+		const email = summaryData.guestEmail;
+		const amount = totalAmount * 100;
+
+		if (paymentMethod === PaymentMethod.PAYSTACK) {
+			initializePaystackPayment({
+				email,
+				amount: amount,
+				onSuccess: async (reference) => {
+					// await fetch("/api/verify-payment", {
+					// 	method: "POST",
+					// 	headers: { "Content-Type": "application/json" },
+					// 	body: JSON.stringify({
+					// 		reference,
+					// 		provider: "paystack",
+					// 	}),
+					// });
+					router.push('/confirmation')
+				},
+				onCancel: () => alert("Paystack payment cancelled!"),
+			});
+		}
+
+		if (paymentMethod === PaymentMethod.FLUTTERWAVE) {
+			initializeFlutterwavePayment({
+				email,
+				amount,
+				name: summaryData.guestName,
+				phone_number: summaryData.guestPhone,
+				onSuccess: async (response) => {
+					// await fetch("/api/verify-payment", {
+					// 	method: "POST",
+					// 	headers: { "Content-Type": "application/json" },
+					// 	body: JSON.stringify({
+					// 		reference: response?.tx_ref,
+					// 		provider: "flutterwave",
+					// 	}),
+					// });
+				},
+				onClose: () => alert("Flutterwave payment cancelled!"),
+			});
+		}
+	};
 
 	return (
 		<div className="order-[-1] md:order-2 flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
 			<div className="flex flex-col gap-[5px]">
-				<div className="w-full rounded-xl -mt-1">
+				<div className="w-full rounded-xl max-h-[550px] h-full overflow-y-hidden">
 					<PropertyCarousel images={images} />
 				</div>
 				<div className="flex justify-center items-center">
@@ -240,7 +285,7 @@ const BookingSummary = ({
 				</div>
 			</div>
 
-			<div className="w-full grid items-center gap-1 mt-2">
+			<div className="w-full grid items-center gap-1 mt-3">
 				<Label>
 					Preferred Payment Method
 					<span className="text-red-600">*</span>
@@ -264,7 +309,7 @@ const BookingSummary = ({
 				</Select>
 			</div>
 
-			<div className="items-center gap-[10px] flex mt-2">
+			<div className="items-center gap-[10px] flex mt-3">
 				<Checkbox
 					id="terms"
 					checked={checked}
@@ -290,8 +335,7 @@ const BookingSummary = ({
 				</Label>
 			</div>
 
-			
-			<div className="flex mt-2.5 flex-col bg-[#e7f8f0] border-2 border-[#a6e4c8] py-[15px] px-[10px] rounded-xl gap-[10px]">
+			<div className="flex mt-3 flex-col bg-[#e7f8f0] border-2 border-[#a6e4c8] py-[15px] px-[10px] rounded-xl gap-[10px]">
 				<div className="flex gap-[10px]">
 					<div className="flex w-[40px] h-[30px] p-[10px] justify-center items-center bg-[#12b76a] rounded-full">
 						<ShieldHalf color="red" />
@@ -309,11 +353,12 @@ const BookingSummary = ({
 				</div>
 			</div>
 
-			<div className="flex flex-col my-2.5">
-				<Button className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
-
-				disabled={!paymentMethod || !checked || !totalAmount}
-				
+			<div className="flex flex-col mt-5">
+				<Button
+					className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
+					type="button"
+					disabled={!paymentMethod || !checked || !totalAmount}
+					onClick={handlePayment}
 				>
 					Pay
 				</Button>

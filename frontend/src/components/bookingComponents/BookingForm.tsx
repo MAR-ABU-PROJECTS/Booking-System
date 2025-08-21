@@ -41,7 +41,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 	const [openSec, setOpenSec] = useState(false);
 
 	return (
-		<div className="flex flex-col w-full h-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0]">
+		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] self-start">
 			<div className="flex flex-col justify-center items-center">
 				<h1 className="text-[20px] font-bold">
 					Complete Your MAR Booking
@@ -397,7 +397,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 							)}
 						/>
 
-						<div className="">
+						<div className="hidden">
 							<Controller
 								control={control}
 								name="idType"
@@ -441,9 +441,6 @@ const BookingForm = ({ isSubmitting }: Props) => {
 									</div>
 								)}
 							/>
-
-
-
 						</div>
 
 						<Controller
@@ -468,7 +465,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 						/>
 					</div>
 				</div>
-				<div className="flex flex-col w-full gap-[20px]">
+				<div className="flex-col w-full gap-[20px] hidden">
 					<div className="flex gap-[5px] items-center">
 						<div className="p-[3px] bg-[#FEF9F3] rounded-md">
 							<CreditCard size={"18px"} />
@@ -625,8 +622,6 @@ const BookingForm = ({ isSubmitting }: Props) => {
 									</div>
 								)}
 							/>
-
-							
 						</div>
 
 						<div className="w-full h-full p-[10px] bg-[#fef9f3] border-2 border-[#f7d5b0] rounded-xl">

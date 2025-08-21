@@ -17,6 +17,7 @@ import dayjs from "dayjs";
 import type { SummaryData } from "@lib/type";
 import { useDispatch } from "react-redux";
 import { resetBooking } from "@lib/features/bookingSlice";
+import BookingStep from "@components/bookingComponents/BookingStep";
 
 const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
@@ -99,6 +100,18 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		},
 		mode: "onChange",
 	});
+	const [step, setStep] = useState(1);
+
+	const handleNext = () => {
+		if (step == 2) return;
+		setStep((step) => step + 1);
+	};
+	
+	const handleBack = () => {
+		if (step == 1) return;
+		setStep((step) => step - 1);
+	};
+
 
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof createBookingSchema>) => {
@@ -128,6 +141,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 				});
 				setSummaryData(res.data);
 				dispatch(resetBooking());
+				handleNext()
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
@@ -216,125 +230,35 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		});
 	}, []);
 
-	// const handleAdultIncrement = () => {
-	// 	const newAdultCount = adultCount + 1;
-	// 	setAdultCount(newAdultCount);
-	// 	toast(`Updated Adult: ${newAdultCount}`, {
-	// 		position: "top-right",
-	// 		autoClose: 3000,
-	// 		hideProgressBar: false,
-	// 		closeOnClick: false,
-	// 		pauseOnHover: true,
-	// 		draggable: true,
-	// 		progress: undefined,
-	// 		theme: "colored",
-	// 		style: {
-	// 			background: "#12B76A",
-	// 			color: "#ffffff",
-	// 			fontFamily: "Sora, sans-serif",
-	// 			fontSize: "16px",
-	// 			fontWeight: "600",
-	// 			borderRadius: "8px",
-	// 			textTransform: "capitalize",
-	// 			boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-	// 			padding: "16px",
-	// 		},
-	// 	});
-	// };
-
-	// const handleAdultDecrement = () => {
-	// 	const newAdultDecrement = Math.max(0, adultCount - 1);
-	// 	setAdultCount(newAdultDecrement);
-	// 	toast(`Updated Adult: ${newAdultDecrement}`, {
-	// 		position: "top-right",
-	// 		autoClose: 3000,
-	// 		hideProgressBar: false,
-	// 		closeOnClick: false,
-	// 		pauseOnHover: true,
-	// 		draggable: true,
-	// 		progress: undefined,
-	// 		theme: "colored",
-	// 		style: {
-	// 			background: "#12B76A",
-	// 			color: "#ffffff",
-	// 			fontFamily: "Sora, sans-serif",
-	// 			fontSize: "16px",
-	// 			fontWeight: "600",
-	// 			borderRadius: "8px",
-	// 			textTransform: "capitalize",
-	// 			boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-	// 			padding: "16px",
-	// 		},
-	// 	});
-	// };
-
-	// const handleChildIncrement = () => {
-	// 	const newChildCount = childCount + 1;
-	// 	setChildCount(newChildCount);
-	// 	toast(`Updated children: ${newChildCount}`, {
-	// 		position: "top-right",
-	// 		autoClose: 3000,
-	// 		hideProgressBar: false,
-	// 		closeOnClick: false,
-	// 		pauseOnHover: true,
-	// 		draggable: true,
-	// 		progress: undefined,
-	// 		theme: "colored",
-	// 		style: {
-	// 			background: "#12B76A",
-	// 			color: "#ffffff",
-	// 			fontFamily: "Sora, sans-serif",
-	// 			fontSize: "16px",
-	// 			fontWeight: "600",
-	// 			borderRadius: "8px",
-	// 			textTransform: "capitalize",
-	// 			boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-	// 			padding: "16px",
-	// 		},
-	// 	});
-	// };
-
-	// const handleChildDecrement = () => {
-	// 	const newChildDecrement = Math.max(0, childCount - 1);
-	// 	setChildCount(newChildDecrement);
-	// 	toast(`Updated children: ${newChildDecrement}`, {
-	// 		position: "top-right",
-	// 		autoClose: 3000,
-	// 		hideProgressBar: false,
-	// 		closeOnClick: false,
-	// 		pauseOnHover: true,
-	// 		draggable: true,
-	// 		progress: undefined,
-	// 		theme: "colored",
-	// 		style: {
-	// 			background: "#12B76A",
-	// 			color: "#ffffff",
-	// 			fontFamily: "Sora, sans-serif",
-	// 			fontSize: "16px",
-	// 			fontWeight: "600",
-	// 			borderRadius: "8px",
-	// 			textTransform: "capitalize",
-	// 			boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-	// 			padding: "16px",
-	// 		},
-	// 	});
-	// };
 
 	return (
 		<>
-			{/* <ToastContainer /> */}
 			<Navbar />
 			<FormProvider {...form}>
-				<form
-					onSubmit={form.handleSubmit(onSubmit)}
-					className="grid md:grid-cols-[60%_35%] justify-between gap-[20px] lg:gap-[40px] px-[20px] lg:px-12 pt-[100px] py-[30px] bg-[#F1F1F1]"
-				>
-					<BookingForm isSubmitting={mutation.isPending} />
-					<BookingSummary
-						propertyId={propertyId}
-						summaryData={summaryData}
-					/>
-				</form>
+				<div className="bg-[#F1F1F1]">
+					<div className="mx-auto max-w-5xl px-[20px] lg:px-12 pt-[100px]">
+						<BookingStep
+							activeStep={step}
+							next={handleNext}
+							prev={handleBack}
+						/>
+					</div>
+
+					<form
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="mx-auto max-w-5xl px-[20px] lg:px-12 py-[30px]"
+					>
+						{step === 1 && (
+							<BookingForm isSubmitting={mutation.isPending}/>
+						)}
+						{step === 2 && (
+							<BookingSummary
+								propertyId={propertyId}
+								summaryData={summaryData}
+							/>
+						)}
+					</form>
+				</div>
 			</FormProvider>
 		</>
 	);

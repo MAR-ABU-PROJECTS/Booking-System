@@ -2,7 +2,7 @@
 import Lottie from "lottie-react";
 import Checks from "@public/animations/check.json";
 import { CreditCard, House, MapPin, User } from "lucide-react";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import { motion } from "framer-motion";
 import ConFirmationNavbar from "./ConFirmationNavbar";
 import { useEffect } from "react";
@@ -83,7 +83,7 @@ const Page = () => {
     }, []);
   return (
     <>
-      <ToastContainer />
+    
       <div className="flex flex-col bg-[#F1F1F1] gap-[20px]">
         <ConFirmationNavbar />
         <div className="flex flex-col gap-[20px] px-[20px] lg:px-12 ">
