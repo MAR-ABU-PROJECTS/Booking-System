@@ -138,6 +138,7 @@ router.get("/docs", (req, res) => {
         description: "Payment processing and management",
         endpoints: [
           "POST /initialize - Initialize payment",
+          "POST /verify - Verify payment",
           "POST /verify/:reference - Verify payment",
           "GET / - Get payment history",
           "POST /:id/refund - Process refund (Admin)",

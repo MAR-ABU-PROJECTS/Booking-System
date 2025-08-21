@@ -65,21 +65,17 @@ export class EmailService {
     return `"${APP_CONSTANTS.COMPANY.NAME}" <${fromEmail}>`;
   }
 
-  private getBackendBaseUrl(): string {
-    return (process.env.BACKEND_URL || "http://localhost:5050").replace(
+  private getBackendBaseapiUrl(): string {
+    return (process.env.BACKEND_apiUrl || "http://localhost:5050").replace(
       /\/$/,
       ""
     );
   }
 
-  private url(path: string): string {
-    return `${this.getBackendBaseUrl()}${path.startsWith("/") ? path : `/${path}`}`;
-  }
-
   private apiUrl(path: string): string {
     const prefix = process.env.API_PREFIX || "/api/v1";
     const clean = path.startsWith("/") ? path : `/${path}`;
-    return `${this.getBackendBaseUrl()}${prefix}${clean}`;
+    return `${this.getBackendBaseapiUrl()}${prefix}${clean}`;
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
@@ -168,7 +164,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <li>Browse available properties for your next stay</li>
         <li>List your property if you're a host</li>
       </ul>
-      <a href="${this.url("/dashboard")}" class="button">Go to Dashboard</a>
+      <a href="${this.apiUrl("/dashboard")}" class="button">Go to Dashboard</a>
       <p>If you have any questions, don't hesitate to reach out to our support team.</p>
     `;
 
@@ -195,7 +191,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <div class="detail-row"><span class="detail-label">Check-out:</span><span>${booking.checkOutDate ? new Date(booking.checkOutDate).toLocaleDateString() : "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Total Amount:</span><span>${booking.currency || "NGN"} ${(booking.total || 0).toLocaleString()}</span></div>
       </div>
-      <a href="${this.url(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">View Booking</a>
+      <a href="${this.apiUrl(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">View Booking</a>
     `;
     return this.sendEmail({
       to: email,
@@ -212,11 +208,11 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
     resetToken: string
   ): Promise<boolean> {
     // Use API route (adds /api/v1 automatically)
-    const resetUrl = this.apiUrl(`/auth/reset-password?token=${resetToken}`);
+    const resetapiUrl = this.apiUrl(`/auth/reset-password?token=${resetToken}`);
     const content = `
       <h2>Password Reset Request</h2>
       <p>You requested to reset your password. Click below:</p>
-      <a href="${resetUrl}" class="button">Reset Password</a>
+      <a href="${resetapiUrl}" class="button">Reset Password</a>
       <p>This link will expire in 1 hour.</p>
     `;
     return this.sendEmail({
@@ -234,12 +230,12 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
     verificationToken: string
   ): Promise<boolean> {
     // Use backend API route for verification
-    const verifyUrl = this.apiUrl(`/auth/verify-email/${verificationToken}`);
+    const verifyapiUrl = this.apiUrl(`/auth/verify-email/${verificationToken}`);
 
     const content = `
       <h2>Verify Your Email Address</h2>
       <p>Please click the button below to verify your email address:</p>
-      <a href="${verifyUrl}" class="button">Verify Email</a>
+      <a href="${verifyapiUrl}" class="button">Verify Email</a>
       <p>This link will expire in 24 hours.</p>
     `;
 
@@ -265,7 +261,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
       </div>
       <p>Our team will verify the receipt within 24 hours.</p>
-      <a href="${this.url(`/bookings/${booking.id}`)}" class="button">View Booking</a>
+      <a href="${this.apiUrl(`/bookings/${booking.id}`)}" class="button">View Booking</a>
     `;
 
     return this.sendEmail({
@@ -291,7 +287,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Check-out:</strong> ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
       </div>
       <p>You're all set for your stay!</p>
-      <a href="${this.url(`/bookings/${booking.id}`)}" class="button">View Booking Details</a>
+      <a href="${this.apiUrl(`/bookings/${booking.id}`)}" class="button">View Booking Details</a>
     `;
 
     return this.sendEmail({
@@ -319,7 +315,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Total Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
       </div>
       <p>Please complete your payment within 24 hours to secure your booking.</p>
-      <a href="${this.url(`/bookings/${booking.id}/payment`)}" class="button">Make Payment</a>
+      <a href="${this.apiUrl(`/bookings/${booking.id}/payment`)}" class="button">Make Payment</a>
     `;
 
     return this.sendEmail({
@@ -352,7 +348,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
       </div>
       ${booking.refundAmount ? `<p>A refund of ${booking.currency || "NGN"} ${(booking.refundAmount || 0).toLocaleString()} will be processed within 5-7 business days.</p>` : ""}
       <p>If you have any questions, please contact our support team.</p>
-      <a href="${this.url("/support")}" class="button">Contact Support</a>
+      <a href="${this.apiUrl("/support")}" class="button">Contact Support</a>
     `;
     return this.sendEmail({
       to: email,
@@ -378,7 +374,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Type:</strong> ${property.type}</p>
       </div>
       <p>Your property is now live and available for bookings!</p>
-      <a href="${this.url(`/properties/${property.id}`)}" class="button">View Property</a>
+      <a href="${this.apiUrl(`/properties/${property.id}`)}" class="button">View Property</a>
     `;
 
     return this.sendEmail({
@@ -405,7 +401,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Reason:</strong> ${reason}</p>
       </div>
       <p>Please address the issues mentioned and resubmit your property for review.</p>
-      <a href="${this.url(`/properties/${property.id}/edit`)}" class="button">Edit Property</a>
+      <a href="${this.apiUrl(`/properties/${property.id}/edit`)}" class="button">Edit Property</a>
     `;
 
     return this.sendEmail({
@@ -427,7 +423,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Property:</strong> ${booking.property.name}</p>
         <p><strong>Stay Dates:</strong> ${new Date(booking.checkInDate).toLocaleDateString()} - ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
       </div>
-      <a href="${this.url(`/bookings/${booking.id}/review`)}" class="button">Write a Review</a>
+      <a href="${this.apiUrl(`/bookings/${booking.id}/review`)}" class="button">Write a Review</a>
     `;
 
     return this.sendEmail({
@@ -449,7 +445,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>IP Address:</strong> ${process.env.NODE_ENV === "production" ? "Hidden for security" : "Local development"}</p>
       </div>
       <p>If this wasn't you, contact support immediately.</p>
-      <a href="${this.url("/support")}" class="button">Contact Support</a>
+      <a href="${this.apiUrl("/support")}" class="button">Contact Support</a>
     `;
 
     return this.sendEmail({
@@ -508,7 +504,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Total Amount:</strong> ${booking.currency || "NGN"} ${(booking.total || 0).toLocaleString()}</p>
       </div>
       <p>Please review and respond within 24 hours.</p>
-      <a href="${this.url(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">Review Booking</a>
+      <a href="${this.apiUrl(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">Review Booking</a>
     `;
     return this.sendEmail({
       to: email,
@@ -532,7 +528,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Amount Due:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
       </div>
       <p>Please complete payment soon.</p>
-      <a href="${this.url(`/bookings/${booking.id}/payment`)}" class="button">Make Payment</a>
+      <a href="${this.apiUrl(`/bookings/${booking.id}/payment`)}" class="button">Make Payment</a>
     `;
 
     return this.sendEmail({
@@ -563,7 +559,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Phone:</strong> ${property.host.phone || "Available in app"}</p>
       </div>
       <p>Have a wonderful stay!</p>
-      <a href="${this.url(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">View Booking Details</a>
+      <a href="${this.apiUrl(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">View Booking Details</a>
     `;
     return this.sendEmail({
       to: email,
@@ -594,8 +590,8 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
       </div>
       ${
         data.approved
-          ? `<a href="${this.url(`/properties/${data.propertyName}`)}" class="button">View Property</a>`
-          : `<a href="${this.url("/support")}" class="button">Contact Support</a>`
+          ? `<a href="${this.apiUrl(`/properties/${data.propertyName}`)}" class="button">View Property</a>`
+          : `<a href="${this.apiUrl("/support")}" class="button">Contact Support</a>`
       }
       <p>Thank you for sharing your feedback with the ${APP_CONSTANTS.COMPANY.NAME} community.</p>
     `;
@@ -629,7 +625,7 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Payment Reference:</strong> ${data.paymentReference}</p>
       </div>
       <p>Thank you. We look forward to hosting you!</p>
-      <a href="${this.url(`/bookings/${data.bookingCode}`)}" class="button">View Booking</a>
+      <a href="${this.apiUrl(`/bookings/${data.bookingCode}`)}" class="button">View Booking</a>
     `;
 
     return this.sendEmail({
@@ -661,12 +657,76 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Amount Paid:</strong> ${data.amount.toLocaleString()}</p>
       </div>
       <p>View the booking details in your dashboard.</p>
-      <a href="${this.url(`/bookings/${data.bookingCode}`)}" class="button">View Booking</a>
+      <a href="${this.apiUrl(`/bookings/${data.bookingCode}`)}" class="button">View Booking</a>
     `;
 
     return this.sendEmail({
       to: email,
       subject: `Payment Received - ${data.bookingCode}`,
+      html: this.getBaseTemplate(content),
+    });
+  }
+
+  /**
+   * Send a refund notification email to customer
+   */
+  async sendRefundNotification(
+    email: string,
+    booking: any,
+    refundAmount: number,
+    reason?: string
+  ): Promise<boolean> {
+    const property = this.safeBookingProperty(booking.property);
+    const content = `
+    <h2>Refund Processed</h2>
+    <p>Dear ${booking.customer.firstName || "Customer"},</p>
+    <p>Your refund for booking <strong>${booking.bookingCode}</strong> at <strong>${property.name}</strong> has been processed.</p>
+    <div class="info-box">
+      <p><strong>Amount Refunded:</strong> ${booking.currency || "NGN"} ${refundAmount.toLocaleString()}</p>
+      ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
+    </div>
+    <p>The refunded amount should reflect in your account within a few business days.</p>
+    <a href="${this.apiUrl(`/bookings/${booking.id}`)}" class="button">View Booking</a>
+  `;
+    return this.sendEmail({
+      to: email,
+      subject: `Refund Processed - ${booking.bookingCode}`,
+      html: this.getBaseTemplate(content),
+    });
+  }
+
+  /**
+   * Send booking cancellation email with a refund request link
+   */
+  async sendBookingCancellationWithRefund(
+    email: string,
+    booking: any
+  ): Promise<boolean> {
+    const property = this.safeBookingProperty(booking.property);
+    const refundLink = this.apiUrl(`/:id/refund`);
+
+    const content = `
+    <h2>Booking Cancelled</h2>
+    <p>Dear ${booking.customer.firstName || "Customer"},</p>
+    <p>Your booking <strong>${booking.bookingCode}</strong> at <strong>${property.name}</strong> has been cancelled.</p>
+    <div class="info-box">
+      <p><strong>Property:</strong> ${property.name}</p>
+      <p><strong>Original Dates:</strong> ${
+        booking.checkInDate && booking.checkOutDate
+          ? `${new Date(booking.checkInDate).toLocaleDateString()} - ${new Date(booking.checkOutDate).toLocaleDateString()}`
+          : "N/A"
+      }</p>
+      <p>If you want to request a refund, please click the link below:</p>
+      <a href="${refundLink}" class="button">Request Refund</a>
+      <p>The refund reason is optional. If you leave it blank, it will default to the cancellation reason.</p>
+    </div>
+    <p>If you have any questions, please contact our support team.</p>
+    <a href="${this.apiUrl("/support")}" class="button">Contact Support</a>
+  `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `Booking Cancelled - ${booking.bookingCode}`,
       html: this.getBaseTemplate(content),
     });
   }

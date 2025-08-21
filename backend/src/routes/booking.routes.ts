@@ -10,6 +10,7 @@ import { auditLog } from "../middlewares/logger.middleware";
 import { emailService } from "../services/emailservice";
 import { z } from "zod";
 import { bookingService } from "../services/bookingservice";
+import { paystackService } from "../services/paystackservice";
 
 const router = Router();
 
@@ -358,7 +359,6 @@ router.get(
  *       404:
  *         description: Booking not found
  */
-
 router.get(
   "/:id",
   requireAuth(),
@@ -926,6 +926,14 @@ router.post(
             },
           },
         },
+        payment: true,
+        customer: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
       },
     });
 
@@ -948,7 +956,7 @@ router.post(
     }
 
     // Update booking status
-    const updated = await prisma.booking.update({
+    const updatedBooking = await prisma.booking.update({
       where: { id: req.params.id },
       data: {
         status: BookingStatus.CANCELLED,
@@ -956,6 +964,61 @@ router.post(
         cancelledAt: new Date(),
       },
     });
+
+    if (booking.payment && booking.payment.status === PaymentStatus.PAID) {
+      try {
+        await prisma.payment.update({
+          where: { id: booking.payment.id },
+          data: {
+            refundStatus: "REFUND_PENDING",
+            refundRequestedAt: new Date(),
+          },
+        });
+
+        const refundResult = await paystackService.refundPayment(
+          booking.payment.reference,
+          booking.payment.amount
+        );
+
+        if (refundResult.status) {
+          await prisma.payment.update({
+            where: { id: booking.payment.id },
+            data: {
+              refundStatus: "REFUNDED",
+              refundCompletedAt: new Date(),
+              refundAmount: booking.payment.amount,
+            },
+          });
+          await emailService.sendRefundNotification(
+            booking.customer.email,
+            booking,
+            booking.payment.amount
+          );
+        } else {
+          await prisma.payment.update({
+            where: { id: booking.payment.id },
+            data: {
+              refundStatus: "REFUND_FAILED",
+              refundFailedReason: refundResult.message || "Unknown error",
+            },
+          });
+          await emailService.sendRefundNotification(
+            booking.customer.email,
+            booking,
+            0,
+            refundResult.message || "Refund failed. Please contact support."
+          );
+        }
+      } catch (error: any) {
+        await prisma.payment.update({
+          where: { id: booking.payment.id },
+          data: {
+            refundStatus: "REFUND_FAILED",
+            refundFailedReason: error.message,
+          },
+        });
+      }
+    }
 
     // Create notification for property host
     await prisma.notification.create({
@@ -993,7 +1056,7 @@ router.post(
     res.json({
       success: true,
       message: "Booking cancelled successfully",
-      data: updated,
+      data: updatedBooking,
     });
   })
 );

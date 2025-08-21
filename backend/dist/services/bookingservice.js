@@ -585,15 +585,23 @@ class BookingService {
                     }, 1000);
                     break;
                 case "cancel":
-                    if (["COMPLETED", "CANCELLED"].includes(booking.status)) {
+                    if ([
+                        client_1.BookingStatus.COMPLETED,
+                        client_1.BookingStatus.CANCELLED,
+                    ].includes(booking.status)) {
                         throw new Error("Cannot cancel completed or already cancelled booking");
                     }
                     updateData.status = client_1.BookingStatus.CANCELLED;
-                    updateData.cancellationReason = validatedAction.reason;
+                    updateData.cancellationReason =
+                        validatedAction.reason || booking.cancellationReason;
                     updateData.cancellationDate = new Date();
+                    if (booking.payment?.status === client_1.PaymentStatus.PAID) {
+                        updateData.paymentStatus = client_1.PaymentStatus.PENDING;
+                        await emailservice_1.emailService.sendBookingCancellationWithRefund(booking.customer.email, booking.id);
+                        await this.sendBookingNotifications(booking, "REFUND_PENDING");
+                    }
                     if (validatedAction.refundAmount) {
                         updateData.refundAmount = validatedAction.refundAmount;
-                        updateData.paymentStatus = client_1.PaymentStatus.REFUNDED;
                     }
                     break;
                 default:
