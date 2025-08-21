@@ -1,12 +1,14 @@
-// import axios from "axios";
-// import * as crypto from "crypto";
+import axios from "axios";
+import * as crypto from "crypto";
 
 export class PaystackService {
   private baseUrl = "https://api.paystack.co";
-  private secretKey = process.env.PAYSTACK_SECRET_KEY || "";
+  private secretKey =
+    process.env.PAYSTACK_SECRET_KEY ||
+    "sk_test_1e6e8aa68ec775e02c9f310870dfa8af8ce0b775";
 
   /**
-   * Dummy initialize payment for testing
+   * Initialize payment with PayStack API
    */
   async initializePayment(data: {
     amount: number;
@@ -16,51 +18,66 @@ export class PaystackService {
     callback_url?: string;
     metadata?: any;
   }): Promise<any> {
-    // Return a fake response for testing
-    return {
-      status: true,
-      message: "Dummy payment initialized",
-      data: {
-        authorization_url: "https://paystack.com/pay/dummy-authorization",
-        access_code: "DUMMY_ACCESS_CODE",
-        reference: data.reference,
-        amount: data.amount * 100,
-        currency: data.currency || "NGN",
+    try {
+      const payload = {
+        amount: Math.round(data.amount), // PayStack expects amount in kobo
         email: data.email,
+        reference: data.reference,
+        currency: data.currency || "NGN",
         callback_url: data.callback_url,
         metadata: data.metadata,
-      },
-    };
+      };
+      const res = await axios.post(
+        `${this.baseUrl}/transaction/initialize`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${this.secretKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return res.data;
+    } catch (error: any) {
+      throw new Error(
+        error?.response?.data?.message || error.message || "PayStack init error"
+      );
+    }
   }
 
   /**
-   * Dummy verify payment for testing
+   * Verify payment with PayStack API
    */
   async verifyPayment(reference: string): Promise<any> {
-    // Return a fake successful verification response
-    return {
-      status: "success",
-      data: {
-        status: "successful",
-        reference,
-        gateway_response: "Approved",
-      },
-    };
+    try {
+      const res = await axios.get(
+        `${this.baseUrl}/transaction/verify/${reference}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.secretKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return res.data;
+    } catch (error: any) {
+      throw new Error(
+        error?.response?.data?.message ||
+          error.message ||
+          "PayStack verify error"
+      );
+    }
   }
 
   /**
-   * Dummy verify webhook signature for testing
+   * Verify PayStack webhook signature
    */
   verifyWebhookSignature(body: string, signature: string): boolean {
-    // For real implementation, uncomment below and set your secret key
-    // const hash = crypto
-    //   .createHmac("sha512", this.secretKey)
-    //   .update(body)
-    //   .digest("hex");
-    // return hash === signature;
-
-    // For testing, always return true
-    return true;
+    const hash = crypto
+      .createHmac("sha512", this.secretKey)
+      .update(body)
+      .digest("hex");
+    return hash === signature;
   }
 }
 
