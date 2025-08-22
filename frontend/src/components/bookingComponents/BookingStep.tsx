@@ -16,7 +16,7 @@ const BookingStep = ({ activeStep, next, prev }: { activeStep: number, next: ()=
 		title: string;
     action?: ()=> void;
 	}) => (
-		<button className="flex flex-row  items-center gap-3 flex-shrink-0 z-[4] bg-white !cursor-pointer" onClick={()=> action?.()}>
+		<button className="flex flex-row  items-center gap-2 flex-shrink-0 z-[4] bg-white !cursor-pointer" onClick={()=> action?.()}>
 			<div className="bg-white w-11 relative z-[3] flex justify-center">
 				<div
 					className={cn(
@@ -40,7 +40,7 @@ const BookingStep = ({ activeStep, next, prev }: { activeStep: number, next: ()=
 		<div className="">
 			<div className="px-3 border-2 border-[#f7d5b0] max-w-5xl rounded-xl bg-white mx-auto flex  justify-between flex-wrap items-center w-full relative overflow-hidden h-[90px] md:h-[80px]">
 				<div className="hidden md:block top-1/2 -translate-y-1/2 w-full h-full md:h-auto z-[1] absolute left-[21px]">
-					<div className="h-[2px] bg-[#D9D9D9] w-[85%] mx-auto" />
+					<div className="h-[2px] bg-[#D9D9D9] w-[75%] mx-auto" />
 				</div>
 
 				<HeaderItem
