@@ -150,7 +150,7 @@ const BookingSummary = ({
 						) {
 							toast.success(trx?.message);
 							router.push(
-								`/confirmation?bookingId=${summaryData.id}&ref=${trx?.trxref}`
+								`/confirmation?bookingId=${summaryData.id}&ref=${trx?.reference}`
 							);
 						} else {
 							toast.error(
