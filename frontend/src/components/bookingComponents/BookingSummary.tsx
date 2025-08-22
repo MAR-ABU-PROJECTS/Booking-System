@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { MapPin, ShieldHalf } from "lucide-react";
+import { MapPin, ShieldHalf, Loader2 } from "lucide-react";
 import dayjs from "dayjs";
 import { RootState } from "@lib/features/store";
 import { useSelector } from "react-redux";
@@ -25,11 +25,7 @@ import {
 } from "@components/ui/select";
 import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
-import {
-	initializePaystackPayment,
-	resumePayStackPayment,
-} from "@lib/payments/paystack";
-import { initializeFlutterwavePayment } from "@lib/payments/flutterwave";
+import { resumePayStackPayment } from "@lib/payments/paystack";
 import { useRouter } from "next/navigation";
 
 const BookingSummary = ({
@@ -104,29 +100,6 @@ const BookingSummary = ({
 	const onMethodChange = (value: PaymentMethod) => {
 		setPaymentMethod(value);
 	};
-
-	// const handlePayment = () => {
-	// 	const email = summaryData.guestEmail;
-	// 	const amount = totalAmount * 100;
-
-	// 	if (paymentMethod === PaymentMethod.PAYSTACK) {
-	// 		initializePaystackPayment({
-	// 			email,
-	// 			amount: amount,
-	// 			onSuccess: async (reference) => {
-	// 				// await fetch("/api/verify-payment", {
-	// 				// 	method: "POST",
-	// 				// 	headers: { "Content-Type": "application/json" },
-	// 				// 	body: JSON.stringify({
-	// 				// 		reference,
-	// 				// 		provider: "paystack",
-	// 				// 	}),
-	// 				// });
-	// 				router.push('/confirmation')
-	// 			},
-	// 			onCancel: () => alert("Paystack payment cancelled!"),
-	// 		});
-	// 	}
 
 	const [loading, setLoading] = useState(false);
 
@@ -413,9 +386,17 @@ const BookingSummary = ({
 				<Button
 					className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
 					type="button"
-					disabled={!paymentMethod || !checked || !totalAmount}
+					disabled={
+						!paymentMethod || !checked || !totalAmount || loading
+					}
 					onClick={handlePayment}
 				>
+					{loading ? (
+						<Loader2
+							className="animate-spin size-5"
+							strokeWidth={3}
+						/>
+					) : null}
 					Pay
 				</Button>
 			</div>
