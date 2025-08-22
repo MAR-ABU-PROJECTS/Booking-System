@@ -42,22 +42,27 @@ const crypto = __importStar(require("crypto"));
 class PaystackService {
     constructor() {
         this.baseUrl = "https://api.paystack.co";
-        this.secretKey = process.env.PAYSTACK_SECRET_KEY ||
-            "sk_test_1e6e8aa68ec775e02c9f310870dfa8af8ce0b775";
+        if (!process.env.PAYSTACK_SECRET_KEY) {
+            throw new Error("Missing PAYSTACK_SECRET_KEY in environment variables");
+        }
+        this.secretKey = process.env.PAYSTACK_SECRET_KEY;
     }
     /**
      * Initialize payment with PayStack API
+     * Expects amount in Naira → converts to kobo
      */
     async initializePayment(data) {
         try {
             const payload = {
-                amount: Math.round(data.amount), // PayStack expects amount in kobo
+                amount: Math.round(data.amount * 100), // convert to kobo
                 email: data.email,
                 reference: data.reference,
                 currency: data.currency || "NGN",
-                callback_url: data.callback_url,
-                metadata: data.metadata,
             };
+            if (data.callback_url)
+                payload.callback_url = data.callback_url;
+            if (data.metadata)
+                payload.metadata = data.metadata;
             const res = await axios_1.default.post(`${this.baseUrl}/transaction/initialize`, payload, {
                 headers: {
                     Authorization: `Bearer ${this.secretKey}`,
@@ -67,7 +72,7 @@ class PaystackService {
             return res.data;
         }
         catch (error) {
-            throw new Error(error?.response?.data?.message || error.message || "PayStack init error");
+            throw new Error(error?.response?.data?.message || error.message || "Paystack init error");
         }
     }
     /**
@@ -86,16 +91,46 @@ class PaystackService {
         catch (error) {
             throw new Error(error?.response?.data?.message ||
                 error.message ||
-                "PayStack verify error");
+                "Paystack verify error");
         }
     }
     /**
-     * Verify PayStack webhook signature
+     * Refund a payment
+     * @param reference Paystack transaction reference or ID
+     * @param amount Optional refund amount in Naira
+     * @param note Optional reason for refund
      */
-    verifyWebhookSignature(body, signature) {
+    async refundPayment(reference, amount, note) {
+        try {
+            const payload = { transaction: reference };
+            if (amount)
+                payload.amount = Math.round(amount * 100); // convert to kobo
+            if (note)
+                payload.customer_note = note;
+            const res = await axios_1.default.post(`${this.baseUrl}/refund`, payload, {
+                headers: {
+                    Authorization: `Bearer ${this.secretKey}`,
+                    "Content-Type": "application/json",
+                },
+            });
+            return res.data;
+        }
+        catch (error) {
+            throw new Error(error?.response?.data?.message ||
+                error.message ||
+                "Paystack refund error");
+        }
+    }
+    /**
+     * Verify Paystack webhook signature
+     * Requires the raw request body (string) before JSON parsing
+     */
+    verifyWebhookSignature(rawBody, signature) {
+        if (!signature)
+            return false;
         const hash = crypto
             .createHmac("sha512", this.secretKey)
-            .update(body)
+            .update(rawBody)
             .digest("hex");
         return hash === signature;
     }

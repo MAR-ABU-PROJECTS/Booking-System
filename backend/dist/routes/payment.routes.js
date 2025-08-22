@@ -146,56 +146,44 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
         .withMessage("Valid currency required"),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { bookingId, paymentMethod, currency = "NGN" } = req.body;
-    // Get booking details
+    // Fetch booking with relations
     const booking = await server_1.prisma.booking.findUnique({
         where: { id: bookingId },
         include: {
-            property: {
-                select: {
-                    name: true,
-                    hostId: true,
-                    type: true,
-                },
-            },
-            customer: {
-                select: {
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                },
-            },
+            property: { select: { name: true, hostId: true, type: true } },
+            customer: { select: { firstName: true, lastName: true, email: true } },
         },
     });
-    // Safety check for booking and property existence
     if (!booking || !booking.property) {
-        return res.status(404).json({
-            success: false,
-            message: "Booking or property not found",
-        });
+        return res
+            .status(404)
+            .json({ success: false, message: "Booking or property not found" });
     }
-    // Check if user owns the booking
     if (booking.customerId !== req.user.id) {
         throw new error_middleware_2.AppError("Not authorized to pay for this booking", 403);
     }
-    // Check if booking is approved
     if (booking.status !== client_1.BookingStatus.APPROVED) {
         throw new error_middleware_2.AppError("Booking must be approved before payment", 400);
     }
-    // Check if already paid
     if (booking.paymentStatus === client_1.PaymentStatus.PAID) {
         throw new error_middleware_2.AppError("Booking is already paid", 400);
     }
-    // Generate payment reference
+    // Generate fresh payment reference
     const paymentReference = `MAR_${bookingId}_${Date.now()}`;
-    // Check for existing payment for this booking
-    let payment = await server_1.prisma.payment.findUnique({
-        where: { bookingId },
-    });
+    // Common gateway metadata
+    const gatewayMeta = {
+        customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+        customerEmail: booking.customer.email,
+        propertyName: booking.property.name,
+        bookingCode: booking.bookingCode,
+    };
+    // Either fetch existing payment or create new
+    let payment = await server_1.prisma.payment.findUnique({ where: { bookingId } });
     if (payment) {
         if (payment.status === client_1.PaymentStatus.PAID) {
             throw new error_middleware_2.AppError("Booking is already paid", 400);
         }
-        // Update existing payment record for retry
+        // Update record for retry
         payment = await server_1.prisma.payment.update({
             where: { id: payment.id },
             data: {
@@ -204,17 +192,12 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
                 status: client_1.PaymentStatus.PENDING,
                 amount: booking.total,
                 currency,
-                gatewayResponse: {
-                    customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
-                    customerEmail: booking.customer.email,
-                    propertyName: booking.property.name,
-                    bookingCode: booking.bookingCode,
-                },
+                gatewayResponse: gatewayMeta,
             },
         });
     }
     else {
-        // Create new payment record
+        // Fresh payment record
         payment = await server_1.prisma.payment.create({
             data: {
                 bookingId,
@@ -224,53 +207,40 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
                 method: paymentMethod,
                 reference: paymentReference,
                 status: client_1.PaymentStatus.PENDING,
-                gatewayResponse: {
-                    customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
-                    customerEmail: booking.customer.email,
-                    propertyName: booking.property.name,
-                    bookingCode: booking.bookingCode,
-                },
+                gatewayResponse: gatewayMeta,
             },
         });
     }
     let paymentData = {};
     try {
-        // Initialize payment with selected provider
         switch (paymentMethod) {
             case client_1.PaymentMethod.PAYSTACK:
                 paymentData = await paystackservice_1.paystackService.initializePayment({
                     reference: paymentReference,
-                    amount: booking.total * 100, // Paystack expects kobo
+                    amount: booking.total, // Naira → service converts to kobo
                     email: booking.customer.email,
                     currency,
-                    callback_url: `${process.env.FRONTEND_URL}/payment/callback`,
-                    metadata: {
-                        bookingId,
-                        paymentId: payment.id,
-                        customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
-                    },
+                    callback_url: `${process.env.FRONTEND_URL}/api/v1/payment/callback`,
+                    metadata: { bookingId, paymentId: payment.id, ...gatewayMeta },
                 });
                 break;
             case client_1.PaymentMethod.FLUTTERWAVE:
                 paymentData = await flutterwaveservice_1.flutterwaveService.initializePayment({
-                    email: booking.customer.email, // <-- Add this line
+                    email: booking.customer.email,
                     tx_ref: paymentReference,
                     amount: booking.total,
                     currency,
                     redirect_url: `${process.env.FRONTEND_URL}/payment/callback`,
                     customer: {
                         email: booking.customer.email,
-                        name: `${booking.customer.firstName} ${booking.customer.lastName}`,
+                        name: gatewayMeta.customerName,
                     },
                     customizations: {
                         title: "MAR Abu Projects Services",
                         description: `Payment for booking ${booking.bookingCode}`,
                         logo: `${process.env.FRONTEND_URL}/logo.png`,
                     },
-                    meta: {
-                        bookingId,
-                        paymentId: payment.id,
-                    },
+                    meta: { bookingId, paymentId: payment.id },
                 });
                 break;
             case client_1.PaymentMethod.BANK_TRANSFER:
@@ -294,12 +264,14 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
             default:
                 throw new error_middleware_2.AppError("Payment method not supported", 400);
         }
-        // Update payment with provider response
+        // Update payment with provider response (store both references if available)
         await server_1.prisma.payment.update({
             where: { id: payment.id },
             data: {
-                reference: paymentData.reference || paymentReference,
+                reference: paymentReference,
+                transactionId: paymentData.reference || null,
                 gatewayResponse: paymentData,
+                status: client_1.PaymentStatus.PENDING,
             },
         });
         (0, logger_middleware_1.auditLog)("PAYMENT_INITIALIZED", req.user.id, {
@@ -309,13 +281,14 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
             paymentMethod,
             reference: paymentReference,
         }, req.ip);
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             message: "Payment initialized successfully",
             data: {
                 payment: {
                     id: payment.id,
                     reference: paymentReference,
+                    providerReference: paymentData.reference || paymentReference,
                     amount: booking.total,
                     currency,
                     paymentMethod,
@@ -326,17 +299,13 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
         });
     }
     catch (error) {
-        // Log error for debugging
-        if (error instanceof Error) {
-            console.error(error.stack || error.message);
-        }
-        else {
-            console.error(error);
-        }
-        // Update payment status to failed
+        console.error("Payment initialization failed:", error);
         await server_1.prisma.payment.update({
             where: { id: payment.id },
-            data: { status: client_1.PaymentStatus.FAILED },
+            data: {
+                status: client_1.PaymentStatus.FAILED,
+                gatewayResponse: { error: error.message },
+            },
         });
         throw new error_middleware_2.AppError("Failed to initialize payment", 500);
     }
@@ -415,42 +384,81 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
  *                   example: Payment verification error
  */
 router.get("/callback", (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { reference, trxref } = req.query;
-    // Use reference or trxref (Paystack sends both)
-    const paymentReference = reference || trxref;
+    const { reference: paymentReference } = req.query;
     if (!paymentReference) {
-        return res
-            .status(400)
-            .json({ success: false, message: "Missing payment reference" });
+        throw new error_middleware_2.AppError("Missing payment reference", 400);
     }
-    try {
-        // Verify payment with Paystack
-        const verificationResult = await paystackservice_1.paystackService.verifyPayment(paymentReference);
-        const isSuccessful = verificationResult.status === "success" &&
-            (verificationResult.data.status === "successful" ||
-                verificationResult.data.status === "success");
-        if (isSuccessful) {
-            // Optionally update payment and booking status in DB here
-            return res.status(200).json({
-                success: true,
-                message: "Payment verified successfully",
-                data: verificationResult.data,
-            });
-        }
-        else {
-            return res.status(400).json({
-                success: false,
-                message: "Payment verification failed",
-                data: verificationResult.data,
-            });
-        }
+    // 🔎 Fetch existing payment (for idempotency + booking relation)
+    const existingPayment = await server_1.prisma.payment.findUnique({
+        where: { reference: paymentReference },
+        include: { booking: true },
+    });
+    if (!existingPayment) {
+        throw new error_middleware_2.AppError("Payment not found", 404);
     }
-    catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: error.message || "Payment verification error",
+    // 🚫 If already processed, return early
+    if (existingPayment.status === "PAID") {
+        return res.status(200).json({
+            success: true,
+            message: "Payment already processed",
         });
     }
+    // Call Paystack verify endpoint
+    const verificationResult = await paystackservice_1.paystackService.verifyPayment(paymentReference);
+    if (!verificationResult.status) {
+        throw new error_middleware_2.AppError("Unable to verify payment", 400);
+    }
+    const isSuccessful = verificationResult.data.status === "success";
+    if (isSuccessful) {
+        // ✅ Update Payment in DB
+        const updatedPayment = await server_1.prisma.payment.update({
+            where: { reference: paymentReference },
+            data: {
+                status: "PAID",
+                gatewayResponse: verificationResult.data,
+                transactionId: verificationResult.data.id.toString(),
+                paidAt: new Date(verificationResult.data.paid_at),
+            },
+        });
+        // ✅ Update Booking linked to this payment
+        await server_1.prisma.booking.update({
+            where: { id: verificationResult.data.metadata.bookingId },
+            data: {
+                paymentStatus: "PAID", // assuming you have this field
+            },
+        });
+        // ✅ Log it
+        (0, logger_middleware_1.auditLog)("PAYMENT_SUCCESS", updatedPayment.userId, {
+            paymentId: updatedPayment.id,
+            bookingId: verificationResult.data.metadata.bookingId,
+        }, req.ip);
+        return res.status(200).json({
+            success: true,
+            message: "Payment verified and updated successfully",
+            data: verificationResult.data,
+        });
+    }
+    // ❌ If payment failed, update DB accordingly
+    await server_1.prisma.payment.update({
+        where: { reference: paymentReference },
+        data: {
+            status: "FAILED",
+            gatewayResponse: verificationResult.data,
+            failedAt: new Date(),
+        },
+    });
+    // (Optional) cancel or mark booking as failed
+    if (existingPayment.bookingId) {
+        await server_1.prisma.booking.update({
+            where: { id: existingPayment.bookingId },
+            data: { paymentStatus: "FAILED" },
+        });
+    }
+    return res.status(400).json({
+        success: false,
+        message: "Payment verification failed",
+        data: verificationResult.data,
+    });
 }));
 // ===============================
 // PAYMENT VERIFICATION
@@ -540,12 +548,13 @@ router.get("/callback", (0, error_middleware_1.asyncHandler)(async (req, res) =>
 router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { reference } = req.params;
     const payment = await server_1.prisma.payment.findUnique({
-        where: { reference: reference },
+        where: { reference },
         include: {
             booking: {
                 include: {
                     property: {
                         select: {
+                            id: true,
                             name: true,
                             hostId: true,
                             host: {
@@ -559,6 +568,7 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
                     },
                     customer: {
                         select: {
+                            id: true,
                             firstName: true,
                             lastName: true,
                             email: true,
@@ -571,14 +581,14 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
     if (!payment) {
         throw new error_middleware_2.AppError("Payment not found", 404);
     }
-    // Check if user is authorized
+    // ✅ Authorization check
     if (payment.booking.customerId !== req.user.id &&
         req.user.role !== client_1.UserRole.ADMIN) {
         throw new error_middleware_2.AppError("Not authorized to verify this payment", 403);
     }
     let verificationResult = {};
     try {
-        // Verify payment with provider
+        // ✅ Verify with correct provider
         switch (payment.method) {
             case client_1.PaymentMethod.PAYSTACK:
                 verificationResult = await paystackservice_1.paystackService.verifyPayment(reference);
@@ -588,7 +598,6 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
                     await flutterwaveservice_1.flutterwaveService.verifyPayment(reference);
                 break;
             case client_1.PaymentMethod.BANK_TRANSFER:
-                // Bank transfer verification is done manually by admin
                 if (req.user.role !== client_1.UserRole.ADMIN) {
                     throw new error_middleware_2.AppError("Bank transfer verification requires admin approval", 403);
                 }
@@ -600,12 +609,13 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
             default:
                 throw new error_middleware_2.AppError("Payment method not supported for verification", 400);
         }
-        const isSuccessful = verificationResult.status === "success" &&
-            (verificationResult.data.status === "successful" ||
-                verificationResult.data.status === "success");
+        const isSuccessful = (verificationResult.status === true ||
+            verificationResult.status === "success") &&
+            (verificationResult.data?.status?.toLowerCase() === "success" ||
+                verificationResult.data?.status?.toLowerCase() === "successful");
         if (isSuccessful) {
-            // Update payment status
-            await server_1.prisma.payment.update({
+            // ✅ Update payment record
+            const updatedPayment = await server_1.prisma.payment.update({
                 where: { id: payment.id },
                 data: {
                     status: client_1.PaymentStatus.PAID,
@@ -613,8 +623,8 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
                     gatewayResponse: verificationResult,
                 },
             });
-            // Update booking payment status
-            await server_1.prisma.booking.update({
+            // ✅ Update booking record
+            const updatedBooking = await server_1.prisma.booking.update({
                 where: { id: payment.bookingId },
                 data: {
                     paymentStatus: client_1.PaymentStatus.PAID,
@@ -622,9 +632,8 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
                     paidAt: new Date(),
                 },
             });
-            // Create notifications
+            // ✅ Create notifications
             await Promise.all([
-                // Notify customer
                 server_1.prisma.notification.create({
                     data: {
                         userId: payment.booking.customerId,
@@ -638,11 +647,10 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
                         },
                     },
                 }),
-                // Notify host
                 server_1.prisma.notification.create({
                     data: {
                         userId: payment.booking.property.hostId,
-                        type: "PAYMENT_RECEIVED",
+                        type: client_1.NotificationType.PAYMENT_RECEIVED,
                         title: "Payment Received",
                         message: `Payment received for booking ${payment.booking.bookingCode} at ${payment.booking.property.name}.`,
                         metadata: {
@@ -653,7 +661,7 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
                     },
                 }),
             ]);
-            // Send email confirmations
+            // ✅ Send email confirmations
             await Promise.all([
                 emailservice_1.emailService.sendPaymentConfirmation(payment.booking.customer.email, {
                     customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
@@ -670,54 +678,52 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
                     amount: payment.amount,
                 }),
             ]);
+            // ✅ Log success
             (0, logger_middleware_1.auditLog)("PAYMENT_VERIFIED", req.user.id, {
                 paymentId: payment.id,
                 bookingId: payment.bookingId,
-                amount: payment.amount,
                 reference,
+                amount: payment.amount,
                 status: "successful",
             }, req.ip);
-            res.json({
+            return res.json({
                 success: true,
                 message: "Payment verified successfully",
                 data: {
                     payment: {
-                        id: payment.id,
+                        id: updatedPayment.id,
                         reference,
-                        amount: payment.amount,
-                        status: client_1.PaymentStatus.PAID,
-                        paidAt: new Date(),
+                        amount: updatedPayment.amount,
+                        status: updatedPayment.status,
+                        paidAt: updatedPayment.paidAt,
                     },
                     booking: {
-                        id: payment.booking.id,
-                        bookingCode: payment.booking.bookingCode,
-                        paymentStatus: client_1.PaymentStatus.PAID,
+                        id: updatedBooking.id,
+                        bookingCode: updatedBooking.bookingCode,
+                        paymentStatus: updatedBooking.paymentStatus,
                     },
                 },
             });
         }
-        else {
-            // Payment failed
-            await server_1.prisma.payment.update({
-                where: { id: payment.id },
-                data: {
-                    status: client_1.PaymentStatus.FAILED,
-                    gatewayResponse: verificationResult,
-                },
-            });
-            (0, logger_middleware_1.auditLog)("PAYMENT_FAILED", req.user.id, {
-                paymentId: payment.id,
-                bookingId: payment.bookingId,
-                reference,
-                reason: verificationResult.data?.gateway_response || "Payment failed",
-            }, req.ip);
-            throw new error_middleware_2.AppError("Payment verification failed", 400);
-        }
+        // ❌ If failed
+        await server_1.prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+                status: client_1.PaymentStatus.FAILED,
+                gatewayResponse: verificationResult,
+            },
+        });
+        (0, logger_middleware_1.auditLog)("PAYMENT_FAILED", req.user.id, {
+            paymentId: payment.id,
+            bookingId: payment.bookingId,
+            reference,
+            reason: verificationResult.data?.gateway_response || "Payment failed",
+        }, req.ip);
+        throw new error_middleware_2.AppError("Payment verification failed", 400);
     }
     catch (error) {
-        if (error instanceof error_middleware_2.AppError) {
+        if (error instanceof error_middleware_2.AppError)
             throw error;
-        }
         await server_1.prisma.payment.update({
             where: { id: payment.id },
             data: { status: client_1.PaymentStatus.FAILED },
@@ -735,7 +741,7 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
  */
 /**
  * @swagger
- * /webhook/paystack:
+ * /payment/webhook/paystack:
  *   post:
  *     summary: Paystack webhook endpoint
  *     description: |
@@ -780,48 +786,130 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
  *                   example: true
  */
 router.post("/webhook/paystack", (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const signature = req.headers["x-paystack-signature"];
-    const body = JSON.stringify(req.body);
-    // Verify webhook signature
-    const isValid = paystackservice_1.paystackService.verifyWebhookSignature(body, signature);
-    if (!isValid) {
-        throw new error_middleware_2.AppError("Invalid webhook signature", 400);
-    }
-    const { event, data } = req.body;
-    if (event === "charge.success") {
-        const reference = data.reference;
-        const payment = await server_1.prisma.payment.findUnique({
-            where: { reference: reference },
-            include: { booking: true },
-        });
-        if (payment && payment.status === client_1.PaymentStatus.PENDING) {
-            // Update payment status
-            await server_1.prisma.payment.update({
-                where: { id: payment.id },
-                data: {
-                    status: client_1.PaymentStatus.PAID,
-                    paidAt: new Date(),
-                    gatewayResponse: data,
-                },
-            });
-            // Update booking
-            await server_1.prisma.booking.update({
-                where: { id: payment.bookingId },
-                data: {
-                    paymentStatus: client_1.PaymentStatus.PAID,
-                    paidAmount: payment.amount,
-                    paidAt: new Date(),
-                },
-            });
-            (0, logger_middleware_1.auditLog)("WEBHOOK_PAYMENT_SUCCESS", "system", {
-                paymentId: payment.id,
-                bookingId: payment.bookingId,
-                reference,
-                provider: "paystack",
-            }, req.ip);
+    try {
+        const signature = req.headers["x-paystack-signature"];
+        const body = JSON.stringify(req.body);
+        // Verify webhook signature
+        const isValid = paystackservice_1.paystackService.verifyWebhookSignature(body, signature);
+        if (!isValid) {
+            (0, logger_middleware_1.auditLog)("WEBHOOK_SIGNATURE_INVALID", "system", { provider: "paystack", body: req.body }, req.ip);
+            return res.status(200).json({ success: true }); // Always respond 200 to Paystack
         }
+        const { event, data } = req.body;
+        if (event === "charge.success") {
+            const reference = data.reference;
+            const payment = await server_1.prisma.payment.findUnique({
+                where: { reference: reference },
+                include: {
+                    booking: {
+                        include: {
+                            property: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    hostId: true,
+                                    host: {
+                                        select: {
+                                            firstName: true,
+                                            lastName: true,
+                                            email: true,
+                                        },
+                                    },
+                                },
+                            },
+                            customer: {
+                                select: {
+                                    id: true,
+                                    firstName: true,
+                                    lastName: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+            if (payment && payment.status === client_1.PaymentStatus.PENDING) {
+                // Update payment status
+                await server_1.prisma.payment.update({
+                    where: { id: payment.id },
+                    data: {
+                        status: client_1.PaymentStatus.PAID,
+                        paidAt: new Date(),
+                        gatewayResponse: data,
+                    },
+                });
+                // Update booking
+                await server_1.prisma.booking.update({
+                    where: { id: payment.bookingId },
+                    data: {
+                        paymentStatus: client_1.PaymentStatus.PAID,
+                        paidAmount: payment.amount,
+                        paidAt: new Date(),
+                    },
+                });
+                // ✅ Notifications
+                await Promise.all([
+                    server_1.prisma.notification.create({
+                        data: {
+                            userId: payment.booking.customer.id,
+                            type: "PAYMENT_RECEIVED",
+                            title: "Payment Confirmed",
+                            message: `Your payment for booking ${payment.booking.bookingCode} has been confirmed.`,
+                            metadata: {
+                                bookingId: payment.bookingId,
+                                paymentId: payment.id,
+                                amount: payment.amount,
+                            },
+                        },
+                    }),
+                    server_1.prisma.notification.create({
+                        data: {
+                            userId: payment.booking.property.hostId,
+                            type: "PAYMENT_RECEIVED",
+                            title: "Payment Received",
+                            message: `Payment received for booking ${payment.booking.bookingCode} at ${payment.booking.property.name}.`,
+                            metadata: {
+                                bookingId: payment.bookingId,
+                                paymentId: payment.id,
+                                amount: payment.amount,
+                            },
+                        },
+                    }),
+                ]);
+                // ✅ Emails
+                await Promise.all([
+                    emailservice_1.emailService.sendPaymentConfirmation(payment.booking.customer.email, {
+                        customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
+                        bookingCode: payment.booking.bookingCode,
+                        propertyName: payment.booking.property.name,
+                        amount: payment.amount,
+                        paymentReference: reference,
+                    }),
+                    emailservice_1.emailService.sendPaymentNotificationToHost(payment.booking.property.host.email, {
+                        hostName: `${payment.booking.property.host.firstName} ${payment.booking.property.host.lastName}`,
+                        customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
+                        bookingCode: payment.booking.bookingCode,
+                        propertyName: payment.booking.property.name,
+                        amount: payment.amount,
+                    }),
+                ]);
+                // ✅ Log success
+                (0, logger_middleware_1.auditLog)("WEBHOOK_PAYMENT_SUCCESS", "system", {
+                    paymentId: payment.id,
+                    bookingId: payment.bookingId,
+                    reference,
+                    provider: "paystack",
+                }, req.ip);
+            }
+        }
+        // ✅ Always respond 200 (Paystack requires this)
+        res.status(200).json({ success: true });
     }
-    res.status(200).json({ success: true });
+    catch (err) {
+        (0, logger_middleware_1.auditLog)("WEBHOOK_ERROR", "system", { provider: "paystack", error: err.message }, req.ip);
+        res.status(200).json({ success: true });
+    }
 }));
 /**
  * @route   POST /api/v1/payment/webhook/flutterwave
@@ -947,11 +1035,18 @@ router.post("/webhook/flutterwave", (0, error_middleware_1.asyncHandler)(async (
  * @access  Protected
  */
 /**
+ * @route   GET /api/v1/payments
+ * @desc    Get payment history
+ * @access  Protected
+ */
+/**
  * @swagger
  * /payment:
  *   get:
  *     summary: Get list of payments
- *     description: Retrieve paginated payments. Customers only see their own payments, admins see payments for properties they host.
+ *     description: |
+ *       Retrieve paginated payments. Customers only see their own payments.
+ *       Admins see all payments. Supports filtering by status, payment method, or booking ID.
  *     tags:
  *       - Payments
  *     security:
@@ -973,13 +1068,13 @@ router.post("/webhook/flutterwave", (0, error_middleware_1.asyncHandler)(async (
  *         name: status
  *         schema:
  *           type: string
- *           enum: [PENDING, COMPLETED, FAILED, REFUNDED]
+ *           enum: [PENDING, PROCESSING, PAID, FAILED, REFUNDED, PARTIALLY_REFUNDED, PARTIALLY_PAID, EXPIRED]
  *         description: Filter by payment status
  *       - in: query
  *         name: paymentMethod
  *         schema:
  *           type: string
- *           enum: [CREDIT_CARD, PAYPAL, BANK_TRANSFER, CASH]
+ *           enum: [CARD, BANK_TRANSFER, CASH, STRIPE, PAYSTACK, FLUTTERWAVE]
  *         description: Filter by payment method
  *       - in: query
  *         name: bookingId
@@ -1007,46 +1102,63 @@ router.post("/webhook/flutterwave", (0, error_middleware_1.asyncHandler)(async (
  *                         properties:
  *                           id:
  *                             type: string
+ *                             example: "pay_123456"
  *                           amount:
  *                             type: number
+ *                             example: 50000
  *                           status:
  *                             type: string
+ *                             enum: [PENDING, PROCESSING, PAID, FAILED, REFUNDED, PARTIALLY_REFUNDED, PARTIALLY_PAID, EXPIRED]
+ *                             example: PAID
  *                           paymentMethod:
  *                             type: string
+ *                             enum: [CARD, BANK_TRANSFER, CASH, STRIPE, PAYSTACK, FLUTTERWAVE]
+ *                             example: PAYSTACK
  *                           booking:
  *                             type: object
  *                             properties:
  *                               id:
  *                                 type: string
+ *                                 example: "booking_abc123"
  *                               bookingCode:
  *                                 type: string
+ *                                 example: "BK-2025-001"
  *                               property:
  *                                 type: object
  *                                 properties:
  *                                   name:
  *                                     type: string
+ *                                     example: "Ocean View Apartment"
  *                                   city:
  *                                     type: string
+ *                                     example: "Lagos"
  *                               customer:
  *                                 type: object
  *                                 properties:
  *                                   firstName:
  *                                     type: string
+ *                                     example: "John"
  *                                   lastName:
  *                                     type: string
+ *                                     example: "Doe"
  *                                   email:
  *                                     type: string
+ *                                     example: "john.doe@example.com"
  *                     pagination:
  *                       type: object
  *                       properties:
  *                         page:
  *                           type: integer
+ *                           example: 1
  *                         limit:
  *                           type: integer
+ *                           example: 20
  *                         total:
  *                           type: integer
+ *                           example: 100
  *                         pages:
  *                           type: integer
+ *                           example: 5
  *       401:
  *         description: Unauthorized - missing or invalid token
  *       403:
@@ -1058,13 +1170,15 @@ router.get("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHa
     const { page = 1, limit = 20, status, paymentMethod, bookingId, } = req.query;
     // Build where clause
     const where = {};
-    // Regular users can only see their own payments
+    // Role-based access
     if (req.user.role === client_1.UserRole.CUSTOMER) {
         where.booking = { customerId: req.user.id };
     }
-    else if (req.user.role === client_1.UserRole.ADMIN) {
-        where.booking = { property: { hostId: req.user.id } };
-    }
+    // ADMIN can see all payments, no filter needed
+    // else if (req.user.role === UserRole.ADMIN) {
+    //   no restrictions
+    // }
+    // Optional filters
     if (status)
         where.status = status;
     if (paymentMethod)
@@ -1124,8 +1238,7 @@ router.get("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHa
  * /payment/{id}:
  *   get:
  *     summary: Get payment details by ID
- *     description: Retrieve detailed information about a specific payment, including related booking, property, and customer details.
- *                  Access is restricted to the payment’s customer, the host of the property, or an admin.
+ *     description: Retrieve detailed information about a specific payment, including related booking, property, and customer details. Access restricted to the payment’s customer, the host of the property, or an admin.
  *     tags:
  *       - Payments
  *     security:
@@ -1159,11 +1272,11 @@ router.get("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHa
  *                       example: 50000
  *                     status:
  *                       type: string
- *                       enum: [PENDING, COMPLETED, FAILED, REFUNDED]
- *                       example: COMPLETED
+ *                       enum: [PENDING, PAID, FAILED, REFUNDED]
+ *                       example: PAID
  *                     paymentMethod:
  *                       type: string
- *                       enum: [CARD, BANK_TRANSFER, PAYPAL]
+ *                       enum: [CARD, BANK_TRANSFER, CASH, PAYSTACK, FLUTTERWAVE, STRIPE]
  *                       example: CARD
  *                     createdAt:
  *                       type: string
@@ -1207,22 +1320,23 @@ router.get("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHa
 router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const payment = await server_1.prisma.payment.findUnique({
         where: { id: req.params.id },
-        include: {
+        select: {
+            id: true,
+            amount: true,
+            status: true,
+            method: true,
+            createdAt: true,
             booking: {
-                include: {
+                select: {
+                    id: true,
+                    bookingCode: true,
                     property: {
-                        select: {
-                            name: true,
-                            hostId: true,
-                        },
+                        select: { name: true, hostId: true },
                     },
                     customer: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                        },
+                        select: { firstName: true, lastName: true, email: true },
                     },
+                    customerId: true,
                 },
             },
         },
@@ -1230,16 +1344,29 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
     if (!payment) {
         throw new error_middleware_2.AppError("Payment not found", 404);
     }
-    // Check authorization
-    const isCustomer = payment.booking.customerId === req.user.id;
-    const isHost = payment.booking.property.hostId === req.user.id;
+    const { booking } = payment;
+    // Authorization: customer, host, or admin
+    const isCustomer = booking.customerId === req.user.id;
+    const isHost = booking.property.hostId === req.user.id;
     const isAdmin = req.user.role === client_1.UserRole.ADMIN;
     if (!isCustomer && !isHost && !isAdmin) {
         throw new error_middleware_2.AppError("Not authorized to view this payment", 403);
     }
     res.json({
         success: true,
-        data: payment,
+        data: {
+            id: payment.id,
+            amount: payment.amount,
+            status: payment.status,
+            paymentMethod: payment.method, // unified naming
+            createdAt: payment.createdAt,
+            booking: {
+                id: booking.id,
+                bookingCode: booking.bookingCode,
+                property: booking.property,
+                customer: booking.customer,
+            },
+        },
     });
 }));
 /**
@@ -1336,121 +1463,95 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
     (0, express_validator_1.body)("reason").isString().withMessage("Refund reason required"),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { amount, reason } = req.body;
+    // Fetch payment with related booking and customer
     const payment = await server_1.prisma.payment.findUnique({
         where: { id: req.params.id },
         include: {
             booking: {
                 include: {
                     customer: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                        },
+                        select: { firstName: true, lastName: true, email: true },
                     },
                 },
             },
         },
     });
-    if (!payment) {
+    if (!payment)
         throw new error_middleware_2.AppError("Payment not found", 404);
-    }
-    if (payment.status !== client_1.PaymentStatus.PAID) {
+    if (payment.status !== client_1.PaymentStatus.PAID)
         throw new error_middleware_2.AppError("Can only refund successful payments", 400);
-    }
     const refundAmount = amount || payment.amount;
-    if (refundAmount > payment.amount) {
+    if (refundAmount > payment.amount)
         throw new error_middleware_2.AppError("Refund amount cannot exceed payment amount", 400);
+    // Create refund record
+    const refund = await server_1.prisma.refund.create({
+        data: {
+            paymentId: payment.id,
+            amount: refundAmount,
+            reason,
+            processedBy: req.user.id,
+            status: "PROCESSING",
+        },
+    });
+    try {
+        let refundResult = {};
+        switch (payment.method) {
+            case client_1.PaymentMethod.PAYSTACK:
+                refundResult = await paystackservice_1.paystackService.refundPayment(payment.reference, refundAmount, reason);
+                break;
+            // case PaymentMethod.FLUTTERWAVE:
+            //   refundResult = await flutterwaveService.refundPayment(
+            //     payment.providerReference!,
+            //     refundAmount
+            //   );
+            //   break;
+            default:
+                // For manual refunds
+                refundResult = {
+                    status: "success",
+                    message: "Manual refund required",
+                };
+        }
+        // Update refund status
+        await server_1.prisma.refund.update({
+            where: { id: refund.id },
+            data: {
+                status: "COMPLETED",
+                processedAt: new Date(),
+                providerResponse: refundResult,
+            },
+        });
+        // Notify customer
+        await server_1.prisma.notification.create({
+            data: {
+                userId: payment.booking.customerId,
+                type: client_1.NotificationType.PAYMENT_FAILED, // You may change to REFUND_PROCESSED if defined
+                title: "Refund Processed",
+                message: `Your refund of ₦${refundAmount} has been processed for booking ${payment.booking.bookingCode}.`,
+                metadata: { refundId: refund.id, amount: refundAmount, reason },
+            },
+        });
+        // Email notification
+        await emailservice_1.emailService.sendRefundNotification(payment.booking.customer.email, payment.booking, refundAmount, reason);
+        // Audit log
+        (0, logger_middleware_1.auditLog)("REFUND_PROCESSED", req.user.id, {
+            refundId: refund.id,
+            paymentId: payment.id,
+            amount: refundAmount,
+            reason,
+        }, req.ip);
+        res.json({
+            success: true,
+            message: "Refund processed successfully",
+            data: refund,
+        });
     }
-    // // Create refund record
-    // const refund = await prisma.refund.create({
-    //   data: {
-    //     paymentId: payment.id,
-    //     amount: refundAmount,
-    //     reason,
-    //     processedBy: req.user.id,
-    //     status: "PROCESSING",
-    //   },
-    // });
-    // // Process refund with payment provider
-    // let refundResult: any = {};
-    // try {
-    //   switch (payment.paymentMethod) {
-    //     case PaymentMethod.PAYSTACK:
-    //       refundResult = await paystackService.refundPayment(
-    //         payment.providerReference!,
-    //         refundAmount * 100
-    //       );
-    //       break;
-    //     case PaymentMethod.FLUTTERWAVE:
-    //       refundResult = await flutterwaveService.refundPayment(
-    //         payment.providerReference!,
-    //         refundAmount
-    //       );
-    //       break;
-    //     default:
-    //       // For bank transfers, mark as manual refund
-    //       refundResult = {
-    //         status: "success",
-    //         message: "Manual refund required",
-    //       };
-    //   }
-    //   // Update refund status
-    //   await prisma.refund.update({
-    //     where: { id: refund.id },
-    //     data: {
-    //       status: "COMPLETED",
-    //       processedAt: new Date(),
-    //       providerResponse: refundResult,
-    //     },
-    //   });
-    //   // Notify customer
-    //   await prisma.notification.create({
-    //     data: {
-    //       userId: payment.booking.customerId,
-    //       type: NotificationType.REFUND_PROCESSED,
-    //       title: "Refund Processed",
-    //       message: `Your refund of ₦${refundAmount} has been processed for booking ${payment.booking.bookingCode}.`,
-    //       metadata: {
-    //         refundId: refund.id,
-    //         amount: refundAmount,
-    //         reason,
-    //       },
-    //     },
-    //   });
-    //   // Send email notification
-    //   await emailService.sendRefundNotification(
-    //     payment.booking.customer.email,
-    //     {
-    //       customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
-    //       refundAmount,
-    //       bookingCode: payment.booking.bookingCode,
-    //       reason,
-    //     }
-    //   );
-    //   auditLog(
-    //     "REFUND_PROCESSED",
-    //     req.user.id,
-    //     {
-    //       refundId: refund.id,
-    //       paymentId: payment.id,
-    //       amount: refundAmount,
-    //       reason,
-    //     },
-    //     req.ip
-    //   );
-    //   res.json({
-    //     success: true,
-    //     message: "Refund processed successfully",
-    //     data: refund,
-    //   });
-    // } catch (error) {
-    //   // Update refund status to failed
-    //   await prisma.refund.update({
-    //     where: { id: refund.id },
-    //     data: { status: "FAILED" },
-    //   });
-    //   throw new AppError("Failed to process refund", 500);
-    // }
+    catch (error) {
+        await server_1.prisma.refund.update({
+            where: { id: refund.id },
+            data: { status: "FAILED" },
+        });
+        throw new error_middleware_2.AppError("Failed to process refund", 500);
+    }
 }));
 exports.default = router;

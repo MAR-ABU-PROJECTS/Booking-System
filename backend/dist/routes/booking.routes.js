@@ -12,6 +12,7 @@ const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
 const zod_1 = require("zod");
 const bookingservice_1 = require("../services/bookingservice");
+const paystackservice_1 = require("../services/paystackservice");
 const router = (0, express_1.Router)();
 // Validation schemas
 const createBookingSchema = zod_1.z.object({
@@ -823,6 +824,14 @@ router.post("/:id/cancel", (0, authservice_1.requireAuth)(), [(0, express_valida
                     },
                 },
             },
+            payment: true,
+            customer: {
+                select: {
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                },
+            },
         },
     });
     if (!booking) {
@@ -837,7 +846,7 @@ router.post("/:id/cancel", (0, authservice_1.requireAuth)(), [(0, express_valida
         throw new error_middleware_2.AppError("Cannot cancel booking in current status", 400);
     }
     // Update booking status
-    const updated = await server_1.prisma.booking.update({
+    const updatedBooking = await server_1.prisma.booking.update({
         where: { id: req.params.id },
         data: {
             status: client_1.BookingStatus.CANCELLED,
@@ -845,6 +854,48 @@ router.post("/:id/cancel", (0, authservice_1.requireAuth)(), [(0, express_valida
             cancelledAt: new Date(),
         },
     });
+    if (booking.payment && booking.payment.status === client_1.PaymentStatus.PAID) {
+        try {
+            await server_1.prisma.payment.update({
+                where: { id: booking.payment.id },
+                data: {
+                    refundStatus: "REFUND_PENDING",
+                    refundRequestedAt: new Date(),
+                },
+            });
+            const refundResult = await paystackservice_1.paystackService.refundPayment(booking.payment.reference, booking.payment.amount);
+            if (refundResult.status) {
+                await server_1.prisma.payment.update({
+                    where: { id: booking.payment.id },
+                    data: {
+                        refundStatus: "REFUNDED",
+                        refundCompletedAt: new Date(),
+                        refundAmount: booking.payment.amount,
+                    },
+                });
+                await emailservice_1.emailService.sendRefundNotification(booking.customer.email, booking, booking.payment.amount);
+            }
+            else {
+                await server_1.prisma.payment.update({
+                    where: { id: booking.payment.id },
+                    data: {
+                        refundStatus: "REFUND_FAILED",
+                        refundFailedReason: refundResult.message || "Unknown error",
+                    },
+                });
+                await emailservice_1.emailService.sendRefundNotification(booking.customer.email, booking, 0, refundResult.message || "Refund failed. Please contact support.");
+            }
+        }
+        catch (error) {
+            await server_1.prisma.payment.update({
+                where: { id: booking.payment.id },
+                data: {
+                    refundStatus: "REFUND_FAILED",
+                    refundFailedReason: error.message,
+                },
+            });
+        }
+    }
     // Create notification for property host
     await server_1.prisma.notification.create({
         data: {
@@ -873,7 +924,7 @@ router.post("/:id/cancel", (0, authservice_1.requireAuth)(), [(0, express_valida
     res.json({
         success: true,
         message: "Booking cancelled successfully",
-        data: updated,
+        data: updatedBooking,
     });
 }));
 /**

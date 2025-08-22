@@ -8,7 +8,7 @@ import {
   PaymentMethod,
 } from "@prisma/client";
 import { z } from "zod";
-import { emailService } from "./emailservice"
+import { emailService } from "./emailservice";
 
 const prisma = new PrismaClient();
 
@@ -854,20 +854,35 @@ export class BookingService {
 
         case "cancel":
           if (
-            (["COMPLETED", "CANCELLED"] as BookingStatus[]).includes(
-              booking.status
-            )
+            (
+              [
+                BookingStatus.COMPLETED,
+                BookingStatus.CANCELLED,
+              ] as BookingStatus[]
+            ).includes(booking.status)
           ) {
             throw new Error(
               "Cannot cancel completed or already cancelled booking"
             );
           }
           updateData.status = BookingStatus.CANCELLED;
-          updateData.cancellationReason = validatedAction.reason;
+          updateData.cancellationReason =
+            validatedAction.reason || booking.cancellationReason;
           updateData.cancellationDate = new Date();
+
+          if (booking.payment?.status === PaymentStatus.PAID) {
+            updateData.paymentStatus = PaymentStatus.PENDING;
+
+            await emailService.sendBookingCancellationWithRefund(
+              booking.customer.email,
+              booking.id
+            );
+
+            await this.sendBookingNotifications(booking, "REFUND_PENDING");
+          }
+
           if (validatedAction.refundAmount) {
             updateData.refundAmount = validatedAction.refundAmount;
-            updateData.paymentStatus = PaymentStatus.REFUNDED;
           }
           break;
 
