@@ -12,6 +12,7 @@ const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
 const paystackservice_1 = require("../services/paystackservice");
 const flutterwaveservice_1 = require("../services/flutterwaveservice");
+const helpers_1 = require("../utils/helpers");
 const router = (0, express_1.Router)();
 // Validation middleware
 const validate = (req, res, next) => {
@@ -1379,7 +1380,7 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
  * /payment/{id}/refund:
  *   post:
  *     summary: Refund a payment
- *     description: Initiates a refund for a specific payment. Only admins can process refunds. Refunds can be partial (if an `amount` is provided) or full (default).
+ *     description: Initiates a full refund for a specific payment. Only admins can process refunds. Refunds can be partial (if an `amount` is provided) or full (default).
  *     tags:
  *       - Payments
  *     security:
@@ -1455,14 +1456,7 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
  *       500:
  *         description: Failed to process refund with payment provider
  */
-router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), [
-    (0, express_validator_1.body)("amount")
-        .optional()
-        .isFloat({ min: 0 })
-        .withMessage("Valid refund amount required"),
-    (0, express_validator_1.body)("reason").isString().withMessage("Refund reason required"),
-], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { amount, reason } = req.body;
+router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     // Fetch payment with related booking and customer
     const payment = await server_1.prisma.payment.findUnique({
         where: { id: req.params.id },
@@ -1479,16 +1473,25 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
     if (!payment)
         throw new error_middleware_2.AppError("Payment not found", 404);
     if (payment.status !== client_1.PaymentStatus.PAID)
-        throw new error_middleware_2.AppError("Can only refund successful payments", 400);
-    const refundAmount = amount || payment.amount;
-    if (refundAmount > payment.amount)
-        throw new error_middleware_2.AppError("Refund amount cannot exceed payment amount", 400);
+        throw new error_middleware_2.AppError("Only paid transactions can be refunded", 400);
+    const existingRefund = await server_1.prisma.refund.findFirst({
+        where: {
+            paymentId: payment.id,
+            status: { in: ["PROCESSING", "COMPLETED"] },
+        },
+    });
+    if (existingRefund) {
+        throw new error_middleware_2.AppError("Refund already initiated or completed for this payment", 400);
+    }
+    if (!(0, helpers_1.isRefundAllowed)(payment.booking.checkInDate)) {
+        throw new error_middleware_2.AppError("Refund not allowed within 24 hours of check-in.", 400);
+    }
+    const refundAmount = payment.amount;
     // Create refund record
     const refund = await server_1.prisma.refund.create({
         data: {
             paymentId: payment.id,
             amount: refundAmount,
-            reason,
             processedBy: req.user.id,
             status: "PROCESSING",
         },
@@ -1497,7 +1500,7 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
         let refundResult = {};
         switch (payment.method) {
             case client_1.PaymentMethod.PAYSTACK:
-                refundResult = await paystackservice_1.paystackService.refundPayment(payment.reference, refundAmount, reason);
+                refundResult = await paystackservice_1.paystackService.refundPayment(payment.reference);
                 break;
             // case PaymentMethod.FLUTTERWAVE:
             //   refundResult = await flutterwaveService.refundPayment(
@@ -1508,8 +1511,8 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
             default:
                 // For manual refunds
                 refundResult = {
-                    status: "success",
-                    message: "Manual refund required",
+                    status: "manual_required",
+                    message: "Manual refund required for this payment method",
                 };
         }
         // Update refund status
@@ -1525,20 +1528,19 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
         await server_1.prisma.notification.create({
             data: {
                 userId: payment.booking.customerId,
-                type: client_1.NotificationType.PAYMENT_FAILED, // You may change to REFUND_PROCESSED if defined
+                type: client_1.NotificationType.REFUND_PROCESSED,
                 title: "Refund Processed",
                 message: `Your refund of ₦${refundAmount} has been processed for booking ${payment.booking.bookingCode}.`,
-                metadata: { refundId: refund.id, amount: refundAmount, reason },
+                metadata: { refundId: refund.id, amount: refundAmount },
             },
         });
         // Email notification
-        await emailservice_1.emailService.sendRefundNotification(payment.booking.customer.email, payment.booking, refundAmount, reason);
+        await emailservice_1.emailService.sendRefundNotification(payment.booking.customer.email, payment.booking, refundAmount);
         // Audit log
         (0, logger_middleware_1.auditLog)("REFUND_PROCESSED", req.user.id, {
             refundId: refund.id,
             paymentId: payment.id,
             amount: refundAmount,
-            reason,
         }, req.ip);
         res.json({
             success: true,
@@ -1551,7 +1553,176 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
             where: { id: refund.id },
             data: { status: "FAILED" },
         });
+        (0, logger_middleware_1.auditLog)("REFUND_FAILED", req.user.id, { refundId: refund.id, paymentId: payment.id, error: String(error) }, req.ip);
         throw new error_middleware_2.AppError("Failed to process refund", 500);
     }
+}));
+/**
+ * @route   POST /api/v1/payments/:id/refund/approve
+ * @desc    Approve and process a refund (Admin only)
+ * @access  Protected (Admin)
+ */
+/**
+ * @swagger
+ * /payments/{id}/refund/approve:
+ *   post:
+ *     summary: Approve and process a refund (Admin only)
+ *     description: Approves a pending refund request for a payment and processes it via Paystack. Only accessible by admin users.
+ *     tags:
+ *       - Payments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: The ID of the payment to refund
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Refund approved and processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Refund approved and processed successfully
+ *                 payment:
+ *                   type: object
+ *                   description: Updated payment record
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     refundStatus:
+ *                       type: string
+ *                       example: REFUNDED
+ *                     refundAmount:
+ *                       type: number
+ *                       example: 5000
+ *                     refundCompletedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     refundedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     gatewayResponse:
+ *                       type: object
+ *                       description: Raw response from the payment gateway
+ *       400:
+ *         description: Refund not requested or already processed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Refund not requested or already processed
+ *       404:
+ *         description: Payment or associated booking not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Payment not found
+ *       500:
+ *         description: Refund failed due to gateway or server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Refund failed: <error message>
+ */
+router.post("/:id/refund/approve", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), // only admins can approve refunds
+(0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const paymentId = req.params.id;
+    const payment = await server_1.prisma.payment.findUnique({
+        where: { id: paymentId },
+        include: { booking: true },
+    });
+    if (!payment) {
+        throw new error_middleware_2.AppError("Payment not found", 404);
+    }
+    if (payment.refundStatus !== client_1.RefundStatus.REFUND_PENDING) {
+        throw new error_middleware_2.AppError("Refund not requested or already processed", 400);
+    }
+    // Ensure booking exists
+    if (!payment.booking) {
+        throw new error_middleware_2.AppError("Associated booking not found", 404);
+    }
+    // Start transaction for refund approval
+    const approvedRefund = await server_1.prisma.$transaction(async (tx) => {
+        try {
+            // Attempt refund via Paystack (always full refund here)
+            const refund = await paystackservice_1.paystackService.refundPayment(payment.reference);
+            // Update payment record
+            const updatedPayment = await tx.payment.update({
+                where: { id: paymentId },
+                data: {
+                    refundStatus: client_1.RefundStatus.REFUNDED,
+                    refundAmount: refund.data.amount / 100,
+                    refundCompletedAt: new Date(),
+                    refundedAt: new Date(),
+                    gatewayResponse: JSON.parse(JSON.stringify(refund)),
+                },
+            });
+            // Audit log
+            await tx.auditLog.create({
+                data: {
+                    userId: req.user.id,
+                    action: "APPROVE_REFUND",
+                    entity: "Payment",
+                    entityId: payment.id,
+                    changes: {
+                        refundStatus: "REFUNDED",
+                        refundAmount: refund.data.amount / 100,
+                    },
+                    metadata: {
+                        bookingId: payment.booking.id,
+                        role: req.user.role,
+                        ip: req.ip,
+                        userAgent: req.headers["user-agent"],
+                    },
+                },
+            });
+            return updatedPayment;
+        }
+        catch (err) {
+            await tx.payment.update({
+                where: { id: paymentId },
+                data: {
+                    refundStatus: client_1.RefundStatus.REFUND_FAILED,
+                    refundFailedReason: err.message,
+                },
+            });
+            throw new error_middleware_2.AppError(`Refund failed: ${err.message}`, 500);
+        }
+    });
+    res.json({
+        success: true,
+        message: "Refund approved and processed successfully",
+        payment: approvedRefund,
+    });
 }));
 exports.default = router;

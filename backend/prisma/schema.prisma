@@ -276,7 +276,7 @@ model Payment {
 
   refunds            Refund[]
   refundAmount       Float? // Amount refunded
-  refundStatus       String? // REFUND_PENDING | REFUNDED | REFUND_FAILED
+  refundStatus       RefundStatus @default(NONE) // NEW: Status of the refund
   refundRequestedAt  DateTime?
   refundCompletedAt  DateTime?
   refundFailedReason String?
@@ -599,7 +599,7 @@ model Refund {
   paymentId        String
   payment          Payment   @relation(fields: [paymentId], references: [id])
   amount           Float
-  reason           String
+  reason           String?
   status           String // PROCESSING | COMPLETED | FAILED
   processedBy      String
   processedAt      DateTime? // optional, set after completion
@@ -723,8 +723,16 @@ enum NotificationType {
   PROPERTY_REJECTED // NEW
   SYSTEM_UPDATE
   PROMOTIONAL // NEW
+  REFUND_PROCESSED // NEW
   REMINDER // NEW
   ALERT // NEW
+}
+
+enum RefundStatus {
+  REFUND_PENDING
+  REFUNDED
+  REFUND_FAILED
+  NONE
 }
 
 enum ReceiptStatus {

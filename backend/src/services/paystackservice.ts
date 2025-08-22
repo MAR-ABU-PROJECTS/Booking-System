@@ -1,9 +1,6 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import * as crypto from "crypto";
 
-// -------------------------
-// Types for Paystack responses
-// -------------------------
 export interface PaystackInitResponse {
   status: boolean;
   message: string;
@@ -20,7 +17,7 @@ export interface PaystackVerifyResponse {
   data: {
     id: number;
     domain: string;
-    status: string;
+    status: string; // "success" | "failed" | "abandoned"
     reference: string;
     amount: number;
     gateway_response: string;
@@ -47,17 +44,9 @@ export interface PaystackRefundResponse {
     currency: string;
     transaction: string;
     status: string;
-    customer: {
-      id: number;
-      email: string;
-      first_name: string;
-      last_name: string;
-    };
     created_at: string;
     updated_at: string;
     gateway_response: string;
-    customer_note?: string;
-    failure_reason?: string | null;
   };
 }
 
@@ -72,10 +61,14 @@ export class PaystackService {
     this.secretKey = process.env.PAYSTACK_SECRET_KEY;
   }
 
-  /**
-   * Initialize payment with PayStack API
-   * Expects amount in Naira → converts to kobo
-   */
+  private get headers() {
+    return {
+      Authorization: `Bearer ${this.secretKey}`,
+      "Content-Type": "application/json",
+    };
+  }
+
+  /** Initialize payment */
   async initializePayment(data: {
     amount: number; // in Naira
     email: string;
@@ -91,7 +84,6 @@ export class PaystackService {
         reference: data.reference,
         currency: data.currency || "NGN",
       };
-
       if (data.callback_url) payload.callback_url = data.callback_url;
       if (data.metadata) payload.metadata = data.metadata;
 
@@ -99,83 +91,51 @@ export class PaystackService {
         `${this.baseUrl}/transaction/initialize`,
         payload,
         {
-          headers: {
-            Authorization: `Bearer ${this.secretKey}`,
-            "Content-Type": "application/json",
-          },
+          headers: this.headers,
+          timeout: 10000,
         }
       );
 
       return res.data as PaystackInitResponse;
     } catch (error: any) {
-      throw new Error(
-        error?.response?.data?.message || error.message || "Paystack init error"
-      );
+      throw this.handleError(error, "Paystack init error");
     }
   }
 
-  /**
-   * Verify payment with PayStack API
-   */
+  /** Verify payment */
   async verifyPayment(reference: string): Promise<PaystackVerifyResponse> {
     try {
       const res = await axios.get(
         `${this.baseUrl}/transaction/verify/${reference}`,
         {
-          headers: {
-            Authorization: `Bearer ${this.secretKey}`,
-            "Content-Type": "application/json",
-          },
+          headers: this.headers,
+          timeout: 10000,
         }
       );
 
       return res.data as PaystackVerifyResponse;
     } catch (error: any) {
-      throw new Error(
-        error?.response?.data?.message ||
-          error.message ||
-          "Paystack verify error"
-      );
+      throw this.handleError(error, "Paystack verify error");
     }
   }
 
-  /**
-   * Refund a payment
-   * @param reference Paystack transaction reference or ID
-   * @param amount Optional refund amount in Naira
-   * @param note Optional reason for refund
-   */
-  async refundPayment(
-    reference: string,
-    amount?: number,
-    note?: string
-  ): Promise<PaystackRefundResponse> {
+  /** Refund full payment */
+  async refundPayment(reference: string): Promise<PaystackRefundResponse> {
     try {
-      const payload: any = { transaction: reference };
-      if (amount) payload.amount = Math.round(amount * 100); // convert to kobo
-      if (note) payload.customer_note = note;
+      const payload = { transaction: reference }; // full refund
 
       const res = await axios.post(`${this.baseUrl}/refund`, payload, {
-        headers: {
-          Authorization: `Bearer ${this.secretKey}`,
-          "Content-Type": "application/json",
-        },
+        headers: this.headers,
+        timeout: 10000,
       });
 
       return res.data as PaystackRefundResponse;
     } catch (error: any) {
-      throw new Error(
-        error?.response?.data?.message ||
-          error.message ||
-          "Paystack refund error"
-      );
+      throw this.handleError(error, "Paystack refund error");
     }
   }
 
-  /**
-   * Verify Paystack webhook signature
-   * Requires the raw request body (string) before JSON parsing
-   */
+  /** Verify Paystack webhook signature */
   verifyWebhookSignature(rawBody: string, signature?: string): boolean {
     if (!signature) return false;
 
@@ -185,6 +145,16 @@ export class PaystackService {
       .digest("hex");
 
     return hash === signature;
+  }
+
+  /** Helper to standardize Paystack errors */
+  private handleError(error: AxiosError | any, defaultMessage: string): Error {
+    if (axios.isAxiosError(error)) {
+      const msg =
+        error.response?.data?.message || error.message || defaultMessage;
+      return new Error(msg);
+    }
+    return new Error(defaultMessage);
   }
 }
 

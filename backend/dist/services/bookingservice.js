@@ -5,6 +5,8 @@ exports.bookingService = exports.BookingService = exports.bookingActionSchema = 
 const client_1 = require("@prisma/client");
 const zod_1 = require("zod");
 const emailservice_1 = require("./emailservice");
+const paystackservice_1 = require("./paystackservice");
+const error_middleware_1 = require("../middlewares/error.middleware");
 const prisma = new client_1.PrismaClient();
 // ===============================
 // VALIDATION SCHEMAS
@@ -58,6 +60,7 @@ exports.searchBookingsSchema = zod_1.z.object({
         .default("created"),
     sortOrder: zod_1.z.enum(["asc", "desc"]).default("desc"),
 });
+// NOTE: all refunds are full; remove refundAmount from the schema
 exports.bookingActionSchema = zod_1.z.object({
     action: zod_1.z.enum([
         "approve",
@@ -68,7 +71,6 @@ exports.bookingActionSchema = zod_1.z.object({
         "cancel",
     ]),
     reason: zod_1.z.string().optional(),
-    refundAmount: zod_1.z.number().positive().optional(),
     adminNotes: zod_1.z.string().optional(),
 });
 // ===============================
@@ -148,7 +150,6 @@ class BookingService {
         const taxes = 0; // Add tax calculation if needed
         let discounts = 0;
         if (promoCode) {
-            // Lookup promo code and apply discount
             const promo = await prisma.promoCode.findUnique({
                 where: { code: promoCode },
             });
@@ -244,10 +245,10 @@ class BookingService {
                 propertyName: booking.property.name,
                 totalAmount: booking.total,
             });
-            // Send booking confirmation and approval emails to user
+            // Emails
             await emailservice_1.emailService.sendBookingConfirmation(booking.guestEmail, booking);
             await emailservice_1.emailService.sendBookingApprovedEmail(booking.guestEmail, booking);
-            // Send notifications (implement notification service)
+            // Notifications
             await this.sendBookingNotifications(booking, "APPROVED");
             return booking;
         }
@@ -297,12 +298,7 @@ class BookingService {
                         uploadedAt: true,
                     },
                 },
-                review: {
-                    select: {
-                        id: true,
-                        rating: true,
-                    },
-                },
+                review: { select: { id: true, rating: true } },
             },
         });
         if (!booking)
@@ -323,12 +319,10 @@ class BookingService {
      */
     async searchBookings(searchParams, userId, userRole) {
         try {
-            // Validate input
             const validatedParams = exports.searchBookingsSchema.parse(searchParams);
             const { status, paymentStatus, propertyId, customerId, checkInFrom, checkInTo, bookingNumber, guestEmail, page, limit, sortBy, sortOrder, } = validatedParams;
-            // Build where clause
             const whereClause = {};
-            // Apply filters based on user role
+            // Role scoping
             if (userId && userRole) {
                 if (userRole === client_1.UserRole.CUSTOMER) {
                     whereClause.customerId = userId;
@@ -336,7 +330,6 @@ class BookingService {
                 else if (userRole === client_1.UserRole.ADMIN) {
                     whereClause.property = { hostId: userId };
                 }
-                // Admins can see all bookings
             }
             if (status)
                 whereClause.status = status;
@@ -347,27 +340,27 @@ class BookingService {
             if (customerId)
                 whereClause.customerId = customerId;
             if (bookingNumber)
-                whereClause.bookingNumber = {
+                // NB: your field is bookingCode; keep compatibility if you meant bookingNumber in API layer
+                whereClause.bookingCode = {
                     contains: bookingNumber,
                     mode: "insensitive",
                 };
             if (guestEmail)
                 whereClause.guestEmail = { contains: guestEmail, mode: "insensitive" };
             if (checkInFrom || checkInTo) {
-                whereClause.checkIn = {};
+                whereClause.checkInDate = {};
                 if (checkInFrom)
-                    whereClause.checkIn.gte = new Date(checkInFrom);
+                    whereClause.checkInDate.gte = new Date(checkInFrom);
                 if (checkInTo)
-                    whereClause.checkIn.lte = new Date(checkInTo);
+                    whereClause.checkInDate.lte = new Date(checkInTo);
             }
-            // Build order by
             const orderBy = {};
             switch (sortBy) {
                 case "checkIn":
-                    orderBy.checkIn = sortOrder;
+                    orderBy.checkInDate = sortOrder;
                     break;
                 case "totalAmount":
-                    orderBy.totalAmount = sortOrder;
+                    orderBy.total = sortOrder;
                     break;
                 case "status":
                     orderBy.status = sortOrder;
@@ -377,7 +370,6 @@ class BookingService {
                     orderBy.createdAt = sortOrder;
                     break;
             }
-            // Execute queries
             const [bookings, total, summary] = await Promise.all([
                 prisma.booking.findMany({
                     where: whereClause,
@@ -403,9 +395,7 @@ class BookingService {
                                 },
                             },
                         },
-                        receipts: {
-                            orderBy: { uploadedAt: "desc" },
-                        },
+                        receipts: { orderBy: { uploadedAt: "desc" } },
                     },
                     orderBy,
                     skip: (page - 1) * limit,
@@ -435,9 +425,7 @@ class BookingService {
      */
     async updateBooking(bookingId, updateData, userId, userRole) {
         try {
-            // Validate input
             const validatedData = exports.updateBookingSchema.parse(updateData);
-            // Get existing booking
             const existingBooking = await prisma.booking.findUnique({
                 where: { id: bookingId },
                 include: { property: { select: { hostId: true } } },
@@ -445,19 +433,17 @@ class BookingService {
             if (!existingBooking) {
                 throw new Error("Booking not found");
             }
-            // Check permissions
             const canUpdate = existingBooking.customerId === userId ||
                 existingBooking.property.hostId === userId ||
                 userRole === client_1.UserRole.ADMIN;
             if (!canUpdate) {
                 throw new Error("Unauthorized to update this booking");
             }
-            // Don't allow updates to confirmed/completed bookings unless admin
             if (existingBooking.status === client_1.BookingStatus.COMPLETED &&
                 userRole !== client_1.UserRole.ADMIN) {
                 throw new Error("Cannot update completed booking");
             }
-            // Recalculate pricing if dates or guests changed
+            // Recalculate pricing if dates/guests changed
             let pricingUpdate = {};
             if (validatedData.checkIn ||
                 validatedData.checkOut ||
@@ -473,19 +459,18 @@ class BookingService {
                     baseAmount: pricing.baseAmount,
                     cleaningFee: pricing.cleaningFee,
                     serviceFee: pricing.serviceFee,
-                    totalAmount: pricing.totalAmount,
+                    total: pricing.totalAmount,
                 };
             }
-            // Update booking
             const updatedBooking = await prisma.booking.update({
                 where: { id: bookingId },
                 data: {
                     ...validatedData,
                     ...(validatedData.checkIn && {
-                        checkIn: new Date(validatedData.checkIn),
+                        checkInDate: new Date(validatedData.checkIn),
                     }),
                     ...(validatedData.checkOut && {
-                        checkOut: new Date(validatedData.checkOut),
+                        checkOutDate: new Date(validatedData.checkOut),
                     }),
                     ...pricingUpdate,
                 },
@@ -514,7 +499,6 @@ class BookingService {
                     receipts: true,
                 },
             });
-            // Log audit
             await this.logAudit(userId, "UPDATE", "Booking", bookingId, validatedData);
             return updatedBooking;
         }
@@ -526,25 +510,22 @@ class BookingService {
         }
     }
     /**
-     * Perform booking action (approve, reject, confirm, etc.)
+     * Perform booking action (approve, reject, confirm, check-in/out, cancel)
+     * - On "cancel": if payment is PAID, trigger a FULL refund via processRefund()
      */
     async performBookingAction(bookingId, actionData, userId, userRole) {
         try {
-            // Validate input
             const validatedAction = exports.bookingActionSchema.parse(actionData);
-            // Get booking
             const booking = await this.getBookingById(bookingId);
             if (!booking) {
                 throw new Error("Booking not found");
             }
-            // Check permissions
+            // Only host/admin can perform these actions
             const canPerformAction = booking.property.host.id === userId || userRole === client_1.UserRole.ADMIN;
             if (!canPerformAction) {
                 throw new Error("Unauthorized to perform this action");
             }
-            let updateData = {
-                adminNotes: validatedAction.adminNotes,
-            };
+            let updateData = { adminNotes: validatedAction.adminNotes };
             switch (validatedAction.action) {
                 case "approve":
                     if (booking.status !== client_1.BookingStatus.PENDING) {
@@ -560,7 +541,7 @@ class BookingService {
                     }
                     updateData.status = client_1.BookingStatus.CANCELLED;
                     updateData.cancellationReason = validatedAction.reason;
-                    updateData.cancellationDate = new Date();
+                    updateData.cancelledAt = new Date();
                     break;
                 case "confirm":
                     if (booking.status !== client_1.BookingStatus.APPROVED) {
@@ -591,23 +572,28 @@ class BookingService {
                     ].includes(booking.status)) {
                         throw new Error("Cannot cancel completed or already cancelled booking");
                     }
+                    // If already paid, do a FULL refund and mark cancelled within the same transaction.
+                    if (booking.payment?.status === client_1.PaymentStatus.PAID) {
+                        // processRefund handles: marking refund pending, calling gateway, updating payment,
+                        // cancelling booking, and audit logging — all atomically.
+                        const cancelled = await this.processRefund(bookingId, validatedAction.reason || "Cancellation", {
+                            id: userId,
+                            role: userRole,
+                        });
+                        // Send emails/notifications about refund
+                        await emailservice_1.emailService.sendBookingCancellationWithRefund(booking.customer.email, booking.id);
+                        await this.sendBookingNotifications(cancelled, "REFUND_PENDING");
+                        return cancelled;
+                    }
+                    // If not paid yet, just cancel.
                     updateData.status = client_1.BookingStatus.CANCELLED;
                     updateData.cancellationReason =
                         validatedAction.reason || booking.cancellationReason;
-                    updateData.cancellationDate = new Date();
-                    if (booking.payment?.status === client_1.PaymentStatus.PAID) {
-                        updateData.paymentStatus = client_1.PaymentStatus.PENDING;
-                        await emailservice_1.emailService.sendBookingCancellationWithRefund(booking.customer.email, booking.id);
-                        await this.sendBookingNotifications(booking, "REFUND_PENDING");
-                    }
-                    if (validatedAction.refundAmount) {
-                        updateData.refundAmount = validatedAction.refundAmount;
-                    }
+                    updateData.cancelledAt = new Date();
                     break;
                 default:
                     throw new Error("Invalid action");
             }
-            // Update booking
             const updatedBooking = await prisma.booking.update({
                 where: { id: bookingId },
                 data: updateData,
@@ -636,13 +622,11 @@ class BookingService {
                     receipts: true,
                 },
             });
-            // Log audit
             await this.logAudit(userId, "UPDATE", "Booking", bookingId, {
                 action: validatedAction.action,
                 reason: validatedAction.reason,
                 newStatus: updateData.status,
             });
-            // Send notifications
             await this.sendBookingNotifications(updatedBooking, validatedAction.action.toUpperCase());
             return updatedBooking;
         }
@@ -652,6 +636,104 @@ class BookingService {
             }
             throw error;
         }
+    }
+    /**
+     * FULL refund processor (Paystack) + cancel booking + audit
+     * - Throws AppError on failures
+     * - Atomic via Prisma $transaction
+     */
+    async processRefund(bookingId, reason, user) {
+        return prisma.$transaction(async (tx) => {
+            // fetch booking + payment
+            const booking = await tx.booking.findUnique({
+                where: { id: bookingId },
+                include: {
+                    payment: true,
+                    customer: true,
+                    property: { include: { host: true } },
+                },
+            });
+            if (!booking)
+                throw new error_middleware_1.AppError("Booking not found", 404);
+            const payment = booking.payment;
+            if (!payment || payment.status !== client_1.PaymentStatus.PAID) {
+                throw new error_middleware_1.AppError("No valid payment found for refund", 400);
+            }
+            // prevent double refunds
+            if (payment.refundStatus === client_1.RefundStatus.REFUNDED) {
+                throw new error_middleware_1.AppError("Refund already processed", 400);
+            }
+            // check refund window (no refund within 24h to check-in)
+            if (!this.isRefundAllowed(booking.checkInDate)) {
+                throw new error_middleware_1.AppError("Refund not allowed within 24h of check-in", 400);
+            }
+            // mark refund as pending
+            await tx.payment.update({
+                where: { id: payment.id },
+                data: {
+                    refundStatus: client_1.RefundStatus.REFUND_PENDING,
+                    refundRequestedAt: new Date(),
+                },
+            });
+            try {
+                // Paystack refund (full)
+                const refund = await paystackservice_1.paystackService.refundPayment(payment.reference);
+                // update payment
+                const updatedPayment = await tx.payment.update({
+                    where: { id: payment.id },
+                    data: {
+                        refundStatus: client_1.RefundStatus.REFUNDED,
+                        refundAmount: refund?.data?.amount
+                            ? refund.data.amount / 100
+                            : booking.total, // fallback to total
+                        refundCompletedAt: new Date(),
+                        refundedAt: new Date(),
+                        gatewayResponse: JSON.parse(JSON.stringify(refund || {})),
+                    },
+                });
+                // update booking as cancelled (if not already)
+                const cancelledBooking = await tx.booking.update({
+                    where: { id: booking.id },
+                    data: {
+                        status: client_1.BookingStatus.CANCELLED,
+                        cancelledAt: new Date(),
+                        cancellationReason: reason,
+                        paymentStatus: client_1.PaymentStatus.PENDING, // reset since refunded
+                        refundAmount: updatedPayment.refundAmount ?? booking.total,
+                    },
+                    include: {
+                        customer: true,
+                        property: { include: { host: true } },
+                        receipts: true,
+                    },
+                });
+                // audit log
+                await tx.auditLog.create({
+                    data: {
+                        userId: user.id,
+                        action: "REFUND_BOOKING",
+                        entity: "Booking",
+                        entityId: booking.id,
+                        changes: { refund: "FULL_REFUND" },
+                        metadata: {
+                            reason,
+                            role: user.role,
+                        },
+                    },
+                });
+                return cancelledBooking;
+            }
+            catch (err) {
+                await tx.payment.update({
+                    where: { id: payment.id },
+                    data: {
+                        refundStatus: client_1.RefundStatus.REFUND_FAILED,
+                        refundFailedReason: err?.message || "Unknown refund error",
+                    },
+                });
+                throw new error_middleware_1.AppError(`Refund failed: ${err?.message || "Unknown error"}`, 500);
+            }
+        });
     }
     /**
      * Complete booking (auto-triggered after checkout)
@@ -668,7 +750,7 @@ class BookingService {
     async checkAvailability(propertyId, checkIn, checkOut) {
         const checkInDate = new Date(checkIn);
         const checkOutDate = new Date(checkOut);
-        // Check for existing bookings
+        // Overlapping bookings
         const existingBookings = await prisma.booking.findMany({
             where: {
                 propertyId,
@@ -691,7 +773,7 @@ class BookingService {
         if (existingBookings.length > 0) {
             return { available: false, reason: "Dates already booked" };
         }
-        // Check availability overrides
+        // Availability overrides
         const unavailableDates = await prisma.propertyAvailability.findMany({
             where: {
                 propertyId,
@@ -713,13 +795,8 @@ class BookingService {
     async generateBookingNumber() {
         const year = new Date().getFullYear();
         const prefix = "MAR"; // MAR ABU prefix
-        // Get the latest booking number for this year
         const latestBooking = await prisma.booking.findFirst({
-            where: {
-                bookingCode: {
-                    startsWith: `${prefix}${year}`,
-                },
-            },
+            where: { bookingCode: { startsWith: `${prefix}${year}` } },
             orderBy: { createdAt: "desc" },
             select: { bookingCode: true },
         });
@@ -771,28 +848,39 @@ class BookingService {
      * Send booking notifications (placeholder - implement with notification service)
      */
     async sendBookingNotifications(booking, eventType) {
-        // This would integrate with a notification service
-        console.log(`Sending ${eventType} notification for booking ${booking.bookingNumber}`);
-        // Create notification records
+        console.log(`Sending ${eventType} notification for booking ${booking.bookingCode}`);
+        const validTypes = [
+            "BOOKING_APPROVED",
+            "BOOKING_CANCELLED",
+            "BOOKING_REJECTED",
+            "BOOKING_CONFIRMED",
+            "BOOKING_CHECKED_IN",
+            "BOOKING_CHECKED_OUT",
+            "REFUND_PENDING",
+            "REFUND_FAILED",
+            "REFUND_COMPLETED",
+        ];
+        const notificationType = `BOOKING_${eventType}`;
+        const safeType = validTypes.includes(notificationType)
+            ? notificationType
+            : "BOOKING_UPDATED";
         const notifications = [
             {
                 userId: booking.customerId,
-                type: `BOOKING_${eventType}`,
+                type: safeType, // Cast to NotificationType if needed
                 title: `Booking ${eventType}`,
-                message: `Your booking ${booking.bookingNumber} has been ${eventType.toLowerCase()}`,
-                data: { bookingId: booking.id },
+                message: `Your booking ${booking.bookingCode} has been ${eventType.toLowerCase()}`,
+                data: JSON.stringify({ bookingId: booking.id }),
             },
             {
                 userId: booking.property.hostId,
-                type: `BOOKING_${eventType}`,
+                type: safeType, // Cast to NotificationType if needed
                 title: `New booking ${eventType}`,
-                message: `Booking ${booking.bookingNumber} for ${booking.property.name} has been ${eventType.toLowerCase()}`,
-                data: { bookingId: booking.id },
+                message: `Booking ${booking.bookingCode} for ${booking.property.name} has been ${eventType.toLowerCase()}`,
+                data: JSON.stringify({ bookingId: booking.id }),
             },
         ];
-        await prisma.notification.createMany({
-            data: notifications,
-        });
+        await prisma.notification.createMany({ data: notifications });
     }
     /**
      * Log audit trail
@@ -812,6 +900,14 @@ class BookingService {
         catch (error) {
             console.error("Failed to log audit:", error);
         }
+    }
+    /**
+     * Refund window helper (no refunds within 24h of check-in)
+     */
+    isRefundAllowed(checkInDate) {
+        const cutoff = new Date(checkInDate);
+        cutoff.setHours(cutoff.getHours() - 24);
+        return new Date() < cutoff;
     }
 }
 exports.BookingService = BookingService;

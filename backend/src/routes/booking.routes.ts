@@ -1,7 +1,7 @@
 // MAR ABU PROJECTS SERVICES LLC - Booking Routes
 import { Router } from "express";
 import { body, param, query, validationResult } from "express-validator";
-import { BookingStatus, PaymentStatus, UserRole } from "@prisma/client";
+import { BookingStatus, PaymentStatus, UserRole, RefundStatus } from "@prisma/client";
 import { requireAuth } from "../services/authservice";
 import { asyncHandler } from "../middlewares/error.middleware";
 import { AppError } from "../middlewares/error.middleware";
@@ -11,6 +11,7 @@ import { emailService } from "../services/emailservice";
 import { z } from "zod";
 import { bookingService } from "../services/bookingservice";
 import { paystackService } from "../services/paystackservice";
+import { isRefundAllowed } from "../utils/helpers";
 
 const router = Router();
 
@@ -905,161 +906,63 @@ router.patch(
 router.post(
   "/:id/cancel",
   requireAuth(),
-  [param("id").isString(), body("reason").optional().isString()],
-  validate,
   asyncHandler(async (req: any, res: any) => {
+    const bookingId = req.params.id;
     const { reason } = req.body;
 
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
-      include: {
-        property: {
-          select: {
-            name: true,
-            hostId: true,
-            host: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-          },
-        },
-        payment: true,
-        customer: {
-          select: {
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
+      where: { id: bookingId },
+      include: { payment: true, property: true, customer: true },
     });
 
     if (!booking) {
       throw new AppError("Booking not found", 404);
     }
 
-    // Only booking owner can cancel
     if (booking.customerId !== req.user.id) {
-      throw new AppError("Not authorized to cancel this booking", 403);
+      throw new AppError("Unauthorized to cancel this booking", 403);
     }
 
-    // Can only cancel pending or approved bookings
-    if (
-      !(
-        [BookingStatus.PENDING, BookingStatus.APPROVED] as BookingStatus[]
-      ).includes(booking.status)
-    ) {
-      throw new AppError("Cannot cancel booking in current status", 400);
+    if (!["PENDING", "APPROVED"].includes(booking.status)) {
+      throw new AppError("Booking cannot be cancelled in its current state", 400);
     }
 
-    // Update booking status
-    const updatedBooking = await prisma.booking.update({
-      where: { id: req.params.id },
+    // Start transaction
+    const cancelledBooking = await bookingService.performBookingAction(
+      bookingId,
+      { action: "cancel", reason },
+      req.user.id,
+      req.user.role
+    );
+
+    // 3. Audit log
+    await prisma.auditLog.create({
       data: {
-        status: BookingStatus.CANCELLED,
-        cancellationReason: reason,
-        cancelledAt: new Date(),
-      },
-    });
-
-    if (booking.payment && booking.payment.status === PaymentStatus.PAID) {
-      try {
-        await prisma.payment.update({
-          where: { id: booking.payment.id },
-          data: {
-            refundStatus: "REFUND_PENDING",
-            refundRequestedAt: new Date(),
-          },
-        });
-
-        const refundResult = await paystackService.refundPayment(
-          booking.payment.reference,
-          booking.payment.amount
-        );
-
-        if (refundResult.status) {
-          await prisma.payment.update({
-            where: { id: booking.payment.id },
-            data: {
-              refundStatus: "REFUNDED",
-              refundCompletedAt: new Date(),
-              refundAmount: booking.payment.amount,
-            },
-          });
-          await emailService.sendRefundNotification(
-            booking.customer.email,
-            booking,
-            booking.payment.amount
-          );
-        } else {
-          await prisma.payment.update({
-            where: { id: booking.payment.id },
-            data: {
-              refundStatus: "REFUND_FAILED",
-              refundFailedReason: refundResult.message || "Unknown error",
-            },
-          });
-          await emailService.sendRefundNotification(
-            booking.customer.email,
-            booking,
-            0,
-            refundResult.message || "Refund failed. Please contact support."
-          );
-        }
-      } catch (error: any) {
-        await prisma.payment.update({
-          where: { id: booking.payment.id },
-          data: {
-            refundStatus: "REFUND_FAILED",
-            refundFailedReason: error.message,
-          },
-        });
-      }
-    }
-
-    // Create notification for property host
-    await prisma.notification.create({
-      data: {
-        userId: booking.property.hostId,
-        type: "BOOKING_CANCELLED",
-        title: "Booking Cancelled",
-        message: `${req.user.firstName} ${req.user.lastName} cancelled their booking for ${booking.property.name}.${reason ? ` Reason: ${reason}` : ""}`,
+        userId: req.user.id,
+        action: "CANCEL_BOOKING",
+        entity: "Booking",
+        entityId: booking.id,
+        changes: {
+          status: "BOOKING_CANCELLED",
+          refundStatus: booking.payment?.refundStatus ?? null,
+        },
         metadata: {
-          bookingId: booking.id,
-          bookingCode: booking.bookingCode,
+          reason,
+          role: req.user.role,
+          ip: req.ip,
+          userAgent: req.headers["user-agent"],
         },
       },
     });
 
-    // Send email notification to host
-    await emailService.sendBookingCancelledEmail(booking.property.host.email, {
-      hostName: `${booking.property.host.firstName} ${booking.property.host.lastName}`,
-      customerName: `${req.user.firstName} ${req.user.lastName}`,
-      propertyName: booking.property.name,
-      bookingCode: booking.bookingCode,
-      reason,
-    });
-
-    auditLog(
-      "BOOKING_CANCELLED",
-      req.user.id,
-      {
-        bookingId: req.params.id,
-        reason,
-      },
-      req.ip
-    );
-
     res.json({
       success: true,
-      message: "Booking cancelled successfully",
-      data: updatedBooking,
+      message: "Booking cancelled successfully. Refund (if eligible) is awaiting admin approval.",
+      booking: cancelledBooking,
     });
   })
 );
+
 
 /**
  * @route   GET /api/v1/bookings/:id/invoice
