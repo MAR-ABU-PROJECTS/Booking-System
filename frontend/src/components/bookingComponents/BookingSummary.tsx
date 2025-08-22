@@ -25,7 +25,10 @@ import {
 } from "@components/ui/select";
 import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
-import { initializePaystackPayment } from "@lib/payments/paystack";
+import {
+	initializePaystackPayment,
+	resumePayStackPayment,
+} from "@lib/payments/paystack";
 import { initializeFlutterwavePayment } from "@lib/payments/flutterwave";
 import { useRouter } from "next/navigation";
 
@@ -38,7 +41,7 @@ const BookingSummary = ({
 }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const nights = summaryData.nights;
-const router = useRouter()
+	const router = useRouter();
 	const nightsLabel = nights === 1 ? "1 Night" : `${nights} Nights`;
 	const formattedCheckIn = summaryData.checkInDate
 		? dayjs(summaryData.checkInDate).format("ddd, MMM D")
@@ -102,47 +105,74 @@ const router = useRouter()
 		setPaymentMethod(value);
 	};
 
-	const handlePayment = () => {
-		const email = summaryData.guestEmail;
-		const amount = totalAmount * 100;
+	// const handlePayment = () => {
+	// 	const email = summaryData.guestEmail;
+	// 	const amount = totalAmount * 100;
 
-		if (paymentMethod === PaymentMethod.PAYSTACK) {
-			initializePaystackPayment({
-				email,
-				amount: amount,
-				onSuccess: async (reference) => {
-					// await fetch("/api/verify-payment", {
-					// 	method: "POST",
-					// 	headers: { "Content-Type": "application/json" },
-					// 	body: JSON.stringify({
-					// 		reference,
-					// 		provider: "paystack",
-					// 	}),
-					// });
-					router.push('/confirmation')
-				},
-				onCancel: () => alert("Paystack payment cancelled!"),
-			});
-		}
+	// 	if (paymentMethod === PaymentMethod.PAYSTACK) {
+	// 		initializePaystackPayment({
+	// 			email,
+	// 			amount: amount,
+	// 			onSuccess: async (reference) => {
+	// 				// await fetch("/api/verify-payment", {
+	// 				// 	method: "POST",
+	// 				// 	headers: { "Content-Type": "application/json" },
+	// 				// 	body: JSON.stringify({
+	// 				// 		reference,
+	// 				// 		provider: "paystack",
+	// 				// 	}),
+	// 				// });
+	// 				router.push('/confirmation')
+	// 			},
+	// 			onCancel: () => alert("Paystack payment cancelled!"),
+	// 		});
+	// 	}
 
-		if (paymentMethod === PaymentMethod.FLUTTERWAVE) {
-			initializeFlutterwavePayment({
-				email,
-				amount,
-				name: summaryData.guestName,
-				phone_number: summaryData.guestPhone,
-				onSuccess: async (response) => {
-					// await fetch("/api/verify-payment", {
-					// 	method: "POST",
-					// 	headers: { "Content-Type": "application/json" },
-					// 	body: JSON.stringify({
-					// 		reference: response?.tx_ref,
-					// 		provider: "flutterwave",
-					// 	}),
-					// });
-				},
-				onClose: () => alert("Flutterwave payment cancelled!"),
+	const [loading, setLoading] = useState(false);
+
+	const handlePayment = async () => {
+		if (loading) return;
+		try {
+			setLoading(true);
+			const res = await apiService.post("/payment/initialize", {
+				bookingId: summaryData.id,
+				paymentMethod: paymentMethod,
+				currency: "NGN",
 			});
+
+			if (res?.success && paymentMethod === PaymentMethod.PAYSTACK) {
+				resumePayStackPayment({
+					accessCode: res.data.paymentData.data.access_code as string,
+					onSuccess: async (trx) => {
+						if (
+							trx?.status === "success" &&
+							trx?.message === "Approved"
+						) {
+							toast.success(trx?.message);
+							router.push(
+								`/confirmation?bookingId=${summaryData.id}&ref=${trx?.trxref}`
+							);
+						} else {
+							toast.error(
+								trx?.message ?? "Payment verification failed"
+							);
+						}
+					},
+					onCancel: () => {
+						toast.error("Payment cancelled");
+					},
+					onError: (err) => {
+						console.error("Paystack error:", err);
+						toast.error(`Paystack error: ${err?.message}`);
+					},
+				});
+			}
+			if (res?.success && paymentMethod === PaymentMethod.FLUTTERWAVE) {
+				window.open(res?.data?.paymentData?.data?.link, "_blank");
+			}
+		} catch {
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -272,7 +302,33 @@ const router = useRouter()
 						</p>
 					</div>
 				</div>
-				<hr className="h-px my-[10px] bg-[#F4A857] border-0" />
+
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">
+							Cleaning Fee:
+						</p>
+					</div>
+					<div>
+						<p className="text-[14px] font-[500]">
+							{" "}
+							{formatCurrency(cleaningFee)}
+						</p>
+					</div>
+				</div>
+
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">Taxes:</p>
+					</div>
+					<div>
+						<p className="text-[14px] font-[500]">
+							{" "}
+							{formatCurrency(taxes)}
+						</p>
+					</div>
+				</div>
+
 				<div className="flex justify-between items-center">
 					<div>
 						<p className="text-[16px] font-[400]">Total Amount:</p>
