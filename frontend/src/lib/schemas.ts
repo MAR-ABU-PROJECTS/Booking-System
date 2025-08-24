@@ -51,9 +51,10 @@ export const homePageBookingSchema = z
 			});
 		}
 	});
-
-export const bookingDetailsSchema = z
+	
+export const createBookingSchema = z
 	.object({
+		propertyId: z.string(),
 		checkIn: z.date({
 			error: (issue) =>
 				issue.input === undefined
@@ -66,29 +67,26 @@ export const bookingDetailsSchema = z
 					? "Please select a check-out date"
 					: "Invalid check-out date",
 		}),
-		adults: z.number().min(1, "At least 1 adult is required"),
-		children: z.number().min(0),
-		infants: z.number().min(0),
-		firstName: z.string().min(1, "First name is required"),
-		lastName: z.string().min(1, "Last name is required"),
+		adults: z.number().int().min(1, "At least 1 adult is required"),
+		children: z.number().int().min(0),
+		infants: z.number().int().min(0),
+		guestName: z.string().min(2),
 		guestEmail: z
 			.string()
 			.min(1, "email address is required")
 			.email("Invalid email address"),
 		guestPhone: z.string().min(10, "Phone number is required"),
 		address: z.string().min(1, "Billing address is required"),
-		idType: z.string().min(1, "Select an ID type"),
-		idNumber: z.string().min(1, "Enter your ID number"),
-		emergencyContact: z.string().min(1, "Emergency contact is required"),
-		paymentMethod: z.string().min(1, "Select a payment method"),
-		additionalInfo: z.string().optional(),
+		idType: z.string().optional(),
+		emergencyContact: z.string().optional(),
+		paymentMethod: z.string().optional(),
+		specialRequests: z.string().optional(),
 		arrivalTime: z
 			.string()
 			.regex(
 				/^([01]\d|2[0-3]):([0-5]\d)$/,
 				"Time must be in HH:mm format (24hr)"
-			),
-		purpose: z.string().min(1, "Please select a purpose"),
+			).optional(),
 		agree: z.boolean(),
 	})
 	.superRefine((data, ctx) => {
@@ -151,3 +149,5 @@ export const LogInSchema = z.object({
 export const ForgotPasswordSchema = z.object({
 	email: z.email("Invalid email address"),
 });
+
+//

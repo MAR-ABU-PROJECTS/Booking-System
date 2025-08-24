@@ -32,28 +32,28 @@ const AirbnbStyleSearch = () => {
 	// MAR ABU HOMES current apartments
 	const marAbuApartments = [
 		{
-			id: "cmeffv6gn000ugi4szmoo173w",
+			id: "cmej5rqnb000uttlogpvst5cz",
 			name: "WHITE-STONE",
 			location: "Victoria Island, Lagos",
 			type: "Luxury Apartment",
 			price: 85000,
 		},
 		{
-			id: "cmeffv62u0003gi4s3gkrh5yh",
+			id: "cmej5rmfc0003ttlocuwe7zxf",
 			name: "ABIKE PENTHOUSE",
 			location: "Ikoyi, Lagos",
 			type: "Premium Penthouse",
 			price: 120000,
 		},
 		{
-			id: "cmeffv68e000dgi4s7hkurcrg",
+			id: "cmej5ro4t000dttloj7897ljy",
 			name: "OBUDU VILLA",
 			location: "Lekki Phase 1, Lagos",
 			type: "Executive Villa",
 			price: 95000,
 		},
 		{
-			id: "cmeffv6ck000lgi4s2rb6qqdk",
+			id: "cmej5rpeg000lttlozfcrhzvo",
 			name: "ZIRCON",
 			location: "Banana Island, Lagos",
 			type: "Luxury Suite",

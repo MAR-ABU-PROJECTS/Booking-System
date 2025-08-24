@@ -13,6 +13,7 @@ import {
 	LogOut,
 	UserRound,
 	Loader2,
+	History
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -229,6 +230,13 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 												>
 													<UserRound className="w-5 h-5" />
 													<span>Profile</span>
+												</Link>
+												<Link
+													href="/booking-history"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+												>
+													<History className="w-5 h-5" />
+													<span>Booking History</span>
 												</Link>
 												<Link
 													href="/wishlist"

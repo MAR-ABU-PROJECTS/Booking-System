@@ -17,7 +17,7 @@ export type Property = {
 	rating?: number;
 	reviews?: number;
 	guests: number;
-  isNew?:boolean;
+	isNew?: boolean;
 	type?: string;
 };
 
@@ -36,17 +36,161 @@ export type Property = {
 // },
 
 
+
+export enum BookingStatus {
+	PENDING = "PENDING",
+	APPROVED = "APPROVED",
+	CONFIRMED = "CONFIRMED",
+	CANCELLED = "CANCELLED",
+	COMPLETED = "COMPLETED",
+	EXPIRED = "EXPIRED",
+	REJECTED = "REJECTED",
+	CHECKED_IN = "CHECKED_IN",
+	CHECKED_OUT = "CHECKED_OUT",
+	REFUNDED = "REFUNDED",
+}
+
+export enum PaymentStatus {
+	PENDING = "PENDING",
+	PROCESSING = "PROCESSING",
+	PAID = "PAID",
+	FAILED = "FAILED",
+	REFUNDED = "REFUNDED",
+	PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED",
+	PARTIALLY_PAID = "PARTIALLY_PAID",
+	EXPIRED = "EXPIRED",
+}
+
+export enum PaymentMethod {
+	CARD = "CARD",
+	BANK_TRANSFER = "BANK_TRANSFER",
+	CASH = "CASH",
+	STRIPE = "STRIPE",
+	PAYSTACK = "PAYSTACK",
+	FLUTTERWAVE = "FLUTTERWAVE",
+}
+
+export interface Booking {
+  id: string
+  bookingCode: string
+  checkInDate: string
+  checkOutDate: string
+  nights: number
+  adults: number
+  children: number
+  infants: number
+
+  status: BookingStatus
+  paymentStatus: PaymentStatus
+
+
+  baseAmount: number
+  cleaningFee: number
+  serviceFee: number
+  taxes: number
+  discount: number
+  total: number
+  paidAmount: number
+  currency: string
+
+  guestName: string
+  guestEmail: string
+  guestPhone: string
+  guestAddress?: string
+
+  specialRequests?: string
+  arrivalTime?: string
+  source?: string
+
+  cancellationReason?: string
+  cancelledAt?: string
+  cancelledBy?: string
+  refundAmount?: number
+
+  adminNotes?: string
+  approvedBy?: string
+  approvedAt?: string
+  completedAt?: string
+  paidAt?: string
+
+  createdAt: string
+  updatedAt: string
+
+  // Relations
+  customerId: string
+  propertyId: string
+  // customer?: User
+  // property?: Property
+}
+
+
 export type SummaryData = {
+	id: string;
+	bookingCode: string;
 	checkInDate: string;
 	checkOutDate: string;
 	nights: number;
 	adults: number;
 	children: number;
 	infants: number;
+	status: BookingStatus | undefined;
+	paymentStatus: PaymentStatus | undefined;
 	baseAmount: number;
+	cleaningFee: number;
 	serviceFee: number;
+	taxes: number;
+	discount: number;
 	total: number;
-	property:{
-		name:string
-	}
+	paidAmount: number;
+	currency: string;
+	guestName: string;
+	guestEmail: string;
+	guestPhone: string;
+	guestAddress: string | null;
+	specialRequests: string | null;
+	arrivalTime: string | null;
+	source: string | null;
+	cancellationReason: string | null;
+	cancelledAt: string | null;
+	cancelledBy: string | null;
+	refundAmount: number | null;
+	adminNotes: string | null;
+	approvedBy: string | null;
+	approvedAt: string | null;
+	completedAt: string | null;
+	paidAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+	customerId: string;
+	propertyId: string;
+	property: {
+		name: string;
+		host: {
+			firstName: string;
+			lastName: string;
+			email: string;
+		};
+	};
+	customer: {
+		firstName: string;
+		lastName: string;
+		email: string;
+	};
 };
+
+
+
+export type BookingCardType = {
+  id: string;
+  propertyId: string;
+  userId?: string; 
+  checkIn: string;
+  checkOut: string;
+  guests: number; 
+  totalAmount: number;
+  status: BookingStatus; 
+  createdAt: string;
+  updatedAt: string;
+	images:string[];
+	paymentStatus: PaymentStatus;
+}

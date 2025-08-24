@@ -1,5 +1,6 @@
 "use client";
-import { MapPin, ShieldHalf } from "lucide-react";
+import { useState } from "react";
+import { MapPin, ShieldHalf, Loader2 } from "lucide-react";
 import dayjs from "dayjs";
 import { RootState } from "@lib/features/store";
 import { useSelector } from "react-redux";
@@ -10,6 +11,22 @@ import { apiService } from "@lib/apiService";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import { isAxiosError } from "axios";
+import { Checkbox } from "@components/ui/checkbox";
+import { Label } from "@components/ui/label";
+import { Button } from "@components/ui/button";
+import {
+	Select,
+	SelectItem,
+	SelectTrigger,
+	SelectContent,
+	SelectGroup,
+	SelectValue,
+	SelectLabel,
+} from "@components/ui/select";
+import BookingStatus from "@components/BookingStatus";
+import { PaymentMethod } from "@lib/type";
+import { resumePayStackPayment } from "@lib/payments/paystack";
+import { useRouter } from "next/navigation";
 
 const BookingSummary = ({
 	summaryData,
@@ -20,7 +37,7 @@ const BookingSummary = ({
 }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const nights = summaryData.nights;
-
+	const router = useRouter();
 	const nightsLabel = nights === 1 ? "1 Night" : `${nights} Nights`;
 	const formattedCheckIn = summaryData.checkInDate
 		? dayjs(summaryData.checkInDate).format("ddd, MMM D")
@@ -31,10 +48,11 @@ const BookingSummary = ({
 
 	const ratePerNight = summaryData.baseAmount;
 	const subtotal = ratePerNight * nights;
+	const cleaningFee = summaryData.cleaningFee;
 	const serviceFee = summaryData.serviceFee;
-	const totalAmount = subtotal + serviceFee;
+	const taxes = summaryData.taxes;
+	const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
 	const location = booking.location;
-	// const name = booking.name;
 
 	const images = [
 		"/apartment-images/IMG_5673.JPG",
@@ -74,10 +92,67 @@ const BookingSummary = ({
 		retry: false,
 	});
 
+	const [checked, setChecked] = useState(false);
+	const [paymentMethod, setPaymentMethod] = useState<
+		PaymentMethod | undefined
+	>();
+
+	const onMethodChange = (value: PaymentMethod) => {
+		setPaymentMethod(value);
+	};
+
+	const [loading, setLoading] = useState(false);
+
+	const handlePayment = async () => {
+		if (loading) return;
+		try {
+			setLoading(true);
+			const res = await apiService.post("/payment/initialize", {
+				bookingId: summaryData.id,
+				paymentMethod: paymentMethod,
+				currency: "NGN",
+			});
+
+			if (res?.success && paymentMethod === PaymentMethod.PAYSTACK) {
+				resumePayStackPayment({
+					accessCode: res.data.paymentData.data.access_code as string,
+					onSuccess: async (trx) => {
+						if (
+							trx?.status === "success" &&
+							trx?.message === "Approved"
+						) {
+							toast.success(trx?.message);
+							router.push(
+								`/confirmation?bookingId=${summaryData.id}&ref=${trx?.reference}`
+							);
+						} else {
+							toast.error(
+								trx?.message ?? "Payment verification failed"
+							);
+						}
+					},
+					onCancel: () => {
+						toast.error("Payment cancelled");
+					},
+					onError: (err) => {
+						console.error("Paystack error:", err);
+						toast.error(`Paystack error: ${err?.message}`);
+					},
+				});
+			}
+			if (res?.success && paymentMethod === PaymentMethod.FLUTTERWAVE) {
+				window.open(res?.data?.paymentData?.data?.link, "_blank");
+			}
+		} catch {
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	return (
 		<div className="order-[-1] md:order-2 flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
 			<div className="flex flex-col gap-[5px]">
-				<div className="w-full rounded-xl -mt-1">
+				<div className="w-full rounded-xl max-h-[550px] h-full overflow-y-hidden">
 					<PropertyCarousel images={images} />
 				</div>
 				<div className="flex justify-center items-center">
@@ -130,11 +205,11 @@ const BookingSummary = ({
 					<div>
 						<p className="text-[14px] font-[500]">
 							{summaryData.adults} Adult
-							{summaryData.adults !== 1 && "s"},{" "}
+							{summaryData.adults > 1 ? "s" : ""},{" "}
 							{summaryData.children} Child
-							{summaryData.children !== 1 && "ren"},{" "}
+							{summaryData.children > 1 ? "ren" : ""},{" "}
 							{summaryData.infants} Infant
-							{summaryData.infants > 1 ? "s" : ''}
+							{summaryData.infants > 1 ? "s" : ""}
 						</p>
 					</div>
 				</div>
@@ -150,6 +225,29 @@ const BookingSummary = ({
 							{" "}
 							{formatCurrency(ratePerNight)}
 						</p>
+					</div>
+				</div>
+				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">
+							Booking Code:
+						</p>
+					</div>
+					<div>
+						<p className="text-[14px] font-[500]">
+							{summaryData.bookingCode}
+						</p>
+					</div>
+				</div>
+				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">Status:</p>
+					</div>
+					<div>
+						<BookingStatus status={summaryData?.status} />
 					</div>
 				</div>
 			</div>
@@ -177,7 +275,33 @@ const BookingSummary = ({
 						</p>
 					</div>
 				</div>
-				<hr className="h-px my-[10px] bg-[#F4A857] border-0" />
+
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">
+							Cleaning Fee:
+						</p>
+					</div>
+					<div>
+						<p className="text-[14px] font-[500]">
+							{" "}
+							{formatCurrency(cleaningFee)}
+						</p>
+					</div>
+				</div>
+
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">Taxes:</p>
+					</div>
+					<div>
+						<p className="text-[14px] font-[500]">
+							{" "}
+							{formatCurrency(taxes)}
+						</p>
+					</div>
+				</div>
+
 				<div className="flex justify-between items-center">
 					<div>
 						<p className="text-[16px] font-[400]">Total Amount:</p>
@@ -189,7 +313,58 @@ const BookingSummary = ({
 					</div>
 				</div>
 			</div>
-			<div className="flex flex-col bg-[#e7f8f0] border-2 border-[#a6e4c8] py-[15px] px-[10px] rounded-xl gap-[10px]">
+
+			<div className="w-full grid items-center gap-1 mt-3">
+				<Label>
+					Preferred Payment Method
+					<span className="text-red-600">*</span>
+				</Label>
+				<Select value={paymentMethod} onValueChange={onMethodChange}>
+					<SelectTrigger className="w-full border-2 border-[#f7d5b0]">
+						<SelectValue placeholder="Select Payment Method" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectGroup>
+							<SelectLabel>Select Payment Method</SelectLabel>
+
+							<SelectItem value={PaymentMethod.PAYSTACK}>
+								Paystack
+							</SelectItem>
+							<SelectItem value={PaymentMethod.FLUTTERWAVE}>
+								Flutterwave
+							</SelectItem>
+						</SelectGroup>
+					</SelectContent>
+				</Select>
+			</div>
+
+			<div className="items-center gap-[10px] flex mt-3">
+				<Checkbox
+					id="terms"
+					checked={checked}
+					onCheckedChange={(val) => setChecked(!!val)}
+					className="bg-white border-1 border-black inline-flex !cursor-pointer"
+				/>
+				<Label
+					htmlFor="terms"
+					className="text-[12px] md:text-[14px] text-start"
+				>
+					<div>
+						I agree to the{" "}
+						<span className="text-[#F4A857] cursor-pointer hover:underline">
+							Terms and Conditions
+						</span>{" "}
+						and{" "}
+						<span className="text-[#F4A857] cursor-pointer hover:underline">
+							Privacy Policy
+						</span>{" "}
+						of MAR ABU PROJECTS SERVICES LLC{" "}
+						<span className="text-red-600">*</span>
+					</div>
+				</Label>
+			</div>
+
+			<div className="flex mt-3 flex-col bg-[#e7f8f0] border-2 border-[#a6e4c8] py-[15px] px-[10px] rounded-xl gap-[10px]">
 				<div className="flex gap-[10px]">
 					<div className="flex w-[40px] h-[30px] p-[10px] justify-center items-center bg-[#12b76a] rounded-full">
 						<ShieldHalf color="red" />
@@ -205,6 +380,25 @@ const BookingSummary = ({
 						</p>
 					</div>
 				</div>
+			</div>
+
+			<div className="flex flex-col mt-5">
+				<Button
+					className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
+					type="button"
+					disabled={
+						!paymentMethod || !checked || !totalAmount || loading
+					}
+					onClick={handlePayment}
+				>
+					{loading ? (
+						<Loader2
+							className="animate-spin size-5"
+							strokeWidth={3}
+						/>
+					) : null}
+					Pay
+				</Button>
 			</div>
 		</div>
 	);
