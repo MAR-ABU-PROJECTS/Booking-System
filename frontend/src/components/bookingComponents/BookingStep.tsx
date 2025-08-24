@@ -2,7 +2,7 @@
 import React from "react";
 import { cn } from "@lib/utils";
 
-const BookingStep = ({ activeStep, next, prev }: { activeStep: number, next: ()=> void, prev: ()=> void }) => {
+const BookingStep = ({ activeStep, prev }: { activeStep: number, next: ()=> void, prev: ()=> void }) => {
 	const HeaderItem = ({
 		isActive,
 		isCompleted,

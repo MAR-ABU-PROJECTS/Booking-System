@@ -9,7 +9,6 @@ import BookingStatus from '@components/BookingStatus';
 import PaymentStatus from '@components/PaymentStatus';
 
 const BookingCard = ({
-	id,
 	checkIn,
 	checkOut,
 	guests,
