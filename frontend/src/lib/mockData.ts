@@ -1,4 +1,5 @@
-import type { Property } from "../lib/type";
+import type { Property, BookingCardType } from "@lib/type";
+import { BookingStatus, PaymentStatus } from "@lib/type";
 
 export const properties: Property[] = [
 	{
@@ -121,5 +122,70 @@ export const properties: Property[] = [
 		baths: 5,
 		guests: 10,
 		roomStatus: "AVAILABLE",
+	},
+];
+
+export const bookings: BookingCardType[] = [
+	{
+		id: "bkg_001",
+		propertyId: "prop_101",
+		userId: "usr_01",
+		checkIn: "2025-09-01",
+		checkOut: "2025-09-05",
+		guests: 2,
+		totalAmount: 120000,
+		status: BookingStatus.CONFIRMED,
+		createdAt: "2025-08-01T10:30:00Z",
+		updatedAt: "2025-08-02T14:10:00Z",
+		images: [
+			"/apartment-images/IMG_5673.JPG",
+			"/apartment-images/IMG_5674.JPG",
+		],
+		paymentStatus: PaymentStatus.PAID,
+	},
+	{
+		id: "bkg_002",
+		propertyId: "prop_102",
+		userId: "usr_02",
+		checkIn: "2025-10-10",
+		checkOut: "2025-10-13",
+		guests: 4,
+		totalAmount: 85000,
+		status: BookingStatus.PENDING,
+		createdAt: "2025-08-05T09:00:00Z",
+		updatedAt: "2025-08-05T09:00:00Z",
+		images: [
+			"/apartment-images/IMG_5675.JPG",
+			"/apartment-images/IMG_5676.JPG",
+		],
+		paymentStatus: PaymentStatus.PENDING,
+	},
+	{
+		id: "bkg_003",
+		propertyId: "prop_103",
+		userId: "usr_03",
+		checkIn: "2025-09-20",
+		checkOut: "2025-09-25",
+		guests: 6,
+		totalAmount: 250000,
+		status: BookingStatus.CANCELLED,
+		createdAt: "2025-07-28T12:00:00Z",
+		updatedAt: "2025-08-01T15:45:00Z",
+		images: ["/apartment-images/IMG_5674.JPG"],
+		paymentStatus: PaymentStatus.REFUNDED,
+	},
+	{
+		id: "bkg_004",
+		propertyId: "prop_104",
+		userId: "usr_04",
+		checkIn: "2025-11-02",
+		checkOut: "2025-11-06",
+		guests: 3,
+		totalAmount: 150000,
+		status: BookingStatus.APPROVED,
+		createdAt: "2025-08-10T08:20:00Z",
+		updatedAt: "2025-08-11T11:30:00Z",
+		images: ["/apartment-images/IMG_5675.JPG"],
+		paymentStatus: PaymentStatus.PROCESSING,
 	},
 ];

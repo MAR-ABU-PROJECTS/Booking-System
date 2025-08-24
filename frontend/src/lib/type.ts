@@ -177,3 +177,20 @@ export type SummaryData = {
 		email: string;
 	};
 };
+
+
+
+export type BookingCardType = {
+  id: string;
+  propertyId: string;
+  userId?: string; 
+  checkIn: string;
+  checkOut: string;
+  guests: number; 
+  totalAmount: number;
+  status: BookingStatus; 
+  createdAt: string;
+  updatedAt: string;
+	images:string[];
+	paymentStatus: PaymentStatus;
+}

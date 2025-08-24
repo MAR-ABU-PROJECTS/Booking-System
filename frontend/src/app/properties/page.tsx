@@ -10,7 +10,6 @@ const page = () => {
 			<Suspense>
 				<PropertyListings />
 			</Suspense>
-
 			<Footer />
 		</>
 	);
