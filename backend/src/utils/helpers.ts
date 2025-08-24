@@ -1,6 +1,7 @@
 // MAR ABU PROJECTS SERVICES LLC - Helper Functions
 import crypto from 'crypto'
 import { APP_CONSTANTS } from './constants'
+import { isBefore, subHours } from "date-fns";
 
 /**
  * Format currency to Nigerian Naira
@@ -327,4 +328,14 @@ export const toTitleCase = (str: string): string => {
   return str.replace(/\w\S*/g, (txt) => 
     txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
   )
+}
+
+/**
+ * Check if refund is allowed based on check-in date
+ * - Refunds are NOT allowed if current time is within 24 hours of check-in
+ */
+export function isRefundAllowed(checkInDate: Date): boolean {
+  const now = new Date();
+  const cutoff = subHours(checkInDate, 24); // 24 hrs before check-in
+  return isBefore(now, cutoff);
 }

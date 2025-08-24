@@ -47,10 +47,13 @@ class PaystackService {
         }
         this.secretKey = process.env.PAYSTACK_SECRET_KEY;
     }
-    /**
-     * Initialize payment with PayStack API
-     * Expects amount in Naira → converts to kobo
-     */
+    get headers() {
+        return {
+            Authorization: `Bearer ${this.secretKey}`,
+            "Content-Type": "application/json",
+        };
+    }
+    /** Initialize payment */
     async initializePayment(data) {
         try {
             const payload = {
@@ -64,67 +67,43 @@ class PaystackService {
             if (data.metadata)
                 payload.metadata = data.metadata;
             const res = await axios_1.default.post(`${this.baseUrl}/transaction/initialize`, payload, {
-                headers: {
-                    Authorization: `Bearer ${this.secretKey}`,
-                    "Content-Type": "application/json",
-                },
+                headers: this.headers,
+                timeout: 10000,
             });
             return res.data;
         }
         catch (error) {
-            throw new Error(error?.response?.data?.message || error.message || "Paystack init error");
+            throw this.handleError(error, "Paystack init error");
         }
     }
-    /**
-     * Verify payment with PayStack API
-     */
+    /** Verify payment */
     async verifyPayment(reference) {
         try {
             const res = await axios_1.default.get(`${this.baseUrl}/transaction/verify/${reference}`, {
-                headers: {
-                    Authorization: `Bearer ${this.secretKey}`,
-                    "Content-Type": "application/json",
-                },
+                headers: this.headers,
+                timeout: 10000,
             });
             return res.data;
         }
         catch (error) {
-            throw new Error(error?.response?.data?.message ||
-                error.message ||
-                "Paystack verify error");
+            throw this.handleError(error, "Paystack verify error");
         }
     }
-    /**
-     * Refund a payment
-     * @param reference Paystack transaction reference or ID
-     * @param amount Optional refund amount in Naira
-     * @param note Optional reason for refund
-     */
-    async refundPayment(reference, amount, note) {
+    /** Refund full payment */
+    async refundPayment(reference) {
         try {
-            const payload = { transaction: reference };
-            if (amount)
-                payload.amount = Math.round(amount * 100); // convert to kobo
-            if (note)
-                payload.customer_note = note;
+            const payload = { transaction: reference }; // full refund
             const res = await axios_1.default.post(`${this.baseUrl}/refund`, payload, {
-                headers: {
-                    Authorization: `Bearer ${this.secretKey}`,
-                    "Content-Type": "application/json",
-                },
+                headers: this.headers,
+                timeout: 10000,
             });
             return res.data;
         }
         catch (error) {
-            throw new Error(error?.response?.data?.message ||
-                error.message ||
-                "Paystack refund error");
+            throw this.handleError(error, "Paystack refund error");
         }
     }
-    /**
-     * Verify Paystack webhook signature
-     * Requires the raw request body (string) before JSON parsing
-     */
+    /** Verify Paystack webhook signature */
     verifyWebhookSignature(rawBody, signature) {
         if (!signature)
             return false;
@@ -133,6 +112,14 @@ class PaystackService {
             .update(rawBody)
             .digest("hex");
         return hash === signature;
+    }
+    /** Helper to standardize Paystack errors */
+    handleError(error, defaultMessage) {
+        if (axios_1.default.isAxiosError(error)) {
+            const msg = error.response?.data?.message || error.message || defaultMessage;
+            return new Error(msg);
+        }
+        return new Error(defaultMessage);
     }
 }
 exports.PaystackService = PaystackService;

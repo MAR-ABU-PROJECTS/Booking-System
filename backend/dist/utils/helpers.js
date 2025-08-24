@@ -4,9 +4,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.toTitleCase = exports.deepClone = exports.validateBookingDates = exports.stringToColor = exports.maskPhone = exports.maskEmail = exports.generateInitials = exports.formatFileSize = exports.isBusinessHours = exports.isFutureDate = exports.daysBetween = exports.validatePagination = exports.calculatePagination = exports.generateSlug = exports.sanitizeFilename = exports.isValidPassword = exports.isValidPhone = exports.isValidEmail = exports.generateSecureCode = exports.generateSecureToken = exports.calculatePricing = exports.generateBookingNumber = exports.formatDateTime = exports.formatDate = exports.formatCurrency = void 0;
+exports.isRefundAllowed = isRefundAllowed;
 // MAR ABU PROJECTS SERVICES LLC - Helper Functions
 const crypto_1 = __importDefault(require("crypto"));
 const constants_1 = require("./constants");
+const date_fns_1 = require("date-fns");
 /**
  * Format currency to Nigerian Naira
  */
@@ -301,3 +303,12 @@ const toTitleCase = (str) => {
     return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
 };
 exports.toTitleCase = toTitleCase;
+/**
+ * Check if refund is allowed based on check-in date
+ * - Refunds are NOT allowed if current time is within 24 hours of check-in
+ */
+function isRefundAllowed(checkInDate) {
+    const now = new Date();
+    const cutoff = (0, date_fns_1.subHours)(checkInDate, 24); // 24 hrs before check-in
+    return (0, date_fns_1.isBefore)(now, cutoff);
+}
