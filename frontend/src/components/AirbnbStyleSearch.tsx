@@ -107,14 +107,10 @@ const AirbnbStyleSearch = () => {
 	const onSubmit = (data: z.infer<typeof homePageBookingSchema>) => {
 		handleClose();
 		dispatch(updateBooking({ key: "id", value: data.stepOne.id }));
-		dispatch(
-			updateBooking({ key: "location", value: data.stepOne.location })
-		);
+		dispatch(updateBooking({ key: "location", value: data.stepOne.location }));
 		dispatch(updateBooking({ key: "name", value: data.stepOne.name }));
-		
-		dispatch(
-			updateBooking({ key: "checkIn", value: data.stepTwo.checkin })
-		);
+
+		dispatch(updateBooking({ key: "checkIn", value: data.stepTwo.checkin }));
 		dispatch(
 			updateBooking({ key: "checkOut", value: data.stepThree.checkout })
 		);
@@ -137,7 +133,7 @@ const AirbnbStyleSearch = () => {
 	};
 
 	return (
-		<div className="relative z-20 px-4 mx-auto max-w-7xl -mt-24">
+		<div className="relative z-20 px-4 mx-auto max-w-7xl -mt-24 airbnb-search">
 			<motion.div
 				className="bg-white !rounded-[20px] md:rounded-full shadow-xl border border-gray-100 overflow-hidden"
 				initial={{ opacity: 0, y: 20 }}
@@ -152,9 +148,7 @@ const AirbnbStyleSearch = () => {
 						onClick={() => handleTabClick("where")}
 					>
 						<div className="px-6 py-4 cursor-pointer">
-							<div className="text-xs font-bold text-gray-900 mb-1">
-								Where
-							</div>
+							<div className="text-xs font-bold text-gray-900 mb-1">Where</div>
 							<div className="text-sm text-gray-500">
 								{location || "Search destinations"}
 							</div>
@@ -197,9 +191,7 @@ const AirbnbStyleSearch = () => {
 						onClick={() => handleTabClick("who")}
 					>
 						<div className="px-6 py-4 flex-grow cursor-pointer">
-							<div className="text-xs font-bold text-gray-900 mb-1">
-								Who
-							</div>
+							<div className="text-xs font-bold text-gray-900 mb-1">Who</div>
 							<div className="text-sm text-gray-500">
 								{guests?.adults > 0 ||
 								guests?.children > 0 ||
@@ -207,8 +199,7 @@ const AirbnbStyleSearch = () => {
 									<>
 										{guests.adults > 0 &&
 											`${guests.adults} Adult${guests.adults > 1 ? "s" : ""} `}
-										{guests.children > 0 &&
-											` ${guests.children} Children `}
+										{guests.children > 0 && ` ${guests.children} Children `}
 										{guests.infants > 0 &&
 											`${guests.infants} Infant${guests.infants > 1 ? "s" : ""}`}
 									</>
@@ -231,11 +222,11 @@ const AirbnbStyleSearch = () => {
 					<AnimatePresence>
 						{activeTab && (
 							<motion.div
-								className="absolute left-0 right-0 bg-white shadow-2xl rounded-3xl mt-2 border border-gray-200 overflow-hidden"
+								className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[min(480px,86vw)] bg-white shadow-2xl rounded-3xl border border-gray-200 overflow-hidden z-30"
 								initial={{ opacity: 0, height: 0 }}
 								animate={{ opacity: 1, height: "auto" }}
 								exit={{ opacity: 0, height: 0 }}
-								transition={{ duration: 0.3 }}
+								transition={{ duration: 0.28 }}
 							>
 								{/* Close Button */}
 								<button
@@ -247,108 +238,76 @@ const AirbnbStyleSearch = () => {
 
 								{/* Where Panel */}
 								{activeTab === "where" && (
-									<div className="p-4">
+									<div className="p-4 ">
 										<h3 className="text-base font-semibold mb-3">
 											Choose Your Apartment
 										</h3>
 
 										<div className="grid grid-cols-2 gap-2">
-											{marAbuApartments.map(
-												(apartment, index) => (
-													<button
-														key={index}
-														type="button"
-														className="flex items-center gap-2 p-2 border border-gray-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 text-left transition-all duration-200"
-														onClick={async () => {
-															form.setValue(
-																"stepOne.location",
-																apartment.location
-															);
-															form.setValue(
-																"stepOne.name",
-																apartment.name
-															);
-															
-															form.setValue(
-																"stepOne.id",
-																apartment.id
-															);
-															const isValid =
-																await form.trigger(
-																	"stepOne"
-																);
-															if (isValid) {
-																setActiveTab(
-																	"checkin"
-																);
-															}
-														}}
-													>
-														<div className="w-6 h-6 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
-															<span className="text-amber-600 font-medium text-xs">
-																{apartment.name.charAt(
-																	0
-																)}
-															</span>
+											{marAbuApartments.map((apartment, index) => (
+												<button
+													key={index}
+													type="button"
+													className="flex items-center gap-2 p-2 border border-gray-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 text-left transition-all duration-200"
+													onClick={async () => {
+														form.setValue(
+															"stepOne.location",
+															apartment.location
+														);
+														form.setValue("stepOne.name", apartment.name);
+
+														form.setValue("stepOne.id", apartment.id);
+														const isValid = await form.trigger("stepOne");
+														if (isValid) {
+															setActiveTab("checkin");
+														}
+													}}
+												>
+													<div className="w-6 h-6 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
+														<span className="text-amber-600 font-medium text-xs">
+															{apartment.name.charAt(0)}
+														</span>
+													</div>
+													<div className="min-w-0 flex-1">
+														<div className="font-medium text-gray-900 text-xs truncate">
+															{apartment.name}
 														</div>
-														<div className="min-w-0 flex-1">
-															<div className="font-medium text-gray-900 text-xs truncate">
-																{apartment.name}
-															</div>
-															<div className="text-xs text-gray-500 truncate">
-																{
-																	apartment.location.split(
-																		","
-																	)[0]
-																}
-															</div>
+														<div className="text-xs text-gray-500 truncate">
+															{apartment.location.split(",")[0]}
 														</div>
-													</button>
-												)
-											)}
+													</div>
+												</button>
+											))}
 										</div>
 									</div>
 								)}
 
 								{/* Check-in Panel */}
 								{activeTab === "checkin" && (
-									<div className="p-6">
+									<div className="px-4 py-2 flex flex-col items-center">
 										<h3 className="text-lg font-bold mb-4">
-											When&apos;s your trip?
+											Select your check-in date
 										</h3>
-										<div className="bg-gray-100 p-4 rounded-lg text-center mb-4">
-											<p className="text-sm text-gray-600">
-												Calendar placeholder
-											</p>
-											<p className="text-xs text-gray-500 mt-2">
-												Select check-in date
-											</p>
-										</div>
 
-										<div className="flex justify-center">
+										{/* <div className=" text-center  w-full">
+											<p className="text-xs  ">Select your check-in date</p>
+										</div> */}
+
+										<div className="flex justify-center w-full">
 											<Controller
 												control={form.control}
 												name="stepTwo.checkin"
 												render={({ field }) => (
 													<Calendar
-														className="w-full max-w-[400px]"
+														className=" md:w-[80%] md:h-[50%] max-w-[520px] rounded-2xl border border-gray-200 shadow-md p-3"
 														mode="single"
 														disabled={(date) => {
-															const today =
-																dayjs().startOf(
-																	"day"
-																);
-															return dayjs(
-																date
-															).isBefore(today);
+															const today = dayjs().startOf("day");
+															return dayjs(date).isBefore(today);
 														}}
 														onSelect={(date) => {
-															field.onChange(
-																date
-															);
-															setActiveTab(
-																"checkout"
-															);
+															field.onChange(date);
+															setActiveTab("checkout");
 														}}
 														selected={field.value}
 													/>
@@ -360,52 +319,31 @@ const AirbnbStyleSearch = () => {
 
 								{/* Check-out Panel */}
 								{activeTab === "checkout" && (
-									<div className="p-6">
-										<h3 className="text-lg font-bold mb-4">
-											When will you leave?
+									<div className="p-4 flex flex-col items-center">
+										<h3 className="text-lg font-bold mb-2 ">
+											Select your check-out date
 										</h3>
-										<div className="bg-gray-100 p-4 rounded-lg text-center mb-4">
-											<p className="text-sm text-gray-600">
-												Calendar placeholder
-											</p>
-											<p className="text-xs text-gray-500 mt-2">
-												Select check-out date
-											</p>
-										</div>
 
-										<div className="flex justify-center">
+										{/* <div className="bg-gray-50 p-4 rounded-xl border text-center mb-4 w-full max-w-[520px]">
+											<p className="text-sm text-gray-700">Almost there</p>
+											<p className="text-xs text-gray-500 mt-1">
+												Select your check-out date
+											</p>
+										</div> */}
+
+										<div className="flex justify-center w-full">
 											<Controller
 												control={form.control}
 												name="stepThree.checkout"
 												render={({ field }) => (
 													<Calendar
-														className="w-full max-w-[400px]"
+														className=" md:w-[80%] md:h-[50%]  rounded-2xl border border-gray-200 shadow-md p-3"
 														mode="single"
-														// disabled={(date) => {
-														// 	const checkinDay =
-														// 		dayjs(
-														// 			checkIn
-														// 		).startOf(
-														// 			"day"
-														// 		);
-														// 	return dayjs(
-														// 		date
-														// 	).isBefore(
-														// 		checkinDay
-														// 	);
-														// }}
 														disabled={(date) =>
-															dayjs(
-																date
-															).isSameOrBefore(
-																checkIn,
-																"day"
-															)
+															dayjs(date).isSameOrBefore(checkIn, "day")
 														}
 														onSelect={(date) => {
-															field.onChange(
-																date
-															);
+															field.onChange(date);
 															setActiveTab("who");
 														}}
 														selected={field.value}
@@ -432,9 +370,7 @@ const AirbnbStyleSearch = () => {
 														title="Adults"
 														subtitle="Ages 13 or above"
 														value={field.value}
-														onChange={
-															field.onChange
-														}
+														onChange={field.onChange}
 													/>
 												)}
 											/>
@@ -447,9 +383,7 @@ const AirbnbStyleSearch = () => {
 														title="Children"
 														subtitle="Ages 2-12"
 														value={field.value}
-														onChange={
-															field.onChange
-														}
+														onChange={field.onChange}
 													/>
 												)}
 											/>
@@ -462,9 +396,7 @@ const AirbnbStyleSearch = () => {
 														title="Infants"
 														subtitle="Under 2"
 														value={field.value}
-														onChange={
-															field.onChange
-														}
+														onChange={field.onChange}
 													/>
 												)}
 											/>
@@ -502,22 +434,17 @@ const AirbnbStyleSearch = () => {
 									</div>
 								)}
 
-								<div className="flex justify-end">
+								{/* <div className="flex justify-end">
 									{allErrorMessages.length > 0 && (
 										<ul className="space-y-1 text-right pr-6 pb-6">
-											{allErrorMessages.map(
-												(msg, idx) => (
-													<li
-														key={idx}
-														className="text-[15px] text-red-600"
-													>
-														{msg}
-													</li>
-												)
-											)}
+											{allErrorMessages.map((msg, idx) => (
+												<li key={idx} className="text-[15px] text-red-600">
+													{msg}
+												</li>
+											))}
 										</ul>
 									)}
-								</div>
+								</div> */}
 							</motion.div>
 						)}
 					</AnimatePresence>
