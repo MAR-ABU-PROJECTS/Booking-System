@@ -27,6 +27,7 @@ import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
 import { resumePayStackPayment } from "@lib/payments/paystack";
 import { useRouter } from "next/navigation";
+import PaymentStatus from "@components/PaymentStatus";
 
 const BookingSummary = ({
 	summaryData,
@@ -169,7 +170,7 @@ const BookingSummary = ({
 			<div className="flex flex-col">
 				<div className="flex justify-between items-center">
 					<div>
-						<p className="text-[14px] text-[#667085]">Check-in:</p>
+						<p className="text-[14px] text-[#667085]">Check-in Date:</p>
 					</div>
 					<div>
 						<p className="text-[14px] font-[500]">
@@ -180,7 +181,7 @@ const BookingSummary = ({
 				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
 				<div className="flex justify-between items-center">
 					<div>
-						<p className="text-[14px] text-[#667085]">Check-Out:</p>
+						<p className="text-[14px] text-[#667085]">Check-Out Date:</p>
 					</div>
 					<div>
 						<p className="text-[14px] font-[500]">
@@ -191,7 +192,7 @@ const BookingSummary = ({
 				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
 				<div className="flex justify-between items-center">
 					<div>
-						<p className="text-[14px] text-[#667085]">Duration:</p>
+						<p className="text-[14px] text-[#667085]">Nights:</p>
 					</div>
 					<div>
 						<p className="text-[14px] font-[500]">{nightsLabel}</p>
@@ -216,9 +217,7 @@ const BookingSummary = ({
 				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
 				<div className="flex justify-between items-center">
 					<div>
-						<p className="text-[14px] text-[#667085]">
-							Rate per night:
-						</p>
+						<p className="text-[14px] text-[#667085]">Rate Per Nights:</p>
 					</div>
 					<div>
 						<p className="text-[14px] font-[500]">
@@ -244,10 +243,20 @@ const BookingSummary = ({
 
 				<div className="flex justify-between items-center">
 					<div>
-						<p className="text-[14px] text-[#667085]">Status:</p>
+						<p className="text-[14px] text-[#667085]">Booking Status:</p>
 					</div>
 					<div>
 						<BookingStatus status={summaryData?.status} />
+					</div>
+				</div>
+				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">Payment Status:</p>
+					</div>
+					<div>
+						<PaymentStatus status={summaryData?.paymentStatus} />
 					</div>
 				</div>
 			</div>

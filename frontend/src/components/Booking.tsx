@@ -85,17 +85,12 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			checkIn: new Date(),
 			checkOut: dayjs().add(1, "day").toDate(),
 			guestEmail: "",
-			address: "",
-			arrivalTime: "",
 			agree: false,
 			specialRequests: "",
 			children: 0,
 			adults: 1,
 			infants: 0,
 			guestPhone: "",
-			idType: "",
-			paymentMethod: "",
-			emergencyContact: "",
 			guestName: "",
 		},
 		mode: "onChange",
@@ -106,12 +101,11 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		if (step == 2) return;
 		setStep((step) => step + 1);
 	};
-	
+
 	const handleBack = () => {
 		if (step == 1) return;
 		setStep((step) => step - 1);
 	};
-
 
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof createBookingSchema>) => {
@@ -132,6 +126,14 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			});
 			return response;
 		},
+		retry: (failureCount, error) => {
+			if (isAxiosError(error)) {
+				const status = error.response?.status;
+				if (!status || status >= 500) return failureCount < 3;
+			}
+			return false;
+		},
+		retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
 		onSuccess: async (res) => {
 			if (res?.success) {
 				const message = res?.message as string;
@@ -141,10 +143,10 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 				});
 				setSummaryData(res.data);
 				dispatch(resetBooking());
-				handleNext()
+				handleNext();
 			} else {
 				const message = res?.message as string;
-				toast.success(message, {
+				toast.error(message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
@@ -174,6 +176,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 				}
 			} else {
 				console.error("Non-Axios Error:", error);
+				toast.error("Unexpected error, please try again");
 			}
 		},
 	});
@@ -230,7 +233,6 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		});
 	}, []);
 
-
 	return (
 		<>
 			<Navbar />
@@ -249,7 +251,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 						className="mx-auto max-w-5xl px-[20px] lg:px-12 py-[30px]"
 					>
 						{step === 1 && (
-							<BookingForm isSubmitting={mutation.isPending}/>
+							<BookingForm isSubmitting={mutation.isPending} />
 						)}
 						{step === 2 && (
 							<BookingSummary

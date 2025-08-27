@@ -10,7 +10,7 @@ export type Property = {
 	roomStatus: "AVAILABLE" | "LIMITED" | "UNAVAILABLE";
 	statusColor?: string;
 	price: number;
-	images: string[]; // optional since not all entries include it
+	images: string[];
 	latitude?: string;
 	longitude?: string;
 	isSuperhost?: boolean;
@@ -38,37 +38,38 @@ export type Property = {
 
 
 export enum BookingStatus {
-	PENDING = "PENDING",
-	APPROVED = "APPROVED",
-	CONFIRMED = "CONFIRMED",
-	CANCELLED = "CANCELLED",
-	COMPLETED = "COMPLETED",
-	EXPIRED = "EXPIRED",
-	REJECTED = "REJECTED",
-	CHECKED_IN = "CHECKED_IN",
-	CHECKED_OUT = "CHECKED_OUT",
-	REFUNDED = "REFUNDED",
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  CONFIRMED = "CONFIRMED",
+  CANCELLED = "CANCELLED",
+  COMPLETED = "COMPLETED",
+  EXPIRED = "EXPIRED",
+  REJECTED = "REJECTED",
+  CHECKED_IN = "CHECKED_IN",
+  CHECKED_OUT = "CHECKED_OUT",
+  REFUNDED = "REFUNDED",
 }
 
 export enum PaymentStatus {
-	PENDING = "PENDING",
-	PROCESSING = "PROCESSING",
-	PAID = "PAID",
-	FAILED = "FAILED",
-	REFUNDED = "REFUNDED",
-	PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED",
-	PARTIALLY_PAID = "PARTIALLY_PAID",
-	EXPIRED = "EXPIRED",
+  PENDING = "PENDING",
+  PROCESSING = "PROCESSING",
+  PAID = "PAID",
+  FAILED = "FAILED",
+  REFUNDED = "REFUNDED",
+  PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED",
+  PARTIALLY_PAID = "PARTIALLY_PAID",
+  EXPIRED = "EXPIRED",
 }
 
 export enum PaymentMethod {
-	CARD = "CARD",
-	BANK_TRANSFER = "BANK_TRANSFER",
-	CASH = "CASH",
-	STRIPE = "STRIPE",
-	PAYSTACK = "PAYSTACK",
-	FLUTTERWAVE = "FLUTTERWAVE",
+  // CARD = "CARD",
+  // BANK_TRANSFER = "BANK_TRANSFER",
+  // CASH = "CASH",
+  // STRIPE = "STRIPE",
+  PAYSTACK = "PAYSTACK",
+  FLUTTERWAVE = "FLUTTERWAVE",
 }
+
 
 export interface Booking {
   id: string
@@ -79,11 +80,8 @@ export interface Booking {
   adults: number
   children: number
   infants: number
-
   status: BookingStatus
   paymentStatus: PaymentStatus
-
-
   baseAmount: number
   cleaningFee: number
   serviceFee: number
@@ -92,7 +90,6 @@ export interface Booking {
   total: number
   paidAmount: number
   currency: string
-
   guestName: string
   guestEmail: string
   guestPhone: string
