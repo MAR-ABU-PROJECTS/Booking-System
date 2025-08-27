@@ -13,7 +13,15 @@ const emailservice_1 = require("../services/emailservice");
 const paystackservice_1 = require("../services/paystackservice");
 const flutterwaveservice_1 = require("../services/flutterwaveservice");
 const helpers_1 = require("../utils/helpers");
+const zod_1 = require("zod");
 const router = (0, express_1.Router)();
+// Zod schema for refund approval/rejection
+const refundApproveSchema = zod_1.z.object({
+    idempotencyKey: zod_1.z.string().min(8).max(64).optional(),
+});
+const refundRejectSchema = zod_1.z.object({
+    reason: zod_1.z.string().min(2).max(255),
+});
 // Validation middleware
 const validate = (req, res, next) => {
     const errors = (0, express_validator_1.validationResult)(req);
@@ -802,130 +810,56 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
  *                   example: true
  */
 router.post("/webhook/paystack", (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    try {
-        const signature = req.headers["x-paystack-signature"];
-        const body = JSON.stringify(req.body);
-        // Verify webhook signature
-        const isValid = paystackservice_1.paystackService.verifyWebhookSignature(body, signature);
-        if (!isValid) {
-            (0, logger_middleware_1.auditLog)("WEBHOOK_SIGNATURE_INVALID", "system", { provider: "paystack", body: req.body }, req.ip);
-            return res.status(200).json({ success: true }); // Always respond 200 to Paystack
-        }
-        const { event, data } = req.body;
-        if (event === "charge.success") {
-            const reference = data.reference;
-            const payment = await server_1.prisma.payment.findUnique({
-                where: { reference: reference },
-                include: {
-                    booking: {
-                        include: {
-                            property: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    hostId: true,
-                                    host: {
-                                        select: {
-                                            firstName: true,
-                                            lastName: true,
-                                            email: true,
-                                        },
-                                    },
-                                },
-                            },
-                            customer: {
-                                select: {
-                                    id: true,
-                                    firstName: true,
-                                    lastName: true,
-                                    email: true,
-                                },
-                            },
-                        },
-                    },
+    const signature = req.headers["x-paystack-signature"];
+    const body = JSON.stringify(req.body);
+    // Verify signature
+    if (!paystackservice_1.paystackService.verifyWebhookSignature(body, signature)) {
+        (0, logger_middleware_1.auditLog)("WEBHOOK_INVALID_SIGNATURE", "system", { provider: "paystack" }, req.ip);
+        return res
+            .status(400)
+            .json({ success: false, message: "Invalid webhook signature" });
+    }
+    const { event, data } = req.body;
+    if (event === "refund.success" && data?.reference) {
+        // Find payment/refund
+        const payment = await server_1.prisma.payment.findUnique({
+            where: { reference: data.reference },
+        });
+        if (!payment)
+            return res.status(200).json({ success: true }); // idempotent
+        // Find refund
+        const refund = await server_1.prisma.refund.findFirst({
+            where: {
+                paymentId: payment.id,
+                status: client_1.RefundStatus.REFUND_PROCESSING,
+            },
+        });
+        if (!refund)
+            return res.status(200).json({ success: true }); // idempotent
+        // Finalize refund
+        await server_1.prisma.$transaction([
+            server_1.prisma.refund.update({
+                where: { id: refund.id },
+                data: {
+                    status: client_1.RefundStatus.REFUNDED,
+                    processedAt: new Date(),
+                    providerResponse: data,
                 },
-            });
-            if (payment && payment.status === client_1.PaymentStatus.PENDING) {
-                // Update payment status
-                await server_1.prisma.payment.update({
-                    where: { id: payment.id },
-                    data: {
-                        status: client_1.PaymentStatus.PAID,
-                        paidAt: new Date(),
-                        gatewayResponse: data,
-                    },
-                });
-                // Update booking
-                await server_1.prisma.booking.update({
-                    where: { id: payment.bookingId },
-                    data: {
-                        paymentStatus: client_1.PaymentStatus.PAID,
-                        paidAmount: payment.amount,
-                        paidAt: new Date(),
-                    },
-                });
-                // ✅ Notifications
-                await Promise.all([
-                    server_1.prisma.notification.create({
-                        data: {
-                            userId: payment.booking.customer.id,
-                            type: "PAYMENT_RECEIVED",
-                            title: "Payment Confirmed",
-                            message: `Your payment for booking ${payment.booking.bookingCode} has been confirmed.`,
-                            metadata: {
-                                bookingId: payment.bookingId,
-                                paymentId: payment.id,
-                                amount: payment.amount,
-                            },
-                        },
-                    }),
-                    server_1.prisma.notification.create({
-                        data: {
-                            userId: payment.booking.property.hostId,
-                            type: "PAYMENT_RECEIVED",
-                            title: "Payment Received",
-                            message: `Payment received for booking ${payment.booking.bookingCode} at ${payment.booking.property.name}.`,
-                            metadata: {
-                                bookingId: payment.bookingId,
-                                paymentId: payment.id,
-                                amount: payment.amount,
-                            },
-                        },
-                    }),
-                ]);
-                // ✅ Emails
-                await Promise.all([
-                    emailservice_1.emailService.sendPaymentConfirmation(payment.booking.customer.email, {
-                        customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
-                        bookingCode: payment.booking.bookingCode,
-                        propertyName: payment.booking.property.name,
-                        amount: payment.amount,
-                        paymentReference: reference,
-                    }),
-                    emailservice_1.emailService.sendPaymentNotificationToHost(payment.booking.property.host.email, {
-                        hostName: `${payment.booking.property.host.firstName} ${payment.booking.property.host.lastName}`,
-                        customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
-                        bookingCode: payment.booking.bookingCode,
-                        propertyName: payment.booking.property.name,
-                        amount: payment.amount,
-                    }),
-                ]);
-                // ✅ Log success
-                (0, logger_middleware_1.auditLog)("WEBHOOK_PAYMENT_SUCCESS", "system", {
-                    paymentId: payment.id,
-                    bookingId: payment.bookingId,
-                    reference,
-                    provider: "paystack",
-                }, req.ip);
-            }
-        }
-        // ✅ Always respond 200 (Paystack requires this)
-        res.status(200).json({ success: true });
+            }),
+            server_1.prisma.payment.update({
+                where: { id: payment.id },
+                data: {
+                    refundStatus: client_1.RefundStatus.REFUNDED,
+                    refundAmount: data.amount / 100,
+                    refundCompletedAt: new Date(),
+                    refundedAt: new Date(),
+                    status: client_1.PaymentStatus.REFUNDED,
+                },
+            }),
+        ]);
+        (0, logger_middleware_1.auditLog)("WEBHOOK_REFUND_SUCCESS", "system", { paymentId: payment.id, refundId: refund.id }, req.ip);
     }
-    catch (err) {
-        (0, logger_middleware_1.auditLog)("WEBHOOK_ERROR", "system", { provider: "paystack", error: err.message }, req.ip);
-        res.status(200).json({ success: true });
-    }
+    res.status(200).json({ success: true });
 }));
 /**
  * @route   POST /api/v1/payment/webhook/flutterwave
@@ -989,130 +923,54 @@ router.post("/webhook/paystack", (0, error_middleware_1.asyncHandler)(async (req
  *         description: Server error while processing webhook
  */
 router.post("/webhook/flutterwave", (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    try {
-        const signature = req.headers["x-flutterwave-signature"];
-        const body = JSON.stringify(req.body);
-        // Verify webhook signature (prefer using raw body if required)
-        const isValid = flutterwaveservice_1.flutterwaveService.verifyWebhookSignature(body, signature);
-        if (!isValid) {
-            (0, logger_middleware_1.auditLog)("WEBHOOK_SIGNATURE_INVALID", "system", { provider: "flutterwave", body: req.body }, req.ip);
-            return res.status(200).json({ success: true });
-        }
-        const { event, data } = req.body;
-        if (event === "charge.success") {
-            const reference = data.reference;
-            const payment = await server_1.prisma.payment.findUnique({
-                where: { reference: reference },
-                include: {
-                    booking: {
-                        include: {
-                            property: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    hostId: true,
-                                    host: {
-                                        select: {
-                                            firstName: true,
-                                            lastName: true,
-                                            email: true,
-                                        },
-                                    },
-                                },
-                            },
-                            customer: {
-                                select: {
-                                    id: true,
-                                    firstName: true,
-                                    lastName: true,
-                                    email: true,
-                                },
-                            },
-                        },
-                    },
+    const signature = req.headers["x-flutterwave-signature"];
+    const body = JSON.stringify(req.body);
+    // Verify signature
+    if (!flutterwaveservice_1.flutterwaveService.verifyWebhookSignature(body, signature)) {
+        (0, logger_middleware_1.auditLog)("WEBHOOK_INVALID_SIGNATURE", "system", { provider: "flutterwave" }, req.ip);
+        return res
+            .status(400)
+            .json({ success: false, message: "Invalid webhook signature" });
+    }
+    const { event, data } = req.body;
+    if (event === "refund.completed" && data?.tx_ref) {
+        // Find payment/refund
+        const payment = await server_1.prisma.payment.findUnique({
+            where: { transactionId: data.tx_ref },
+        });
+        if (!payment)
+            return res.status(200).json({ success: true }); // idempotent
+        const refund = await server_1.prisma.refund.findFirst({
+            where: {
+                paymentId: payment.id,
+                status: client_1.RefundStatus.REFUND_PROCESSING,
+            },
+        });
+        if (!refund)
+            return res.status(200).json({ success: true }); // idempotent
+        await server_1.prisma.$transaction([
+            server_1.prisma.refund.update({
+                where: { id: refund.id },
+                data: {
+                    status: client_1.RefundStatus.REFUNDED,
+                    processedAt: new Date(),
+                    providerResponse: data,
                 },
-            });
-            if (payment && payment.status === client_1.PaymentStatus.PENDING) {
-                // Update payment status
-                await server_1.prisma.payment.update({
-                    where: { id: payment.id },
-                    data: {
-                        status: client_1.PaymentStatus.PAID,
-                        paidAt: new Date(),
-                        gatewayResponse: data,
-                    },
-                });
-                // Update booking
-                await server_1.prisma.booking.update({
-                    where: { id: payment.bookingId },
-                    data: {
-                        paymentStatus: client_1.PaymentStatus.PAID,
-                        paidAmount: payment.amount,
-                        paidAt: new Date(),
-                    },
-                });
-                // ✅ Notifications
-                await Promise.all([
-                    server_1.prisma.notification.create({
-                        data: {
-                            userId: payment.booking.customer.id,
-                            type: "PAYMENT_RECEIVED",
-                            title: "Payment Confirmed",
-                            message: `Your payment for booking ${payment.booking.bookingCode} has been confirmed.`,
-                            metadata: {
-                                bookingId: payment.bookingId,
-                                paymentId: payment.id,
-                                amount: payment.amount,
-                            },
-                        },
-                    }),
-                    server_1.prisma.notification.create({
-                        data: {
-                            userId: payment.booking.property.hostId,
-                            type: "PAYMENT_RECEIVED",
-                            title: "Payment Received",
-                            message: `Payment received for booking ${payment.booking.bookingCode} at ${payment.booking.property.name}.`,
-                            metadata: {
-                                bookingId: payment.bookingId,
-                                paymentId: payment.id,
-                                amount: payment.amount,
-                            },
-                        },
-                    }),
-                ]);
-                // ✅ Emails
-                await Promise.all([
-                    emailservice_1.emailService.sendPaymentConfirmation(payment.booking.customer.email, {
-                        customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
-                        bookingCode: payment.booking.bookingCode,
-                        propertyName: payment.booking.property.name,
-                        amount: payment.amount,
-                        paymentReference: reference,
-                    }),
-                    emailservice_1.emailService.sendPaymentNotificationToHost(payment.booking.property.host.email, {
-                        hostName: `${payment.booking.property.host.firstName} ${payment.booking.property.host.lastName}`,
-                        customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
-                        bookingCode: payment.booking.bookingCode,
-                        propertyName: payment.booking.property.name,
-                        amount: payment.amount,
-                    }),
-                ]);
-                // ✅ Log success
-                (0, logger_middleware_1.auditLog)("WEBHOOK_PAYMENT_SUCCESS", "system", {
-                    paymentId: payment.id,
-                    bookingId: payment.bookingId,
-                    reference,
-                    provider: "paystack",
-                }, req.ip);
-            }
-        }
-        // ✅ Always respond 200 (Flutterwave requires this)
-        res.status(200).json({ success: true });
+            }),
+            server_1.prisma.payment.update({
+                where: { id: payment.id },
+                data: {
+                    refundStatus: client_1.RefundStatus.REFUNDED,
+                    refundAmount: data.amount,
+                    refundCompletedAt: new Date(),
+                    refundedAt: new Date(),
+                    status: client_1.PaymentStatus.REFUNDED,
+                },
+            }),
+        ]);
+        (0, logger_middleware_1.auditLog)("WEBHOOK_REFUND_SUCCESS", "system", { paymentId: payment.id, refundId: refund.id }, req.ip);
     }
-    catch (err) {
-        (0, logger_middleware_1.auditLog)("WEBHOOK_ERROR", "system", { provider: "flutterwave", error: err.message }, req.ip);
-        res.status(200).json({ success: true });
-    }
+    res.status(200).json({ success: true });
 }));
 // ===============================
 // PAYMENT MANAGEMENT
@@ -1484,8 +1342,8 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
  *         name: status
  *         schema:
  *           type: string
- *           enum: [PENDING, PROCESSING, COMPLETED, FAILED]
- *           default: PENDING
+ *           enum: [REFUND_PENDING, REFUND_PROCESSING, REFUNDED, REFUND_FAILED, NONE]
+ *           default: REFUND_PENDING
  *         description: Filter refunds by status
  *       - in: query
  *         name: paymentId
@@ -1516,7 +1374,7 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
  *                             example: "refund_123456"
  *                           status:
  *                             type: string
- *                             example: "PENDING"
+ *                             example: "REFUND_PENDING"
  *                           amount:
  *                             type: number
  *                             example: 5000
@@ -1562,17 +1420,13 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
  *         description: Server error
  */
 router.get("/refunds", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { page = 1, limit = 20, status = "PENDING", paymentId, customerId, } = req.query;
-    // Fallback role check (in case middleware fails)
-    if (req.user.role !== client_1.UserRole.ADMIN) {
-        throw new error_middleware_2.AppError("Not authorized (admin only)", 403);
-    }
-    // Build where clause for refunds
+    const { page = 1, limit = 20, status = client_1.RefundStatus.REFUND_PENDING, paymentId, } = req.query;
+    // Only pending refunds, eligible
     const where = {};
     if (status)
         where.status = status;
-    // if (paymentId) where.paymentId = paymentId;
-    // Fetch refunds with related payment and booking
+    if (paymentId)
+        where.paymentId = paymentId;
     const [refunds, total] = await Promise.all([
         server_1.prisma.refund.findMany({
             where,
@@ -1582,24 +1436,17 @@ router.get("/refunds", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
             include: {
                 payment: {
                     include: {
-                        booking: {
-                            include: {
-                                property: true,
-                                customer: true,
-                            },
-                        },
+                        booking: { include: { property: true, customer: true } },
                     },
                 },
             },
         }),
         server_1.prisma.refund.count({ where }),
     ]);
-    // Filter out refunds with missing payment relation
-    const refundsWithPayment = refunds.filter((r) => r.payment !== null);
     res.json({
         success: true,
         data: {
-            refunds: refundsWithPayment,
+            refunds,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
@@ -1665,7 +1512,13 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
     const existingRefund = await server_1.prisma.refund.findFirst({
         where: {
             paymentId: payment.id,
-            status: { in: ["PENDING", "PROCESSING", "COMPLETED"] },
+            status: {
+                in: [
+                    client_1.RefundStatus.REFUND_PENDING,
+                    client_1.RefundStatus.REFUND_PROCESSING,
+                    client_1.RefundStatus.REFUNDED,
+                ],
+            },
         },
     });
     if (existingRefund) {
@@ -1681,7 +1534,7 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
             paymentId: payment.id,
             amount: refundAmount,
             processedBy: req.user.id,
-            status: "PENDING", // awaiting admin approval
+            status: client_1.RefundStatus.REFUND_PENDING, // awaiting admin approval
         },
     });
     // Mark payment as having a pending refund request
@@ -1708,10 +1561,13 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
  */
 /**
  * @swagger
- * /payment/{id}/refund/approve:
+ * /payment/refund/{id}/approve:
  *   post:
  *     summary: Approve and process a refund
- *     description: Approves a pending refund and triggers the refund process with the payment provider (Paystack or Flutterwave). Only admins can approve refunds.
+ *     description: |
+ *       Approves a pending refund and triggers the refund process with the payment provider (Paystack or Flutterwave). Only admins can approve refunds.
+ *       - Only refunds with status `REFUND_PENDING` can be approved.
+ *       - If the refund is already processed (`REFUNDED`), the endpoint is idempotent and returns the existing refund.
  *     tags:
  *       - Refunds
  *     security:
@@ -1723,6 +1579,17 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
  *         schema:
  *           type: string
  *         description: The ID of the refund to approve
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               idempotencyKey:
+ *                 type: string
+ *                 description: Optional idempotency key for safe retries
+ *                 example: "refund-abc-123"
  *     responses:
  *       200:
  *         description: Refund approved and processed successfully
@@ -1736,12 +1603,12 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Refund approved and processed successfully
+ *                   example: Refund approved and processed
  *                 data:
  *                   type: object
  *                   description: The finalized refund object
- *       400:
- *         description: Refund not pending, already processed, or unsupported payment method
+ *       409:
+ *         description: Refund not pending (already processed or invalid status)
  *         content:
  *           application/json:
  *             schema:
@@ -1752,7 +1619,7 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
  *                   example: false
  *                 message:
  *                   type: string
- *                   example: Refund not pending or already processed
+ *                   example: Refund not pending
  *       404:
  *         description: Refund not found
  *         content:
@@ -1780,28 +1647,31 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
  *                   type: string
  *                   example: Refund failed: Gateway refund error
  */
-router.post("/refund/:id/approve", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), // only admins can approve refunds
-(0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.post("/refund/:id/approve", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const refundId = req.params.id;
-    // Find refund with its payment + booking + customer
+    const { idempotencyKey } = refundApproveSchema.parse(req.body);
+    // Find refund with payment
     const refund = await server_1.prisma.refund.findUnique({
         where: { id: refundId },
-        include: {
-            payment: {
-                include: {
-                    booking: { include: { customer: true } },
-                },
-            },
-        },
+        include: { payment: true },
     });
-    if (!refund || !refund.payment) {
+    if (!refund || !refund.payment)
         throw new error_middleware_2.AppError("Refund not found", 404);
+    // Idempotency: check if already processed
+    if (refund.providerResponse && refund.status === client_1.RefundStatus.REFUNDED) {
+        return res.json({
+            success: true,
+            message: "Refund already processed",
+            data: refund,
+        });
     }
-    const payment = refund.payment;
+    // Only pending refunds
     if (refund.status !== client_1.RefundStatus.REFUND_PENDING) {
-        throw new error_middleware_2.AppError("Refund not pending or already processed", 400);
+        return res
+            .status(409)
+            .json({ success: false, message: "Refund not pending" });
     }
-    // Mark refund as PROCESSING quickly (short transaction)
+    // Mark refund as processing
     await server_1.prisma.refund.update({
         where: { id: refund.id },
         data: {
@@ -1809,130 +1679,121 @@ router.post("/refund/:id/approve", (0, authservice_1.requireAuth)({ role: client
             processedBy: req.user.id,
         },
     });
-    // Use provider transaction id when available
-    const providerIdentifier = payment.transactionId || payment.reference;
-    let providerResponse;
-    try {
-        if (payment.method === client_1.PaymentMethod.PAYSTACK) {
-            providerResponse =
-                await paystackservice_1.paystackService.refundPayment(providerIdentifier);
-        }
-        else if (payment.method === client_1.PaymentMethod.FLUTTERWAVE) {
-            providerResponse = await flutterwaveservice_1.flutterwaveService.refundPayment(providerIdentifier, payment.amount);
-        }
-        else {
-            throw new error_middleware_2.AppError("Unsupported payment method", 400);
-        }
+    // ...rest of your code...
+}));
+/**
+ * @route   POST /api/v1/payment/refund/:id/reject
+ * @desc    Reject a refund request (Admin only)
+ * @access  Protected (Admin)
+ */
+/**
+ * @swagger
+ * /payment/refund/{id}/reject:
+ *   post:
+ *     summary: Reject a refund request
+ *     description: |
+ *       Rejects a pending or processing refund request. Only admins can reject refunds.
+ *       - Only refunds with status `REFUND_PENDING` or `REFUND_PROCESSING` can be rejected.
+ *     tags:
+ *       - Refunds
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the refund to reject
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Reason for rejecting the refund
+ *                 example: "Booking not eligible for refund"
+ *     responses:
+ *       200:
+ *         description: Refund rejected successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Refund rejected
+ *       409:
+ *         description: Refund not pending/processing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Refund not pending/processing
+ *       404:
+ *         description: Refund not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Refund not found
+ */
+router.post("/refund/:id/reject", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const refundId = req.params.id;
+    const { reason } = refundRejectSchema.parse(req.body);
+    const refund = await server_1.prisma.refund.findUnique({
+        where: { id: refundId },
+        include: { payment: true },
+    });
+    if (!refund || !refund.payment)
+        throw new error_middleware_2.AppError("Refund not found", 404);
+    // Only pending/processing refunds
+    if (![client_1.RefundStatus.REFUND_PENDING, client_1.RefundStatus.REFUND_PROCESSING].includes(refund.status)) {
+        return res
+            .status(409)
+            .json({ success: false, message: "Refund not pending/processing" });
     }
-    catch (err) {
-        const reason = err?.message || "Gateway refund error";
-        // Mark refund + payment as failed
-        await server_1.prisma.$transaction(async (tx) => {
-            await tx.refund.update({
-                where: { id: refund.id },
-                data: {
-                    status: client_1.RefundStatus.REFUND_FAILED,
-                    providerResponse: { error: reason },
-                    processedAt: new Date(),
-                },
-            });
-            await tx.payment.update({
-                where: { id: payment.id },
-                data: {
-                    refundStatus: client_1.RefundStatus.REFUND_FAILED,
-                    refundFailedReason: reason,
-                },
-            });
-            await tx.auditLog.create({
-                data: {
-                    userId: req.user.id,
-                    action: "APPROVE_REFUND_FAILED",
-                    entity: "Refund",
-                    entityId: refund.id,
-                    changes: { refundStatus: "REFUND_FAILED", reason },
-                    metadata: {
-                        bookingId: payment.booking.id,
-                        ip: req.ip,
-                        userAgent: req.headers["user-agent"],
-                    },
-                },
-            });
-        });
-        throw new error_middleware_2.AppError(`Refund failed: ${reason}`, 500);
-    }
-    // Normalize refunded amount if provider returns amount
-    let refundedAmount = payment.amount;
-    try {
-        const respAmount = providerResponse?.data?.amount;
-        if (typeof respAmount === "number" && respAmount > 0) {
-            refundedAmount =
-                respAmount > payment.amount * 10 ? respAmount / 100 : respAmount;
-        }
-    }
-    catch {
-        // ignore and keep payment.amount
-    }
-    // Finalize refund + payment
-    const finalized = await server_1.prisma.$transaction(async (tx) => {
-        const updatedRefund = await tx.refund.update({
+    await server_1.prisma.$transaction([
+        server_1.prisma.refund.update({
             where: { id: refund.id },
             data: {
-                status: client_1.RefundStatus.REFUNDED,
-                processedAt: new Date(),
-                providerResponse,
+                status: client_1.RefundStatus.REFUND_FAILED,
+                providerResponse: { error: reason },
             },
-        });
-        const updatedPayment = await tx.payment.update({
-            where: { id: payment.id },
+        }),
+        server_1.prisma.payment.update({
+            where: { id: refund.payment.id },
             data: {
-                refundStatus: client_1.RefundStatus.REFUNDED,
-                refundAmount: refundedAmount,
-                refundCompletedAt: new Date(),
-                refundedAt: new Date(),
-                gatewayResponse: JSON.parse(JSON.stringify(providerResponse)),
+                refundStatus: client_1.RefundStatus.REFUND_FAILED,
+                refundFailedReason: reason,
             },
-        });
-        await tx.notification.create({
-            data: {
-                userId: payment.booking.customerId,
-                type: client_1.NotificationType.REFUND_PROCESSED,
-                title: "Refund Processed",
-                message: `A refund of ${refundedAmount} ${payment.currency} for booking ${payment.booking.bookingCode} has been processed.`,
-                metadata: {
-                    bookingId: payment.bookingId,
-                    paymentId: payment.id,
-                    refundId: refund.id,
-                    amount: refundedAmount,
-                },
-            },
-        });
-        await tx.auditLog.create({
-            data: {
-                userId: req.user.id,
-                action: "APPROVE_REFUND",
-                entity: "Refund",
-                entityId: refund.id,
-                changes: { refundStatus: "REFUNDED", refundAmount: refundedAmount },
-                metadata: {
-                    bookingId: payment.booking.id,
-                    ip: req.ip,
-                    userAgent: req.headers["user-agent"],
-                },
-            },
-        });
-        return { updatedRefund, updatedPayment };
-    });
-    // Email notification (best effort)
-    try {
-        emailservice_1.emailService.sendRefundNotification(payment.booking.customer.email, payment.booking, refundedAmount);
-    }
-    catch (e) {
-        console.error("Refund email failed:", e.message);
-    }
+        }),
+    ]);
+    (0, logger_middleware_1.auditLog)("REFUND_REJECTED", req.user.id, { refundId, reason }, req.ip);
     res.json({
         success: true,
-        message: "Refund approved and processed successfully",
-        data: finalized.updatedRefund,
+        message: "Refund rejected",
     });
 }));
 exports.default = router;

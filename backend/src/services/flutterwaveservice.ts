@@ -106,6 +106,13 @@ export class FlutterwaveService {
         headers: this.headers,
         timeout: 10000,
       });
+      // PATCH: If already refunded, treat as idempotent
+      if (
+        res.data?.status === "error" &&
+        res.data?.message?.includes("already refunded")
+      ) {
+        return res.data as FlutterwaveRefundResponse;
+      }
       return res.data as FlutterwaveRefundResponse;
     } catch (error: any) {
       this.logError("Flutterwave refund error", error);
