@@ -10,8 +10,6 @@ import { auditLog } from "../middlewares/logger.middleware";
 import { emailService } from "../services/emailservice";
 import { z } from "zod";
 import { bookingService } from "../services/bookingservice";
-import { paystackService } from "../services/paystackservice";
-import { isRefundAllowed } from "../utils/helpers";
 
 const router = Router();
 
@@ -923,7 +921,7 @@ router.post(
       throw new AppError("Unauthorized to cancel this booking", 403);
     }
 
-    if (!["PENDING", "APPROVED"].includes(booking.status)) {
+    if (!["PENDING", "APPROVED", "CONFIRMED", "COMPLETED"].includes(booking.status)) {
       throw new AppError("Booking cannot be cancelled in its current state", 400);
     }
 

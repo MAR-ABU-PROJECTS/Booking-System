@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.paystackService = exports.PaystackService = void 0;
 const axios_1 = __importDefault(require("axios"));
+const axios_retry_1 = __importDefault(require("axios-retry"));
 const crypto = __importStar(require("crypto"));
 class PaystackService {
     constructor() {
@@ -46,6 +47,17 @@ class PaystackService {
             throw new Error("Missing PAYSTACK_SECRET_KEY in environment variables");
         }
         this.secretKey = process.env.PAYSTACK_SECRET_KEY;
+        // Enable retry for transient network errors (up to 3 times)
+        (0, axios_retry_1.default)(axios_1.default, {
+            retries: 3,
+            retryDelay: axios_retry_1.default.exponentialDelay,
+            retryCondition: (error) => {
+                return (axios_1.default.isAxiosError(error) &&
+                    (!error.response ||
+                        error.code === "ECONNABORTED" ||
+                        error.response.status >= 500));
+            },
+        });
     }
     get headers() {
         return {
@@ -55,6 +67,10 @@ class PaystackService {
     }
     /** Initialize payment */
     async initializePayment(data) {
+        // Input validation
+        if (!data.amount || !data.email || !data.reference) {
+            throw new Error("Missing required payment initialization fields");
+        }
         try {
             const payload = {
                 amount: Math.round(data.amount * 100), // convert to kobo
@@ -73,11 +89,14 @@ class PaystackService {
             return res.data;
         }
         catch (error) {
+            this.logError("Paystack init error", error);
             throw this.handleError(error, "Paystack init error");
         }
     }
     /** Verify payment */
     async verifyPayment(reference) {
+        if (!reference)
+            throw new Error("Missing payment reference");
         try {
             const res = await axios_1.default.get(`${this.baseUrl}/transaction/verify/${reference}`, {
                 headers: this.headers,
@@ -86,11 +105,14 @@ class PaystackService {
             return res.data;
         }
         catch (error) {
+            this.logError("Paystack verify error", error);
             throw this.handleError(error, "Paystack verify error");
         }
     }
     /** Refund full payment */
     async refundPayment(reference) {
+        if (!reference)
+            throw new Error("Missing refund reference");
         try {
             const payload = { transaction: reference }; // full refund
             const res = await axios_1.default.post(`${this.baseUrl}/refund`, payload, {
@@ -100,18 +122,49 @@ class PaystackService {
             return res.data;
         }
         catch (error) {
+            this.logError("Paystack refund error", error);
             throw this.handleError(error, "Paystack refund error");
         }
     }
-    /** Verify Paystack webhook signature */
-    verifyWebhookSignature(rawBody, signature) {
-        if (!signature)
+    /**
+     * Verify Paystack webhook signature
+     * Security: Never log secrets or full body. Only log safe error details.
+     */
+    verifyWebhookSignature(body, signature) {
+        if (!body || !signature) {
+            this.logError("Missing body or signature for webhook verification", {
+                body: !!body,
+                signature: !!signature,
+            });
             return false;
-        const hash = crypto
-            .createHmac("sha512", this.secretKey)
-            .update(rawBody)
-            .digest("hex");
-        return hash === signature;
+        }
+        if (!process.env.PAYSTACK_SECRET_KEY) {
+            this.logError("Missing PAYSTACK_SECRET_KEY for webhook verification", {});
+            return false;
+        }
+        try {
+            const hash = crypto
+                .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
+                .update(body)
+                .digest("hex");
+            return hash === signature;
+        }
+        catch (error) {
+            this.logError("Paystack webhook signature verification error", error);
+            return false;
+        }
+    }
+    // Log errors for monitoring (never log secrets or PII)
+    logError(context, error) {
+        if (error instanceof Error) {
+            console.error(`[PaystackService] ${context}:`, {
+                message: error.message,
+                stack: error.stack,
+            });
+        }
+        else {
+            console.error(`[PaystackService] ${context}:`, error);
+        }
     }
     /** Helper to standardize Paystack errors */
     handleError(error, defaultMessage) {

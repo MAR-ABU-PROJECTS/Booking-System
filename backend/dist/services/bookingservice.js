@@ -520,8 +520,18 @@ class BookingService {
             if (!booking) {
                 throw new Error("Booking not found");
             }
-            // Only host/admin can perform these actions
-            const canPerformAction = booking.property.host.id === userId || userRole === client_1.UserRole.ADMIN;
+            // Allow booking owner to cancel, host/admin for other actions
+            let canPerformAction = false;
+            if (validatedAction.action === "cancel") {
+                canPerformAction =
+                    booking.customer.id === userId ||
+                        booking.property.host.id === userId ||
+                        userRole === client_1.UserRole.ADMIN;
+            }
+            else {
+                canPerformAction =
+                    booking.property.host.id === userId || userRole === client_1.UserRole.ADMIN;
+            }
             if (!canPerformAction) {
                 throw new Error("Unauthorized to perform this action");
             }
@@ -849,21 +859,11 @@ class BookingService {
      */
     async sendBookingNotifications(booking, eventType) {
         console.log(`Sending ${eventType} notification for booking ${booking.bookingCode}`);
-        const validTypes = [
-            "BOOKING_APPROVED",
-            "BOOKING_CANCELLED",
-            "BOOKING_REJECTED",
-            "BOOKING_CONFIRMED",
-            "BOOKING_CHECKED_IN",
-            "BOOKING_CHECKED_OUT",
-            "REFUND_PENDING",
-            "REFUND_FAILED",
-            "REFUND_COMPLETED",
-        ];
+        const validTypes = Object.values(client_1.NotificationType);
         const notificationType = `BOOKING_${eventType}`;
         const safeType = validTypes.includes(notificationType)
             ? notificationType
-            : "BOOKING_UPDATED";
+            : client_1.NotificationType.BOOKING_REQUEST; // Use a default valid enum value
         const notifications = [
             {
                 userId: booking.customerId,
