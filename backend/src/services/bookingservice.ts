@@ -7,6 +7,7 @@ import {
   ReceiptStatus,
   PaymentMethod,
   RefundStatus,
+  NotificationType
 } from "@prisma/client";
 import { z } from "zod";
 import { emailService } from "./emailservice";
@@ -781,9 +782,17 @@ export class BookingService {
         throw new Error("Booking not found");
       }
 
-      // Only host/admin can perform these actions
-      const canPerformAction =
-        booking.property.host.id === userId || userRole === UserRole.ADMIN;
+      // Allow booking owner to cancel, host/admin for other actions
+      let canPerformAction = false;
+      if (validatedAction.action === "cancel") {
+        canPerformAction =
+          booking.customer.id === userId ||
+          booking.property.host.id === userId ||
+          userRole === UserRole.ADMIN;
+      } else {
+        canPerformAction =
+          booking.property.host.id === userId || userRole === UserRole.ADMIN;
+      }
       if (!canPerformAction) {
         throw new Error("Unauthorized to perform this action");
       }
@@ -1192,22 +1201,12 @@ export class BookingService {
       `Sending ${eventType} notification for booking ${booking.bookingCode}`
     );
 
-    const validTypes = [
-      "BOOKING_APPROVED",
-      "BOOKING_CANCELLED",
-      "BOOKING_REJECTED",
-      "BOOKING_CONFIRMED",
-      "BOOKING_CHECKED_IN",
-      "BOOKING_CHECKED_OUT",
-      "REFUND_PENDING",
-      "REFUND_FAILED",
-      "REFUND_COMPLETED",
-    ];
+    const validTypes = Object.values(NotificationType);
 
-    const notificationType = `BOOKING_${eventType}`;
+    const notificationType = `BOOKING_${eventType}` as NotificationType;
     const safeType = validTypes.includes(notificationType)
       ? notificationType
-      : "BOOKING_UPDATED";
+      : NotificationType.BOOKING_REQUEST; // Use a default valid enum value
 
     const notifications = [
       {

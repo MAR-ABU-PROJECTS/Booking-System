@@ -244,41 +244,38 @@ model Favorite {
 // ===============================
 
 model Payment {
-  id        String  @id @default(cuid())
-  bookingId String  @unique
-  booking   Booking @relation(fields: [bookingId], references: [id])
-  userId    String
-  user      User    @relation(fields: [userId], references: [id])
+  id                String        @id @default(cuid())
+  bookingId         String        @unique
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+  userId            String
+  user              User          @relation(fields: [userId], references: [id])
 
-  amount   Float
-  currency String        @default("NGN")
-  method   PaymentMethod
-  status   PaymentStatus @default(PENDING)
+  amount            Float
+  currency          String        @default("NGN")
+  method            PaymentMethod
+  status            PaymentStatus @default(PENDING)
 
-  // Payment gateway info
-  transactionId   String? @unique
-  reference       String  @unique
-  gatewayResponse Json?
+  transactionId     String?       @unique
+  reference         String        @unique
+  gatewayResponse   Json?
 
-  // Receipt
-  receiptUrl      String?
-  receiptUploaded Boolean   @default(false)
-  receiptVerified Boolean   @default(false)
-  verifiedAt      DateTime?
-  verifiedBy      String?
+  receiptUrl        String?
+  receiptUploaded   Boolean       @default(false)
+  receiptVerified   Boolean       @default(false)
+  verifiedAt        DateTime?
+  verifiedBy        String?
 
-  // Timestamps
-  paidAt     DateTime?
-  failedAt   DateTime?
-  refundedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  paidAt            DateTime?
+  failedAt          DateTime?
+  refundedAt        DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  refunds            Refund[]
-  refundAmount       Float? // Amount refunded
-  refundStatus       RefundStatus @default(NONE) // NEW: Status of the refund
-  refundRequestedAt  DateTime?
-  refundCompletedAt  DateTime?
+  refunds           Refund[]
+  refundAmount      Float?
+  refundStatus      RefundStatus  @default(NONE)
+  refundRequestedAt DateTime?
+  refundCompletedAt DateTime?
   refundFailedReason String?
 
   @@index([userId])
@@ -595,17 +592,17 @@ model PromoCode {
 // ===============================
 
 model Refund {
-  id               String    @id @default(cuid())
+  id               String        @id @default(cuid())
   paymentId        String
-  payment          Payment   @relation(fields: [paymentId], references: [id])
+  payment          Payment       @relation(fields: [paymentId], references: [id])
   amount           Float
   reason           String?
-  status           String // PROCESSING | COMPLETED | FAILED
+  status           RefundStatus  // <— use enum, not string
   processedBy      String
-  processedAt      DateTime? // optional, set after completion
-  providerResponse Json? // optional, store raw provider response
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  processedAt      DateTime?
+  providerResponse Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   @@index([paymentId])
 }
@@ -732,6 +729,7 @@ enum RefundStatus {
   REFUND_PENDING
   REFUNDED
   REFUND_FAILED
+  REFUND_PROCESSING
   NONE
 }
 

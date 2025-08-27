@@ -1,4 +1,6 @@
+// src/services/paystackservice.ts
 import axios, { AxiosError } from "axios";
+import axiosRetry from "axios-retry";
 import * as crypto from "crypto";
 
 export interface PaystackInitResponse {
@@ -17,7 +19,7 @@ export interface PaystackVerifyResponse {
   data: {
     id: number;
     domain: string;
-    status: string; // "success" | "failed" | "abandoned"
+    status: string;
     reference: string;
     amount: number;
     gateway_response: string;
@@ -42,7 +44,7 @@ export interface PaystackRefundResponse {
     id: number;
     amount: number;
     currency: string;
-    transaction: string;
+    transaction: string; // reference
     status: string;
     created_at: string;
     updated_at: string;
@@ -59,6 +61,16 @@ export class PaystackService {
       throw new Error("Missing PAYSTACK_SECRET_KEY in environment variables");
     }
     this.secretKey = process.env.PAYSTACK_SECRET_KEY;
+
+    axiosRetry(axios, {
+      retries: 3,
+      retryDelay: axiosRetry.exponentialDelay,
+      retryCondition: (error) =>
+        axios.isAxiosError(error) &&
+        (!error.response ||
+          error.code === "ECONNABORTED" ||
+          (error.response?.status ?? 0) >= 500),
+    });
   }
 
   private get headers() {
@@ -68,18 +80,20 @@ export class PaystackService {
     };
   }
 
-  /** Initialize payment */
   async initializePayment(data: {
-    amount: number; // in Naira
+    amount: number; // naira
     email: string;
     reference: string;
     currency?: string;
     callback_url?: string;
     metadata?: any;
   }): Promise<PaystackInitResponse> {
+    if (!data.amount || !data.email || !data.reference) {
+      throw new Error("Missing required payment initialization fields");
+    }
     try {
       const payload: any = {
-        amount: Math.round(data.amount * 100), // convert to kobo
+        amount: Math.round(data.amount * 100),
         email: data.email,
         reference: data.reference,
         currency: data.currency || "NGN",
@@ -90,68 +104,75 @@ export class PaystackService {
       const res = await axios.post(
         `${this.baseUrl}/transaction/initialize`,
         payload,
-        {
-          headers: this.headers,
-          timeout: 10000,
-        }
+        { headers: this.headers, timeout: 10000 }
       );
-
       return res.data as PaystackInitResponse;
     } catch (error: any) {
+      this.logError("Paystack init error", error);
       throw this.handleError(error, "Paystack init error");
     }
   }
 
-  /** Verify payment */
   async verifyPayment(reference: string): Promise<PaystackVerifyResponse> {
+    if (!reference) throw new Error("Missing payment reference");
     try {
       const res = await axios.get(
         `${this.baseUrl}/transaction/verify/${reference}`,
-        {
-          headers: this.headers,
-          timeout: 10000,
-        }
+        { headers: this.headers, timeout: 10000 }
       );
-
       return res.data as PaystackVerifyResponse;
     } catch (error: any) {
+      this.logError("Paystack verify error", error);
       throw this.handleError(error, "Paystack verify error");
     }
   }
 
-  /** Refund full payment */
+  /** Full refund – always full, no partials */
   async refundPayment(reference: string): Promise<PaystackRefundResponse> {
+    if (!reference) throw new Error("Missing refund reference");
     try {
       const payload = { transaction: reference }; // full refund
-
       const res = await axios.post(`${this.baseUrl}/refund`, payload, {
         headers: this.headers,
         timeout: 10000,
       });
-
       return res.data as PaystackRefundResponse;
     } catch (error: any) {
+      this.logError("Paystack refund error", error);
       throw this.handleError(error, "Paystack refund error");
     }
   }
 
-  /** Verify Paystack webhook signature */
-  verifyWebhookSignature(rawBody: string, signature?: string): boolean {
-    if (!signature) return false;
-
-    const hash = crypto
-      .createHmac("sha512", this.secretKey)
-      .update(rawBody)
-      .digest("hex");
-
-    return hash === signature;
+  verifyWebhookSignature(body: string, signature: string): boolean {
+    if (!body || !signature || !this.secretKey) return false;
+    try {
+      const hash = crypto
+        .createHmac("sha512", this.secretKey)
+        .update(body)
+        .digest("hex");
+      return hash === signature;
+    } catch {
+      return false;
+    }
   }
 
-  /** Helper to standardize Paystack errors */
+  private logError(context: string, error: any) {
+    if (error instanceof Error) {
+      console.error(`[PaystackService] ${context}:`, {
+        message: error.message,
+        stack: error.stack,
+      });
+    } else {
+      console.error(`[PaystackService] ${context}:`, error);
+    }
+  }
+
   private handleError(error: AxiosError | any, defaultMessage: string): Error {
     if (axios.isAxiosError(error)) {
       const msg =
-        error.response?.data?.message || error.message || defaultMessage;
+        (error.response?.data as any)?.message ||
+        error.message ||
+        defaultMessage;
       return new Error(msg);
     }
     return new Error(defaultMessage);

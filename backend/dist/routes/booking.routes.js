@@ -818,7 +818,7 @@ router.post("/:id/cancel", (0, authservice_1.requireAuth)(), (0, error_middlewar
     if (booking.customerId !== req.user.id) {
         throw new error_middleware_2.AppError("Unauthorized to cancel this booking", 403);
     }
-    if (!["PENDING", "APPROVED"].includes(booking.status)) {
+    if (!["PENDING", "APPROVED", "CONFIRMED", "COMPLETED"].includes(booking.status)) {
         throw new error_middleware_2.AppError("Booking cannot be cancelled in its current state", 400);
     }
     // Start transaction
