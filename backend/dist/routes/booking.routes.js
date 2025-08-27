@@ -38,6 +38,9 @@ const searchBookingsSchema = zod_1.z.object({
     checkInFrom: zod_1.z.string().optional(),
     checkInTo: zod_1.z.string().optional(),
 });
+const cancelBookingSchema = zod_1.z.object({
+    reason: zod_1.z.string().max(255).optional(),
+});
 // Validation middleware
 const validate = (req, res, next) => {
     const errors = (0, express_validator_1.validationResult)(req);
@@ -807,7 +810,8 @@ router.patch("/:id/status", (0, authservice_1.requireAuth)({ role: client_1.User
  */
 router.post("/:id/cancel", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const bookingId = req.params.id;
-    const { reason } = req.body;
+    const { reason } = cancelBookingSchema.parse(req.body);
+    // Fetch booking with payment
     const booking = await server_1.prisma.booking.findUnique({
         where: { id: bookingId },
         include: { payment: true, property: true, customer: true },
@@ -815,37 +819,102 @@ router.post("/:id/cancel", (0, authservice_1.requireAuth)(), (0, error_middlewar
     if (!booking) {
         throw new error_middleware_2.AppError("Booking not found", 404);
     }
-    if (booking.customerId !== req.user.id) {
-        throw new error_middleware_2.AppError("Unauthorized to cancel this booking", 403);
+    // Only owner or admin can cancel
+    const isOwner = booking.customerId === req.user.id;
+    const isAdmin = req.user.role === client_1.UserRole.ADMIN;
+    if (!isOwner && !isAdmin)
+        throw new error_middleware_2.AppError("Unauthorized", 403);
+    // Already cancelled or refunded
+    if (["CANCELLED", "REFUNDED", "COMPLETED"].includes(booking.status)) {
+        return res.status(409).json({
+            success: false,
+            message: "Booking already cancelled or completed",
+        });
     }
-    if (!["PENDING", "APPROVED", "CONFIRMED", "COMPLETED"].includes(booking.status)) {
-        throw new error_middleware_2.AppError("Booking cannot be cancelled in its current state", 400);
-    }
-    // Start transaction
-    const cancelledBooking = await bookingservice_1.bookingService.performBookingAction(bookingId, { action: "cancel", reason }, req.user.id, req.user.role);
-    // 3. Audit log
-    await server_1.prisma.auditLog.create({
-        data: {
-            userId: req.user.id,
-            action: "CANCEL_BOOKING",
-            entity: "Booking",
-            entityId: booking.id,
-            changes: {
-                status: "BOOKING_CANCELLED",
-                refundStatus: booking.payment?.refundStatus ?? null,
+    // Must be paid to be refund-eligible
+    const payment = booking.payment;
+    if (!payment || payment.status !== client_1.PaymentStatus.PAID) {
+        // Just cancel, no refund
+        await server_1.prisma.booking.update({
+            where: { id: bookingId },
+            data: {
+                status: client_1.BookingStatus.CANCELLED,
+                cancellationReason: reason,
+                cancelledAt: new Date(),
+                cancelledBy: req.user.id,
             },
-            metadata: {
-                reason,
-                role: req.user.role,
-                ip: req.ip,
-                userAgent: req.headers["user-agent"],
+        });
+        (0, logger_middleware_1.auditLog)("BOOKING_CANCELLED", req.user.id, { bookingId }, req.ip);
+        return res.json({
+            success: true,
+            message: "Booking cancelled (no refund, not paid)",
+        });
+    }
+    // Check refund eligibility (>24h before check-in)
+    const now = new Date();
+    const cutoff = new Date(booking.checkInDate);
+    cutoff.setHours(cutoff.getHours() - 24);
+    if (now >= cutoff) {
+        return res.status(409).json({
+            success: false,
+            message: "Refund not allowed within 24 hours of check-in",
+        });
+    }
+    // Prevent double refund requests
+    const existingRefund = await server_1.prisma.refund.findFirst({
+        where: {
+            paymentId: payment.id,
+            status: {
+                in: [
+                    client_1.RefundStatus.REFUND_PENDING,
+                    client_1.RefundStatus.REFUND_PROCESSING,
+                    client_1.RefundStatus.REFUNDED,
+                ],
             },
         },
     });
+    if (existingRefund) {
+        return res.status(409).json({
+            success: false,
+            message: "Refund already requested or processed for this booking",
+        });
+    }
+    // Transaction: mark booking cancelled, create refund request, update payment
+    const [cancelledBooking, refund] = await server_1.prisma.$transaction([
+        server_1.prisma.booking.update({
+            where: { id: bookingId },
+            data: {
+                status: client_1.BookingStatus.CANCELLED,
+                cancellationReason: reason,
+                cancelledAt: now,
+                cancelledBy: req.user.id,
+                refundAmount: payment.amount,
+            },
+        }),
+        server_1.prisma.refund.create({
+            data: {
+                paymentId: payment.id,
+                amount: payment.amount,
+                reason: reason,
+                status: client_1.RefundStatus.REFUND_PENDING,
+                processedBy: req.user.id,
+            },
+        }),
+        server_1.prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+                refundStatus: client_1.RefundStatus.REFUND_PENDING,
+                refundRequestedAt: now,
+                refundAmount: payment.amount,
+            },
+        }),
+    ]);
+    (0, logger_middleware_1.auditLog)("BOOKING_CANCELLED_REFUND_REQUESTED", req.user.id, { bookingId, refundId: refund.id, paymentId: payment.id }, req.ip);
     res.json({
         success: true,
-        message: "Booking cancelled successfully. Refund (if eligible) is awaiting admin approval.",
+        message: "Booking cancelled and refund requested. Awaiting admin approval.",
         booking: cancelledBooking,
+        refund,
     });
 }));
 /**

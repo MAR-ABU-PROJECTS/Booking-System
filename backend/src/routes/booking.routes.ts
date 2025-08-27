@@ -1,7 +1,12 @@
 // MAR ABU PROJECTS SERVICES LLC - Booking Routes
 import { Router } from "express";
 import { body, param, query, validationResult } from "express-validator";
-import { BookingStatus, PaymentStatus, UserRole, RefundStatus } from "@prisma/client";
+import {
+  BookingStatus,
+  PaymentStatus,
+  UserRole,
+  RefundStatus,
+} from "@prisma/client";
 import { requireAuth } from "../services/authservice";
 import { asyncHandler } from "../middlewares/error.middleware";
 import { AppError } from "../middlewares/error.middleware";
@@ -38,6 +43,10 @@ const searchBookingsSchema = z.object({
   guestEmail: z.string().optional(),
   checkInFrom: z.string().optional(),
   checkInTo: z.string().optional(),
+});
+
+const cancelBookingSchema = z.object({
+  reason: z.string().max(255).optional(),
 });
 
 // Validation middleware
@@ -906,8 +915,9 @@ router.post(
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
     const bookingId = req.params.id;
-    const { reason } = req.body;
+    const { reason } = cancelBookingSchema.parse(req.body);
 
+    // Fetch booking with payment
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: { payment: true, property: true, customer: true },
@@ -917,50 +927,117 @@ router.post(
       throw new AppError("Booking not found", 404);
     }
 
-    if (booking.customerId !== req.user.id) {
-      throw new AppError("Unauthorized to cancel this booking", 403);
+    // Only owner or admin can cancel
+    const isOwner = booking.customerId === req.user.id;
+    const isAdmin = req.user.role === UserRole.ADMIN;
+    if (!isOwner && !isAdmin) throw new AppError("Unauthorized", 403);
+
+    // Already cancelled or refunded
+    if (["CANCELLED", "REFUNDED", "COMPLETED"].includes(booking.status)) {
+      return res.status(409).json({
+        success: false,
+        message: "Booking already cancelled or completed",
+      });
     }
 
-    if (!["PENDING", "APPROVED", "CONFIRMED", "COMPLETED"].includes(booking.status)) {
-      throw new AppError("Booking cannot be cancelled in its current state", 400);
-    }
-
-    // Start transaction
-    const cancelledBooking = await bookingService.performBookingAction(
-      bookingId,
-      { action: "cancel", reason },
-      req.user.id,
-      req.user.role
-    );
-
-    // 3. Audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: req.user.id,
-        action: "CANCEL_BOOKING",
-        entity: "Booking",
-        entityId: booking.id,
-        changes: {
-          status: "BOOKING_CANCELLED",
-          refundStatus: booking.payment?.refundStatus ?? null,
+    // Must be paid to be refund-eligible
+    const payment = booking.payment;
+    if (!payment || payment.status !== PaymentStatus.PAID) {
+      // Just cancel, no refund
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancellationReason: reason,
+          cancelledAt: new Date(),
+          cancelledBy: req.user.id,
         },
-        metadata: {
-          reason,
-          role: req.user.role,
-          ip: req.ip,
-          userAgent: req.headers["user-agent"],
+      });
+      auditLog("BOOKING_CANCELLED", req.user.id, { bookingId }, req.ip);
+      return res.json({
+        success: true,
+        message: "Booking cancelled (no refund, not paid)",
+      });
+    }
+
+    // Check refund eligibility (>24h before check-in)
+    const now = new Date();
+    const cutoff = new Date(booking.checkInDate);
+    cutoff.setHours(cutoff.getHours() - 24);
+    if (now >= cutoff) {
+      return res.status(409).json({
+        success: false,
+        message: "Refund not allowed within 24 hours of check-in",
+      });
+    }
+
+    // Prevent double refund requests
+    const existingRefund = await prisma.refund.findFirst({
+      where: {
+        paymentId: payment.id,
+        status: {
+          in: [
+            RefundStatus.REFUND_PENDING,
+            RefundStatus.REFUND_PROCESSING,
+            RefundStatus.REFUNDED,
+          ],
         },
       },
     });
+    if (existingRefund) {
+      return res.status(409).json({
+        success: false,
+        message: "Refund already requested or processed for this booking",
+      });
+    }
+
+    // Transaction: mark booking cancelled, create refund request, update payment
+    const [cancelledBooking, refund] = await prisma.$transaction([
+      prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancellationReason: reason,
+          cancelledAt: now,
+          cancelledBy: req.user.id,
+          refundAmount: payment.amount,
+        },
+      }),
+      prisma.refund.create({
+        data: {
+          paymentId: payment.id,
+          amount: payment.amount,
+          reason: reason,
+          status: RefundStatus.REFUND_PENDING,
+          processedBy: req.user.id,
+        },
+      }),
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          refundStatus: RefundStatus.REFUND_PENDING,
+          refundRequestedAt: now,
+          refundAmount: payment.amount,
+        },
+      }),
+    ]);
+
+    auditLog(
+      "BOOKING_CANCELLED_REFUND_REQUESTED",
+      req.user.id,
+      { bookingId, refundId: refund.id, paymentId: payment.id },
+      req.ip
+    );
 
     res.json({
       success: true,
-      message: "Booking cancelled successfully. Refund (if eligible) is awaiting admin approval.",
+      message:
+        "Booking cancelled and refund requested. Awaiting admin approval.",
       booking: cancelledBooking,
+      refund,
     });
   })
 );
-
 
 /**
  * @route   GET /api/v1/bookings/:id/invoice

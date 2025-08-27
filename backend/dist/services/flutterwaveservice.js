@@ -37,28 +37,24 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.flutterwaveService = exports.FlutterwaveService = void 0;
-const axios_1 = __importDefault(require("axios"));
+// src/services/flutterwaveservice.ts
+const axios_1 = __importStar(require("axios"));
 const axios_retry_1 = __importDefault(require("axios-retry"));
-const axios_2 = require("axios");
 const crypto = __importStar(require("crypto"));
 class FlutterwaveService {
     constructor() {
         this.baseUrl = "https://api.flutterwave.com/v3";
         this.secretKey = process.env.FLW_SECRET_KEY || "";
         this.secretHash = process.env.FLW_SECRET_HASH;
-        if (!this.secretKey) {
-            throw new Error("Missing FLW_SECRET_KEY in environment variables");
-        }
-        // Enable retry for transient network errors (up to 3 times)
+        if (!this.secretKey)
+            throw new Error("Missing FLW_SECRET_KEY in env");
         (0, axios_retry_1.default)(axios_1.default, {
             retries: 3,
             retryDelay: axios_retry_1.default.exponentialDelay,
-            retryCondition: (error) => {
-                return ((0, axios_2.isAxiosError)(error) &&
-                    (!error.response ||
-                        error.code === "ECONNABORTED" ||
-                        error.response.status >= 500));
-            },
+            retryCondition: (error) => (0, axios_1.isAxiosError)(error) &&
+                (!error.response ||
+                    error.code === "ECONNABORTED" ||
+                    (error.response?.status ?? 0) >= 500),
         });
     }
     get headers() {
@@ -68,7 +64,6 @@ class FlutterwaveService {
         };
     }
     async initializePayment(data) {
-        // Input validation
         if (!data.tx_ref || !data.amount || !data.customer?.email) {
             throw new Error("Missing required payment initialization fields");
         }
@@ -94,11 +89,11 @@ class FlutterwaveService {
             throw this.handleError(error, "Flutterwave initialization error");
         }
     }
-    async verifyPayment(reference) {
-        if (!reference)
-            throw new Error("Missing payment reference");
+    async verifyPayment(referenceOrId) {
+        if (!referenceOrId)
+            throw new Error("Missing payment reference/id");
         try {
-            const res = await axios_1.default.get(`${this.baseUrl}/transactions/${reference}/verify`, { headers: this.headers, timeout: 10000 });
+            const res = await axios_1.default.get(`${this.baseUrl}/transactions/${referenceOrId}/verify`, { headers: this.headers, timeout: 10000 });
             return res.data;
         }
         catch (error) {
@@ -106,17 +101,21 @@ class FlutterwaveService {
             throw this.handleError(error, "Flutterwave verify error");
         }
     }
-    async refundPayment(transactionId, amount) {
+    /** Full refund – do not pass amount (Flutterwave infers full refund) */
+    async refundPayment(transactionId) {
         if (!transactionId)
             throw new Error("Missing transactionId for refund");
         try {
-            const payload = { transaction: transactionId };
-            if (amount)
-                payload.amount = amount;
+            const payload = { transaction: transactionId }; // full refund only
             const res = await axios_1.default.post(`${this.baseUrl}/refunds`, payload, {
                 headers: this.headers,
                 timeout: 10000,
             });
+            // PATCH: If already refunded, treat as idempotent
+            if (res.data?.status === "error" &&
+                res.data?.message?.includes("already refunded")) {
+                return res.data;
+            }
             return res.data;
         }
         catch (error) {
@@ -133,10 +132,8 @@ class FlutterwaveService {
             .digest("hex");
         return hash === signature;
     }
-    // Log errors for monitoring (never log secrets or PII)
     logError(context, error) {
-        // Only log safe error details
-        if ((0, axios_2.isAxiosError)(error)) {
+        if ((0, axios_1.isAxiosError)(error)) {
             console.error(`[FlutterwaveService] ${context}:`, {
                 message: error.message,
                 code: error.code,

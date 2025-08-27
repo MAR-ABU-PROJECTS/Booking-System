@@ -731,6 +731,9 @@ enum RefundStatus {
   REFUND_FAILED
   REFUND_PROCESSING
   NONE
+  PENDING
+  FAILED
+  PROCESSING
 }
 
 enum ReceiptStatus {

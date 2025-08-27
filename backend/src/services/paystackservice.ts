@@ -136,6 +136,13 @@ export class PaystackService {
         headers: this.headers,
         timeout: 10000,
       });
+      // PATCH: If already refunded, treat as idempotent
+      if (
+        res.data?.status === false &&
+        res.data?.message?.includes("already refunded")
+      ) {
+        return res.data as PaystackRefundResponse;
+      }
       return res.data as PaystackRefundResponse;
     } catch (error: any) {
       this.logError("Paystack refund error", error);
