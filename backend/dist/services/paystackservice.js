@@ -37,7 +37,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.paystackService = exports.PaystackService = void 0;
-// src/services/paystackservice.ts
 const axios_1 = __importDefault(require("axios"));
 const axios_retry_1 = __importDefault(require("axios-retry"));
 const crypto = __importStar(require("crypto"));
@@ -108,10 +107,10 @@ class PaystackService {
                 headers: this.headers,
                 timeout: 10000,
             });
-            // PATCH: If already refunded, treat as idempotent
+            // ✅ Treat "already refunded" as idempotent success
             if (res.data?.status === false &&
-                res.data?.message?.includes("already refunded")) {
-                return res.data;
+                res.data?.message?.toLowerCase().includes("already refunded")) {
+                return { ...res.data, status: true };
             }
             return res.data;
         }

@@ -866,8 +866,8 @@ router.post("/:id/cancel", (0, authservice_1.requireAuth)(), (0, error_middlewar
             paymentId: payment.id,
             status: {
                 in: [
-                    client_1.RefundStatus.REFUND_PENDING,
-                    client_1.RefundStatus.REFUND_PROCESSING,
+                    client_1.RefundStatus.PENDING,
+                    client_1.RefundStatus.PROCESSING,
                     client_1.RefundStatus.REFUNDED,
                 ],
             },
@@ -896,14 +896,14 @@ router.post("/:id/cancel", (0, authservice_1.requireAuth)(), (0, error_middlewar
                 paymentId: payment.id,
                 amount: payment.amount,
                 reason: reason,
-                status: client_1.RefundStatus.REFUND_PENDING,
+                status: client_1.RefundStatus.PENDING,
                 processedBy: req.user.id,
             },
         }),
         server_1.prisma.payment.update({
             where: { id: payment.id },
             data: {
-                refundStatus: client_1.RefundStatus.REFUND_PENDING,
+                refundStatus: client_1.RefundStatus.PENDING,
                 refundRequestedAt: now,
                 refundAmount: payment.amount,
             },

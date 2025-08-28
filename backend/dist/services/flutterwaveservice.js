@@ -37,7 +37,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.flutterwaveService = exports.FlutterwaveService = void 0;
-// src/services/flutterwaveservice.ts
 const axios_1 = __importStar(require("axios"));
 const axios_retry_1 = __importDefault(require("axios-retry"));
 const crypto = __importStar(require("crypto"));
@@ -101,7 +100,7 @@ class FlutterwaveService {
             throw this.handleError(error, "Flutterwave verify error");
         }
     }
-    /** Full refund – do not pass amount (Flutterwave infers full refund) */
+    /** Full refund – always full, no partials */
     async refundPayment(transactionId) {
         if (!transactionId)
             throw new Error("Missing transactionId for refund");
@@ -111,10 +110,10 @@ class FlutterwaveService {
                 headers: this.headers,
                 timeout: 10000,
             });
-            // PATCH: If already refunded, treat as idempotent
+            // ✅ Treat "already refunded" as success
             if (res.data?.status === "error" &&
-                res.data?.message?.includes("already refunded")) {
-                return res.data;
+                res.data?.message?.toLowerCase().includes("already refunded")) {
+                return { ...res.data, status: "success" };
             }
             return res.data;
         }

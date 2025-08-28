@@ -1,4 +1,3 @@
-// src/services/paystackservice.ts
 import axios, { AxiosError } from "axios";
 import axiosRetry from "axios-retry";
 import * as crypto from "crypto";
@@ -16,40 +15,13 @@ export interface PaystackInitResponse {
 export interface PaystackVerifyResponse {
   status: boolean;
   message: string;
-  data: {
-    id: number;
-    domain: string;
-    status: string;
-    reference: string;
-    amount: number;
-    gateway_response: string;
-    paid_at: string;
-    created_at: string;
-    currency: string;
-    channel: string;
-    customer: {
-      id: number;
-      email: string;
-      first_name: string;
-      last_name: string;
-    };
-    metadata: any;
-  };
+  data: any;
 }
 
 export interface PaystackRefundResponse {
   status: boolean;
   message: string;
-  data: {
-    id: number;
-    amount: number;
-    currency: string;
-    transaction: string; // reference
-    status: string;
-    created_at: string;
-    updated_at: string;
-    gateway_response: string;
-  };
+  data?: any;
 }
 
 export class PaystackService {
@@ -81,7 +53,7 @@ export class PaystackService {
   }
 
   async initializePayment(data: {
-    amount: number; // naira
+    amount: number;
     email: string;
     reference: string;
     currency?: string;
@@ -113,14 +85,14 @@ export class PaystackService {
     }
   }
 
-  async verifyPayment(reference: string): Promise<PaystackVerifyResponse> {
+  async verifyPayment(reference: string) {
     if (!reference) throw new Error("Missing payment reference");
     try {
       const res = await axios.get(
         `${this.baseUrl}/transaction/verify/${reference}`,
         { headers: this.headers, timeout: 10000 }
       );
-      return res.data as PaystackVerifyResponse;
+      return res.data;
     } catch (error: any) {
       this.logError("Paystack verify error", error);
       throw this.handleError(error, "Paystack verify error");
@@ -136,13 +108,15 @@ export class PaystackService {
         headers: this.headers,
         timeout: 10000,
       });
-      // PATCH: If already refunded, treat as idempotent
+
+      // ✅ Treat "already refunded" as idempotent success
       if (
         res.data?.status === false &&
-        res.data?.message?.includes("already refunded")
+        res.data?.message?.toLowerCase().includes("already refunded")
       ) {
-        return res.data as PaystackRefundResponse;
+        return { ...res.data, status: true };
       }
+
       return res.data as PaystackRefundResponse;
     } catch (error: any) {
       this.logError("Paystack refund error", error);

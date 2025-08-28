@@ -1,4 +1,3 @@
-// src/services/flutterwaveservice.ts
 import axios, { AxiosError, isAxiosError } from "axios";
 import axiosRetry from "axios-retry";
 import * as crypto from "crypto";
@@ -95,24 +94,27 @@ export class FlutterwaveService {
     }
   }
 
-  /** Full refund – do not pass amount (Flutterwave infers full refund) */
+  /** Full refund – always full, no partials */
   async refundPayment(
     transactionId: string
   ): Promise<FlutterwaveRefundResponse> {
     if (!transactionId) throw new Error("Missing transactionId for refund");
     try {
       const payload = { transaction: transactionId }; // full refund only
+
       const res = await axios.post(`${this.baseUrl}/refunds`, payload, {
         headers: this.headers,
         timeout: 10000,
       });
-      // PATCH: If already refunded, treat as idempotent
+
+      // ✅ Treat "already refunded" as success
       if (
         res.data?.status === "error" &&
-        res.data?.message?.includes("already refunded")
+        res.data?.message?.toLowerCase().includes("already refunded")
       ) {
-        return res.data as FlutterwaveRefundResponse;
+        return { ...res.data, status: "success" } as FlutterwaveRefundResponse;
       }
+
       return res.data as FlutterwaveRefundResponse;
     } catch (error: any) {
       this.logError("Flutterwave refund error", error);
