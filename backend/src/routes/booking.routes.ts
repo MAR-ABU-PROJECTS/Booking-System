@@ -977,8 +977,8 @@ router.post(
         paymentId: payment.id,
         status: {
           in: [
-            RefundStatus.REFUND_PENDING,
-            RefundStatus.REFUND_PROCESSING,
+            RefundStatus.PENDING,
+            RefundStatus.PROCESSING,
             RefundStatus.REFUNDED,
           ],
         },
@@ -1008,14 +1008,14 @@ router.post(
           paymentId: payment.id,
           amount: payment.amount,
           reason: reason,
-          status: RefundStatus.REFUND_PENDING,
+          status: RefundStatus.PENDING,
           processedBy: req.user.id,
         },
       }),
       prisma.payment.update({
         where: { id: payment.id },
         data: {
-          refundStatus: RefundStatus.REFUND_PENDING,
+          refundStatus: RefundStatus.PENDING,
           refundRequestedAt: now,
           refundAmount: payment.amount,
         },

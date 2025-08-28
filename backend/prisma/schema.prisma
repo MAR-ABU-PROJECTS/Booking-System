@@ -726,10 +726,7 @@ enum NotificationType {
 }
 
 enum RefundStatus {
-  REFUND_PENDING
   REFUNDED
-  REFUND_FAILED
-  REFUND_PROCESSING
   NONE
   PENDING
   FAILED

@@ -681,7 +681,7 @@ class BookingService {
             await tx.payment.update({
                 where: { id: payment.id },
                 data: {
-                    refundStatus: client_1.RefundStatus.REFUND_PENDING,
+                    refundStatus: client_1.RefundStatus.PENDING,
                     refundRequestedAt: new Date(),
                 },
             });
@@ -737,7 +737,7 @@ class BookingService {
                 await tx.payment.update({
                     where: { id: payment.id },
                     data: {
-                        refundStatus: client_1.RefundStatus.REFUND_FAILED,
+                        refundStatus: client_1.RefundStatus.FAILED,
                         refundFailedReason: err?.message || "Unknown refund error",
                     },
                 });
