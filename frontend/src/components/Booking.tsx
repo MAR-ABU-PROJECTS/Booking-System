@@ -240,10 +240,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			<FormProvider {...form}>
 				<div className="bg-[#F1F1F1]">
 					<div className="mx-auto max-w-5xl px-[20px] lg:px-12 pt-[100px]">
-						<BookingStep
-							activeStep={step}
-							
-						/>
+						<BookingStep activeStep={step} />
 					</div>
 
 					<form

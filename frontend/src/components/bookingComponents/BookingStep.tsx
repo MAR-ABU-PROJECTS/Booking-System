@@ -55,7 +55,7 @@ const BookingStep = ({ activeStep }: { activeStep: number }) => {
 					isActive
 						? "text-black"
 						: isCompleted
-							? "text-amber-400"
+							? "text-black"
 							: "text-[#838383]"
 				)}
 			>
