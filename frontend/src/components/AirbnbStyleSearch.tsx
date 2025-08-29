@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Loader2 } from "lucide-react";
+import { Search, X } from "lucide-react";
 import GuestCounter from "@components/GuestCounter";
 import { Calendar } from "@components/ui/calendar";
 import { useDispatch } from "react-redux";
@@ -35,6 +35,8 @@ const AirbnbStyleSearch = () => {
 	const handleClose = () => {
 		setActiveTab(null);
 	};
+
+	const [page, setPage] = useState(1);
 
 	// MAR ABU HOMES current apartments
 	const marAbuApartments = [
@@ -144,10 +146,12 @@ const AirbnbStyleSearch = () => {
 	};
 
 	const getProperties = useQuery({
-		queryKey: ["properties"],
+		queryKey: ["properties", page],
 		queryFn: async () => {
 			try {
-				const response = await apiService.get(`/properties`);
+				const response = await apiService.get(
+					`/properties?page=${page}&limit=4`
+				);
 				return response;
 			} catch (error) {
 				let errorMessage = "An unexpected error occurred";
@@ -169,7 +173,6 @@ const AirbnbStyleSearch = () => {
 		retry: true,
 	});
 
-	console.log(getProperties.data);
 
 	return (
 		<div className="relative z-20 px-4 mx-auto max-w-7xl -mt-24 airbnb-search">
@@ -290,73 +293,127 @@ const AirbnbStyleSearch = () => {
 										<QueryStateHandler
 											query={getProperties}
 											emptyMessage="No properties found. Try adjusting filters."
-											render={(res) => (
-												<div className="grid grid-cols-2 gap-2">
-													{res.data.properties.map(
-														(property: Propert) => (
-															<button
-																key={
-																	property.id
-																}
-																type="button"
-																className="flex items-center gap-2 p-2 border border-gray-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 text-left transition-all duration-200"
-																onClick={async () => {
-																	form.setValue(
-																		"stepOne.location",
-																		property.address
-																	);
-																	form.setValue(
-																		"stepOne.name",
-																		property.name
-																	);
-
-																	form.setValue(
-																		"stepOne.id",
-																		property.id
-																	);
-																	const isValid =
-																		await form.trigger(
-																			"stepOne"
-																		);
-																	if (
-																		isValid
-																	) {
-																		setActiveTab(
-																			"checkin"
-																		);
-																	}
-																}}
-															>
-																<div className="w-6 h-6 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
-																	<span className="text-amber-600 font-medium text-xs">
-																		{property.address.charAt(
-																			0
-																		)}
-																	</span>
-																</div>
-																<div className="min-w-0 flex-1">
-																	<div className="font-medium text-gray-900 text-xs truncate">
-																		{
-																			property.name
+											render={(res) => {
+												const {
+													properties,
+													pagination,
+												} = res.data;
+												return (
+													<>
+														<div className="grid grid-cols-2 gap-2">
+															{properties.map(
+																(
+																	property: Propert
+																) => (
+																	<button
+																		key={
+																			property.id
 																		}
-																	</div>
-																	<div className="text-xs text-gray-500 truncate">
-																		{/* {
+																		type="button"
+																		className="flex items-center gap-2 p-2 border border-gray-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 text-left transition-all duration-200"
+																		onClick={async () => {
+																			form.setValue(
+																				"stepOne.location",
+																				property.address
+																			);
+																			form.setValue(
+																				"stepOne.name",
+																				property.name
+																			);
+
+																			form.setValue(
+																				"stepOne.id",
+																				property.id
+																			);
+																			const isValid =
+																				await form.trigger(
+																					"stepOne"
+																				);
+																			if (
+																				isValid
+																			) {
+																				setActiveTab(
+																					"checkin"
+																				);
+																			}
+																		}}
+																	>
+																		<div className="w-6 h-6 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
+																			<span className="text-amber-600 font-medium text-xs">
+																				{property.address.charAt(
+																					0
+																				)}
+																			</span>
+																		</div>
+																		<div className="min-w-0 flex-1">
+																			<div className="font-medium text-gray-900 text-xs truncate">
+																				{
+																					property.name
+																				}
+																			</div>
+																			<div className="text-xs text-gray-500 truncate">
+																				{/* {
 																		property.address.split(
 																			","
 																		)[0]
 																	} */}
 
-																		{
-																			property.address
-																		}
-																	</div>
-																</div>
-															</button>
-														)
-													)}
-												</div>
-											)}
+																				{
+																					property.address
+																				}
+																			</div>
+																		</div>
+																	</button>
+																)
+															)}
+														</div>
+
+														<div className="flex items-center justify-center gap-4 mt-6">
+															<Button
+																disabled={
+																	!pagination.hasPrev
+																}
+																onClick={() =>
+																	setPage(
+																		(p) =>
+																			Math.max(
+																				p -
+																					1,
+																				1
+																			)
+																	)
+																}
+															>
+																Prev
+															</Button>
+															<span className="text-[12px]">
+																Page{" "}
+																{
+																	pagination.page
+																}{" "}
+																of{" "}
+																{
+																	pagination.pages
+																}
+															</span>
+															<Button
+																disabled={
+																	!pagination.hasNext
+																}
+																onClick={() =>
+																	setPage(
+																		(p) =>
+																			p +
+																			1
+																	)
+																}
+															>
+																Next
+															</Button>
+														</div>
+													</>
+												);
+											}}
 										/>
 									</div>
 								)}

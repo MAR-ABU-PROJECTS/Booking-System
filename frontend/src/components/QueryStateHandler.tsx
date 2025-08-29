@@ -52,6 +52,5 @@ export function QueryStateHandler<T>({
 		);
 	}
 
-	// ✅ Render success state
 	return <>{query.data && render(query.data)}</>;
 }

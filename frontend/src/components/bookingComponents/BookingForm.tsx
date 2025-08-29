@@ -475,7 +475,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 							Payment Information
 						</p>
 					</div>
-					<div className="flex flex-col w-full gap-[20px] hidden">
+					<div className=" flex-col w-full gap-[20px] hidden">
 						{/* <Controller
 							control={control}
 							name="paymentMethod"
