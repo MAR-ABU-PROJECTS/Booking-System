@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import AppProviders from "@providers/AppProviders";
 import "./globals.css";
 import "@fontsource/inter/400.css";
@@ -47,6 +48,10 @@ export default async function RootLayout({
 			</head>
 			<body className="antialiased">
 				<AppProviders>{children}</AppProviders>
+				<Script
+          src="https://checkout.flutterwave.com/v3.js"
+          strategy="afterInteractive"
+        />
 			</body>
 		</html>
 	);
