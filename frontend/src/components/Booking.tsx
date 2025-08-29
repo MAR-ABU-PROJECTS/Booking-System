@@ -18,6 +18,7 @@ import type { SummaryData } from "@lib/type";
 import { useDispatch } from "react-redux";
 import { resetBooking } from "@lib/features/bookingSlice";
 import BookingStep from "@components/bookingComponents/BookingStep";
+import { ChevronLeft } from "lucide-react";
 
 const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
@@ -95,7 +96,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		},
 		mode: "onChange",
 	});
-	const [step, setStep] = useState(1);
+	const [step, setStep] = useState(2);
 
 	const handleNext = () => {
 		if (step == 2) return;
@@ -241,15 +242,27 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 					<div className="mx-auto max-w-5xl px-[20px] lg:px-12 pt-[100px]">
 						<BookingStep
 							activeStep={step}
-							next={handleNext}
-							prev={handleBack}
+							
 						/>
 					</div>
 
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="mx-auto max-w-5xl px-[20px] lg:px-12 py-[30px]"
+						className="mx-auto max-w-5xl px-[20px] lg:px-12 pt-[20px] pb-[30px]"
 					>
+						<div className="mb-4">
+							{step === 2 && (
+								<button
+									type="button"
+									className="mb-4 cursor-pointer text-amber-500 flex items-center active:scale-95 hover:scale-95 transition-all"
+									onClick={handleBack}
+								>
+									{" "}
+									<ChevronLeft /> Back
+								</button>
+							)}
+						</div>
+
 						{step === 1 && (
 							<BookingForm isSubmitting={mutation.isPending} />
 						)}

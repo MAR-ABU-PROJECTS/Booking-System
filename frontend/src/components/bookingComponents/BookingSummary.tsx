@@ -101,9 +101,6 @@ const BookingSummary = ({
 		PaymentMethod | undefined
 	>();
 
-	const onMethodChange = (value: PaymentMethod) => {
-		setPaymentMethod(value);
-	};
 
 	const [loading, setLoading] = useState(false);
 
