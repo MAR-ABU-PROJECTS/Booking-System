@@ -51,7 +51,7 @@ export const homePageBookingSchema = z
 			});
 		}
 	});
-	
+
 export const createBookingSchema = z
 	.object({
 		propertyId: z.string(),
@@ -67,27 +67,71 @@ export const createBookingSchema = z
 					? "Please select a check-out date"
 					: "Invalid check-out date",
 		}),
-		adults: z.number().int().min(1, "At least 1 adult is required"),
-		children: z.number().int().min(0),
-		infants: z.number().int().min(0),
-		guestName: z.string().min(2),
-		guestEmail: z
-			.string()
-			.min(1, "email address is required")
-			.email("Invalid email address"),
-		guestPhone: z.string().min(10, "Phone number is required"),
-		address: z.string().min(1, "Billing address is required"),
-		idType: z.string().optional(),
-		emergencyContact: z.string().optional(),
-		paymentMethod: z.string().optional(),
-		specialRequests: z.string().optional(),
-		arrivalTime: z
-			.string()
-			.regex(
-				/^([01]\d|2[0-3]):([0-5]\d)$/,
-				"Time must be in HH:mm format (24hr)"
-			).optional(),
+		adults: z
+			.number({
+				error: (issue) =>
+					issue.input === undefined
+						? "Number of adults is required"
+						: "Adults must be a number",
+			})
+			.int("Adults must be a whole number")
+			.min(1, "At least 1 adult is required"),
+		children: z
+			.number({
+				error: (issue) =>
+					issue.input === undefined
+						? "Number of children count is required"
+						: "Children must be a number",
+			})
+			.int("Children must be a whole number")
+			.min(0, "number of children cannot be negative"),
+		infants: z
+			.number({
+				error: (issue) =>
+					issue.input === undefined
+						? "number of Infants is required"
+						: "Infants must be a number",
+			})
+			.int("Infants must be a number")
+			.min(0, "number of Infants cannot be negative"),
+		guestName: z
+			.string({
+				error: (issue) =>
+					issue.input === undefined
+						? "Guest name is required"
+						: "Guest name must be a string",
+			})
+			.min(2, "Guest name is required"),
+		guestEmail: z.email({
+			error: (issue) =>
+				issue.input === undefined
+					? "Email address is required"
+					: "Invalid email address",
+		}),
+		guestPhone: z
+			.string({
+				error: (issue) =>
+					issue.input === undefined
+						? "Phone number is required"
+						: "Phone number must be a string",
+			})
+			.min(10, "Phone number must be 11 digits"),
+
+		// address: z.string().min(1, "Billing address is required"),
+		// idType: z.string().optional(),
+		// emergencyContact: z.string().optional(),
+		// paymentMethod: z.string().optional(),
+		// arrivalTime: z
+		//   .string()
+		//   .regex(
+		//     /^([01]\d|2[0-3]):([0-5]\d)$/,
+		//     "Time must be in HH:mm format (24hr)"
+		//   )
+		//   .optional(),
+
 		agree: z.boolean(),
+
+		specialRequests: z.string().optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (!data.agree) {
@@ -126,7 +170,7 @@ export const BookSchema = z.object({
 			message: "check-out must be after check-in date",
 			path: ["to"],
 		}),
-	adults: z.number().min(1, "Atleast 1 adult"),
+	adults: z.number().min(1, "At least 1 adult is required"),
 	children: z.number().min(0),
 	infants: z.number().min(0),
 });

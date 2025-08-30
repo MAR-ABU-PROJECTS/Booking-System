@@ -10,7 +10,7 @@ export type Property = {
 	roomStatus: "AVAILABLE" | "LIMITED" | "UNAVAILABLE";
 	statusColor?: string;
 	price: number;
-	images: string[]; // optional since not all entries include it
+	images: string[];
 	latitude?: string;
 	longitude?: string;
 	isSuperhost?: boolean;
@@ -34,8 +34,6 @@ export type Property = {
 //   guests: 6,
 //   isSuperhost: true,
 // },
-
-
 
 export enum BookingStatus {
 	PENDING = "PENDING",
@@ -62,67 +60,62 @@ export enum PaymentStatus {
 }
 
 export enum PaymentMethod {
-	CARD = "CARD",
-	BANK_TRANSFER = "BANK_TRANSFER",
-	CASH = "CASH",
-	STRIPE = "STRIPE",
+	// CARD = "CARD",
+	// BANK_TRANSFER = "BANK_TRANSFER",
+	// CASH = "CASH",
+	// STRIPE = "STRIPE",
 	PAYSTACK = "PAYSTACK",
 	FLUTTERWAVE = "FLUTTERWAVE",
 }
 
 export interface Booking {
-  id: string
-  bookingCode: string
-  checkInDate: string
-  checkOutDate: string
-  nights: number
-  adults: number
-  children: number
-  infants: number
+	id: string;
+	bookingCode: string;
+	checkInDate: string;
+	checkOutDate: string;
+	nights: number;
+	adults: number;
+	children: number;
+	infants: number;
+	status: BookingStatus;
+	paymentStatus: PaymentStatus;
+	baseAmount: number;
+	cleaningFee: number;
+	serviceFee: number;
+	taxes: number;
+	discount: number;
+	total: number;
+	paidAmount: number;
+	currency: string;
+	guestName: string;
+	guestEmail: string;
+	guestPhone: string;
+	guestAddress?: string;
 
-  status: BookingStatus
-  paymentStatus: PaymentStatus
+	specialRequests?: string;
+	arrivalTime?: string;
+	source?: string;
 
+	cancellationReason?: string;
+	cancelledAt?: string;
+	cancelledBy?: string;
+	refundAmount?: number;
 
-  baseAmount: number
-  cleaningFee: number
-  serviceFee: number
-  taxes: number
-  discount: number
-  total: number
-  paidAmount: number
-  currency: string
+	adminNotes?: string;
+	approvedBy?: string;
+	approvedAt?: string;
+	completedAt?: string;
+	paidAt?: string;
 
-  guestName: string
-  guestEmail: string
-  guestPhone: string
-  guestAddress?: string
+	createdAt: string;
+	updatedAt: string;
 
-  specialRequests?: string
-  arrivalTime?: string
-  source?: string
-
-  cancellationReason?: string
-  cancelledAt?: string
-  cancelledBy?: string
-  refundAmount?: number
-
-  adminNotes?: string
-  approvedBy?: string
-  approvedAt?: string
-  completedAt?: string
-  paidAt?: string
-
-  createdAt: string
-  updatedAt: string
-
-  // Relations
-  customerId: string
-  propertyId: string
-  // customer?: User
-  // property?: Property
+	// Relations
+	customerId: string;
+	propertyId: string;
+	// customer?: User
+	// property?: Property
 }
-
 
 export type SummaryData = {
 	id: string;
@@ -178,19 +171,76 @@ export type SummaryData = {
 	};
 };
 
-
-
 export type BookingCardType = {
-  id: string;
-  propertyId: string;
-  userId?: string; 
-  checkIn: string;
-  checkOut: string;
-  guests: number; 
-  totalAmount: number;
-  status: BookingStatus; 
-  createdAt: string;
-  updatedAt: string;
-	images:string[];
+	id: string;
+	propertyId: string;
+	userId?: string;
+	checkIn: string;
+	checkOut: string;
+	guests: number;
+	totalAmount: number;
+	status: BookingStatus;
+	createdAt: string;
+	updatedAt: string;
+	images: string[];
 	paymentStatus: PaymentStatus;
-}
+};
+
+
+export type Propert = {
+	id: string;
+	name: string;
+	description: string;
+	type: string;
+	status: string;
+	address: string;
+	city: string;
+	state: string;
+	country: string;
+	zipCode: string | null;
+	latitude: number | null;
+	longitude: number | null;
+	bedrooms: number;
+	bathrooms: number;
+	size: number;
+	floor: number | null;
+	maxGuests: number;
+	minStay: number;
+	maxStay: number;
+	baseRate: number;
+	cleaningFee: number;
+	securityDeposit: number;
+	serviceFee: number; 
+	weekendPremium: number;
+	monthlyDiscount: number;
+	averageRating: number;
+	reviewCount: number;
+	bookingCount: number;
+	buildingName: string | null;
+	featuredImage: string | null;
+	images: string[];
+	amenities: string[];
+	features: string[];
+	rules: string[];
+	houseRules: string | null;
+	cancellationPolicy: string | null;
+	adminNotes: string | null;
+	checkInTime: string; 
+	checkOutTime: string;
+	currency: string;
+	isActive: boolean;
+	hostId: string;
+	host: {
+		id: string;
+		firstName: string;
+		lastName: string;
+		avatar: string | null;
+	};
+	createdAt: string;
+	updatedAt: string;
+	deletedAt: string | null;
+	_count: {
+		reviews: number;
+		bookings: number;
+	};
+};

@@ -20,7 +20,7 @@ export function resumePayStackPayment(config: ResumeConfig) {
 	popup.resumeTransaction(config.accessCode, {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		onSuccess: async (trx: any) => {
-			console.log("Payment success:", trx);
+		
 			config.onSuccess?.(trx);
 		},
 		onCancel: () => {
@@ -28,7 +28,6 @@ export function resumePayStackPayment(config: ResumeConfig) {
 		},
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		onError: (err: any) => {
-			console.error("Payment error:", err);
 			config.onError?.(err);
 		},
 	});

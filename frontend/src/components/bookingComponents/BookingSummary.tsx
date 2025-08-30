@@ -14,19 +14,14 @@ import { isAxiosError } from "axios";
 import { Checkbox } from "@components/ui/checkbox";
 import { Label } from "@components/ui/label";
 import { Button } from "@components/ui/button";
-import {
-	Select,
-	SelectItem,
-	SelectTrigger,
-	SelectContent,
-	SelectGroup,
-	SelectValue,
-	SelectLabel,
-} from "@components/ui/select";
 import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
 import { resumePayStackPayment } from "@lib/payments/paystack";
+import { initializeFlutterwavePayment } from "@lib/payments/flutterwave";
 import { useRouter } from "next/navigation";
+import PaymentStatus from "@components/PaymentStatus";
+import { CreditCard } from "lucide-react";
+import PaymentMethodSelector from "@components/PaymentMethodSelector";
 
 const BookingSummary = ({
 	summaryData,
@@ -97,9 +92,6 @@ const BookingSummary = ({
 		PaymentMethod | undefined
 	>();
 
-	const onMethodChange = (value: PaymentMethod) => {
-		setPaymentMethod(value);
-	};
 
 	const [loading, setLoading] = useState(false);
 
@@ -135,19 +127,49 @@ const BookingSummary = ({
 						toast.error("Payment cancelled");
 					},
 					onError: (err) => {
-						console.error("Paystack error:", err);
+						
 						toast.error(`Paystack error: ${err?.message}`);
 					},
 				});
 			}
 			if (res?.success && paymentMethod === PaymentMethod.FLUTTERWAVE) {
-				window.open(res?.data?.paymentData?.data?.link, "_blank");
+				initializeFlutterwavePayment({
+					tx_ref: res?.data?.payment?.reference,
+					amount: res?.data?.payment?.amount,
+					customer: {
+						name: summaryData.guestName,
+						email: summaryData.guestEmail,
+					},
+					currency: res?.data?.payment?.currency,
+					onSuccess: (resp) => {
+						if (
+							(resp.status === "successful" || resp.status === "completed") &&
+							(resp.charge_response_code === "00" || resp.charge_response_code === "0")
+						) {
+							toast.success("Payment successful");
+					
+							router.push(
+								`/confirmation?bookingId=${summaryData.id}&ref=${resp.tx_ref}`
+							);
+						} else {
+							toast.error("Payment could not be verified. Please contact support.");
+						}
+					},
+					onClose: () => {
+						console.log("Payment modal closed");
+					},
+				});
 			}
 		} catch {
 		} finally {
 			setLoading(false);
 		}
 	};
+
+	const paymentOptions = [
+		{ label: "PAYSTACK", value: PaymentMethod.PAYSTACK },
+		{ label: "FLUTTERWAVE", value: PaymentMethod.FLUTTERWAVE },
+	];
 
 	return (
 		<div className="order-[-1] md:order-2 flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
@@ -169,7 +191,9 @@ const BookingSummary = ({
 			<div className="flex flex-col">
 				<div className="flex justify-between items-center">
 					<div>
-						<p className="text-[14px] text-[#667085]">Check-in:</p>
+						<p className="text-[14px] text-[#667085]">
+							Check-in Date:
+						</p>
 					</div>
 					<div>
 						<p className="text-[14px] font-[500]">
@@ -180,7 +204,9 @@ const BookingSummary = ({
 				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
 				<div className="flex justify-between items-center">
 					<div>
-						<p className="text-[14px] text-[#667085]">Check-Out:</p>
+						<p className="text-[14px] text-[#667085]">
+							Check-Out Date:
+						</p>
 					</div>
 					<div>
 						<p className="text-[14px] font-[500]">
@@ -191,7 +217,7 @@ const BookingSummary = ({
 				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
 				<div className="flex justify-between items-center">
 					<div>
-						<p className="text-[14px] text-[#667085]">Duration:</p>
+						<p className="text-[14px] text-[#667085]">Nights:</p>
 					</div>
 					<div>
 						<p className="text-[14px] font-[500]">{nightsLabel}</p>
@@ -217,7 +243,7 @@ const BookingSummary = ({
 				<div className="flex justify-between items-center">
 					<div>
 						<p className="text-[14px] text-[#667085]">
-							Rate per night:
+							Rate Per Nights:
 						</p>
 					</div>
 					<div>
@@ -244,10 +270,24 @@ const BookingSummary = ({
 
 				<div className="flex justify-between items-center">
 					<div>
-						<p className="text-[14px] text-[#667085]">Status:</p>
+						<p className="text-[14px] text-[#667085]">
+							Booking Status:
+						</p>
 					</div>
 					<div>
 						<BookingStatus status={summaryData?.status} />
+					</div>
+				</div>
+				<hr className="h-px my-[10px] bg-[#fae7d1] border-0" />
+
+				<div className="flex justify-between items-center">
+					<div>
+						<p className="text-[14px] text-[#667085]">
+							Payment Status:
+						</p>
+					</div>
+					<div>
+						<PaymentStatus status={summaryData?.paymentStatus} />
 					</div>
 				</div>
 			</div>
@@ -314,28 +354,21 @@ const BookingSummary = ({
 				</div>
 			</div>
 
-			<div className="w-full grid items-center gap-1 mt-3">
-				<Label>
-					Preferred Payment Method
-					<span className="text-red-600">*</span>
-				</Label>
-				<Select value={paymentMethod} onValueChange={onMethodChange}>
-					<SelectTrigger className="w-full border-2 border-[#f7d5b0]">
-						<SelectValue placeholder="Select Payment Method" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectGroup>
-							<SelectLabel>Select Payment Method</SelectLabel>
+			<div className="flex-col w-full gap-[20px]">
+				<div className="flex gap-[5px] items-center">
+					<div className="p-[3px] bg-[#FEF9F3] rounded-md">
+						<CreditCard size={"18px"} />
+					</div>
+					<p className="text-[18px] font-semibold">
+						Payment Information
+					</p>
+				</div>
 
-							<SelectItem value={PaymentMethod.PAYSTACK}>
-								Paystack
-							</SelectItem>
-							<SelectItem value={PaymentMethod.FLUTTERWAVE}>
-								Flutterwave
-							</SelectItem>
-						</SelectGroup>
-					</SelectContent>
-				</Select>
+				<PaymentMethodSelector
+					options={paymentOptions}
+					value={paymentMethod as PaymentMethod}
+					onChange={(val) => setPaymentMethod(val as PaymentMethod)}
+				/>
 			</div>
 
 			<div className="items-center gap-[10px] flex mt-3">

@@ -6,6 +6,7 @@ import {
 	CreditCard,
 	MessageSquareMore,
 	UserRound,
+	Loader2
 } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
@@ -15,15 +16,15 @@ import {
 } from "@components/ui/popover";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectLabel,
-	SelectTrigger,
-	SelectValue,
-} from "@components/ui/select";
+// import {
+// 	Select,
+// 	SelectContent,
+// 	SelectGroup,
+// 	SelectItem,
+// 	SelectLabel,
+// 	SelectTrigger,
+// 	SelectValue,
+// } from "@components/ui/select";
 import { Checkbox } from "@components/ui/checkbox";
 import { Controller, useFormContext } from "react-hook-form";
 import { createBookingSchema } from "@lib/schemas";
@@ -376,7 +377,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 							/>
 						</div>
 
-						<Controller
+						{/* <Controller
 							control={control}
 							name="address"
 							render={({ field, fieldState }) => (
@@ -395,9 +396,9 @@ const BookingForm = ({ isSubmitting }: Props) => {
 									)}
 								</div>
 							)}
-						/>
+						/> */}
 
-						<div className="hidden">
+						{/* <div className="hidden">
 							<Controller
 								control={control}
 								name="idType"
@@ -441,9 +442,9 @@ const BookingForm = ({ isSubmitting }: Props) => {
 									</div>
 								)}
 							/>
-						</div>
+						</div> */}
 
-						<Controller
+						{/* <Controller
 							control={control}
 							name="emergencyContact"
 							render={({ field, fieldState }) => (
@@ -462,7 +463,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 									)}
 								</div>
 							)}
-						/>
+						/> */}
 					</div>
 				</div>
 				<div className="flex-col w-full gap-[20px] hidden">
@@ -474,8 +475,8 @@ const BookingForm = ({ isSubmitting }: Props) => {
 							Payment Information
 						</p>
 					</div>
-					<div className="flex flex-col w-full gap-[20px]">
-						<Controller
+					<div className=" flex-col w-full gap-[20px] hidden">
+						{/* <Controller
 							control={control}
 							name="paymentMethod"
 							render={({ field, fieldState }) => (
@@ -521,7 +522,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 									)}
 								</div>
 							)}
-						/>
+						/> */}
 
 						{/* <div className="w-full grid items-center gap-1">
 							<Label htmlFor="file-upload">
@@ -600,7 +601,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 							)}
 						/>
 
-						<div className="flex justify-between items-center gap-[20px]">
+						{/* <div className="flex justify-between items-center gap-[20px]">
 							<Controller
 								control={control}
 								name="arrivalTime"
@@ -622,7 +623,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 									</div>
 								)}
 							/>
-						</div>
+						</div> */}
 
 						<div className="w-full h-full p-[10px] bg-[#fef9f3] border-2 border-[#f7d5b0] rounded-xl">
 							<Controller
@@ -680,9 +681,13 @@ const BookingForm = ({ isSubmitting }: Props) => {
 					disabled={isSubmitting}
 					type="submit"
 				>
-					{isSubmitting
-						? "⏳ Processing..."
-						: "🔒 Complete Secure Booking"}
+					{isSubmitting ? (
+						<Loader2
+							className="animate-spin size-5"
+							strokeWidth={3}
+						/>
+					) : null}
+					🔒 Complete Secure Booking
 				</Button>
 			</div>
 		</div>

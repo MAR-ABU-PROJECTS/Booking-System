@@ -2,21 +2,19 @@
 import React from "react";
 import { cn } from "@lib/utils";
 
-const BookingStep = ({ activeStep, prev }: { activeStep: number, next: ()=> void, prev: ()=> void }) => {
+const BookingStep = ({ activeStep }: { activeStep: number }) => {
 	const HeaderItem = ({
 		isActive,
 		isCompleted,
 		number,
 		title,
-    action,
 	}: {
 		isActive: boolean;
 		isCompleted: boolean;
 		number: string;
 		title: string;
-    action?: ()=> void;
 	}) => (
-		<button className="flex flex-row  items-center gap-2 flex-shrink-0 z-[4] bg-white !cursor-pointer" onClick={()=> action?.()}>
+		<button className="flex flex-row  items-center gap-2 flex-shrink-0 z-[4] bg-white !cursor-pointer">
 			<div className="bg-white w-11 relative z-[3] flex justify-center">
 				<div
 					className={cn(
@@ -24,15 +22,45 @@ const BookingStep = ({ activeStep, prev }: { activeStep: number, next: ()=> void
 						isActive
 							? "border-[#f7d5b0] text-black "
 							: isCompleted
-								? "border-[#f7d5b0] bg-amber-400  text-white"
+								? "border-green-200 bg-green-200  text-white"
 								: "text-[#838383] border-[#838383] bg-white"
 					)}
 				>
-					{number}
+					
+					{isCompleted ? (
+						<svg
+							className="h-3.5 w-3.5 text-green-500 dark:text-green-400"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 16 12"
+							aria-hidden="true"
+						>
+							<path
+								stroke="currentColor"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth="2"
+								d="M1 5.917 5.724 10.5 15 1.5"
+							/>
+						</svg>
+					) : (
+						number
+					)}
 				</div>
 			</div>
 
-			<h3 className="font-medium leading-tight pr-1.5">{title}</h3>
+			<h3
+				className={cn(
+					"font-medium leading-tight pr-1.5 transition-colors",
+					isActive
+						? "text-black"
+						: isCompleted
+							? "text-black"
+							: "text-[#838383]"
+				)}
+			>
+				{title}
+			</h3>
 		</button>
 	);
 
@@ -48,7 +76,6 @@ const BookingStep = ({ activeStep, prev }: { activeStep: number, next: ()=> void
 					title="Booking Details"
 					isActive={activeStep === 1}
 					isCompleted={activeStep > 1}
-          action={prev}
 				/>
 
 				<HeaderItem

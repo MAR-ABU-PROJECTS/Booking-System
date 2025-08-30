@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import AppProviders from "@providers/AppProviders";
 import "./globals.css";
-// import "@fontsource/inter/400.css";
-// import "@fontsource/inter/500.css";
-// import "@fontsource/inter/600.css";
-// import "@fontsource/inter/700.css";
-// import '@fontsource/outfit/100.css';
-// import '@fontsource/outfit/200.css';
-// import '@fontsource/outfit/300.css';
-// import '@fontsource/outfit/400.css';
-// import '@fontsource/outfit/500.css';
-// import '@fontsource/outfit/600.css';
-// import '@fontsource/outfit/700.css';
-// import '@fontsource/outfit/800.css';
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import '@fontsource/outfit/100.css';
+import '@fontsource/outfit/200.css';
+import '@fontsource/outfit/300.css';
+import '@fontsource/outfit/400.css';
+import '@fontsource/outfit/500.css';
+import '@fontsource/outfit/600.css';
+import '@fontsource/outfit/700.css';
+import '@fontsource/outfit/800.css';
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Premium Accommodations Across Nigeria",
@@ -47,6 +48,10 @@ export default async function RootLayout({
 			</head>
 			<body className="antialiased">
 				<AppProviders>{children}</AppProviders>
+				<Script
+          src="https://checkout.flutterwave.com/v3.js"
+          strategy="afterInteractive"
+        />
 			</body>
 		</html>
 	);

@@ -1,13 +1,14 @@
 "use client";
-import Lottie from "lottie-react";
 import Checks from "@public/animations/check.json";
 import { CreditCard, House, MapPin, User } from "lucide-react";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
 import ConFirmationNavbar from "./ConFirmationNavbar";
 import { useEffect } from "react";
+import LottiePlayer from "@components/LottiePlayer";
 
 const Page = () => {
+  
   const whatsNext = [
     {
       no: 1,
@@ -89,7 +90,7 @@ const Page = () => {
         <div className="flex flex-col gap-[20px] px-[20px] lg:px-12 ">
           <div className="flex flex-col justify-center items-center gap-[10px]">
             <div className="w-[100px] h-[100px]">
-              <Lottie animationData={Checks} loop={true} />
+              <LottiePlayer animationData={Checks} loop={true} />
             </div>
             <div className="flex flex-col justify-center items-center">
               <p className="text-[20px] font-bold text-[#12b76a]">

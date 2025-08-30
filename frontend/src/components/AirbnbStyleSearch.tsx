@@ -13,6 +13,13 @@ import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import { useQuery } from "@tanstack/react-query";
+import { apiService } from "@lib/apiService";
+import { isAxiosError } from "axios";
+import { toast } from "react-toastify";
+import { Button } from "@components/ui/button";
+import type { Propert } from "@lib/type";
+import { QueryStateHandler } from "@components/QueryStateHandler";
 
 const AirbnbStyleSearch = () => {
 	dayjs.extend(isSameOrBefore);
@@ -29,37 +36,39 @@ const AirbnbStyleSearch = () => {
 		setActiveTab(null);
 	};
 
+	const [page, setPage] = useState(1);
+
 	// MAR ABU HOMES current apartments
-	const marAbuApartments = [
-		{
-			id: "cmej5rqnb000uttlogpvst5cz",
-			name: "WHITE-STONE",
-			location: "Victoria Island, Lagos",
-			type: "Luxury Apartment",
-			price: 85000,
-		},
-		{
-			id: "cmej5rmfc0003ttlocuwe7zxf",
-			name: "ABIKE PENTHOUSE",
-			location: "Ikoyi, Lagos",
-			type: "Premium Penthouse",
-			price: 120000,
-		},
-		{
-			id: "cmej5ro4t000dttloj7897ljy",
-			name: "OBUDU VILLA",
-			location: "Lekki Phase 1, Lagos",
-			type: "Executive Villa",
-			price: 95000,
-		},
-		{
-			id: "cmej5rpeg000lttlozfcrhzvo",
-			name: "ZIRCON",
-			location: "Banana Island, Lagos",
-			type: "Luxury Suite",
-			price: 110000,
-		},
-	];
+	// const marAbuApartments = [
+	// 	{
+	// 		id: "cmej5rqnb000uttlogpvst5cz",
+	// 		name: "WHITE-STONE",
+	// 		location: "Victoria Island, Lagos",
+	// 		type: "Luxury Apartment",
+	// 		price: 85000,
+	// 	},
+	// 	{
+	// 		id: "cmej5rmfc0003ttlocuwe7zxf",
+	// 		name: "ABIKE PENTHOUSE",
+	// 		location: "Ikoyi, Lagos",
+	// 		type: "Premium Penthouse",
+	// 		price: 120000,
+	// 	},
+	// 	{
+	// 		id: "cmej5ro4t000dttloj7897ljy",
+	// 		name: "OBUDU VILLA",
+	// 		location: "Lekki Phase 1, Lagos",
+	// 		type: "Executive Villa",
+	// 		price: 95000,
+	// 	},
+	// 	{
+	// 		id: "cmej5rpeg000lttlozfcrhzvo",
+	// 		name: "ZIRCON",
+	// 		location: "Banana Island, Lagos",
+	// 		type: "Luxury Suite",
+	// 		price: 110000,
+	// 	},
+	// ];
 
 	const form = useForm({
 		resolver: zodResolver(homePageBookingSchema),
@@ -77,22 +86,22 @@ const AirbnbStyleSearch = () => {
 		},
 	});
 
-	function flattenErrors(errorObj: unknown): string[] {
-		if (!errorObj) return [];
+	// function flattenErrors(errorObj: unknown): string[] {
+	// 	if (!errorObj) return [];
 
-		return Object.values(errorObj).flatMap((error) => {
-			if (!error) return [];
-			if (typeof error === "object" && "message" in error) {
-				return [error.message as string];
-			}
-			if (typeof error === "object") {
-				return flattenErrors(error);
-			}
-			return [];
-		});
-	}
+	// 	return Object.values(errorObj).flatMap((error) => {
+	// 		if (!error) return [];
+	// 		if (typeof error === "object" && "message" in error) {
+	// 			return [error.message as string];
+	// 		}
+	// 		if (typeof error === "object") {
+	// 			return flattenErrors(error);
+	// 		}
+	// 		return [];
+	// 	});
+	// }
 
-	const allErrorMessages = flattenErrors(form.formState.errors);
+	// const allErrorMessages = flattenErrors(form.formState.errors);
 
 	const location = form.watch("stepOne.location");
 
@@ -107,10 +116,14 @@ const AirbnbStyleSearch = () => {
 	const onSubmit = (data: z.infer<typeof homePageBookingSchema>) => {
 		handleClose();
 		dispatch(updateBooking({ key: "id", value: data.stepOne.id }));
-		dispatch(updateBooking({ key: "location", value: data.stepOne.location }));
+		dispatch(
+			updateBooking({ key: "location", value: data.stepOne.location })
+		);
 		dispatch(updateBooking({ key: "name", value: data.stepOne.name }));
 
-		dispatch(updateBooking({ key: "checkIn", value: data.stepTwo.checkin }));
+		dispatch(
+			updateBooking({ key: "checkIn", value: data.stepTwo.checkin })
+		);
 		dispatch(
 			updateBooking({ key: "checkOut", value: data.stepThree.checkout })
 		);
@@ -132,6 +145,35 @@ const AirbnbStyleSearch = () => {
 		router.push(`/booking?id=${data.stepOne.id}`);
 	};
 
+	const getProperties = useQuery({
+		queryKey: ["properties", page],
+		queryFn: async () => {
+			try {
+				const response = await apiService.get(
+					`/properties?page=${page}&limit=4`
+				);
+				return response;
+			} catch (error) {
+				let errorMessage = "An unexpected error occurred";
+				if (isAxiosError(error)) {
+					errorMessage = error.response
+						? error.response.data.message
+						: error.message;
+				} else if (error instanceof Error) {
+					errorMessage = error.message;
+				}
+				toast.error(errorMessage, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+
+				throw new Error(errorMessage);
+			}
+		},
+		retry: true,
+	});
+
+
 	return (
 		<div className="relative z-20 px-4 mx-auto max-w-7xl -mt-24 airbnb-search">
 			<motion.div
@@ -148,7 +190,9 @@ const AirbnbStyleSearch = () => {
 						onClick={() => handleTabClick("where")}
 					>
 						<div className="px-6 py-4 cursor-pointer">
-							<div className="text-xs font-bold text-gray-900 mb-1">Where</div>
+							<div className="text-xs font-bold text-gray-900 mb-1">
+								Where
+							</div>
 							<div className="text-sm text-gray-500">
 								{location || "Search destinations"}
 							</div>
@@ -191,7 +235,9 @@ const AirbnbStyleSearch = () => {
 						onClick={() => handleTabClick("who")}
 					>
 						<div className="px-6 py-4 flex-grow cursor-pointer">
-							<div className="text-xs font-bold text-gray-900 mb-1">Who</div>
+							<div className="text-xs font-bold text-gray-900 mb-1">
+								Who
+							</div>
 							<div className="text-sm text-gray-500">
 								{guests?.adults > 0 ||
 								guests?.children > 0 ||
@@ -199,7 +245,8 @@ const AirbnbStyleSearch = () => {
 									<>
 										{guests.adults > 0 &&
 											`${guests.adults} Adult${guests.adults > 1 ? "s" : ""} `}
-										{guests.children > 0 && ` ${guests.children} Children `}
+										{guests.children > 0 &&
+											` ${guests.children} Children `}
 										{guests.infants > 0 &&
 											`${guests.infants} Infant${guests.infants > 1 ? "s" : ""}`}
 									</>
@@ -243,42 +290,132 @@ const AirbnbStyleSearch = () => {
 											Choose Your Apartment
 										</h3>
 
-										<div className="grid grid-cols-2 gap-2">
-											{marAbuApartments.map((apartment, index) => (
-												<button
-													key={index}
-													type="button"
-													className="flex items-center gap-2 p-2 border border-gray-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 text-left transition-all duration-200"
-													onClick={async () => {
-														form.setValue(
-															"stepOne.location",
-															apartment.location
-														);
-														form.setValue("stepOne.name", apartment.name);
+										<QueryStateHandler
+											query={getProperties}
+											emptyMessage="No properties found. Try adjusting filters."
+											getItems={(res)=> res.data.properties}
+											render={(res) => {
+												const {
+													properties,
+													pagination,
+												} = res.data;
+												return (
+													<>
+														<div className="grid grid-cols-2 gap-2">
+															{properties.map(
+																(
+																	property: Propert
+																) => (
+																	<button
+																		key={
+																			property.id
+																		}
+																		type="button"
+																		className="flex items-center gap-2 p-2 border border-gray-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 text-left transition-all duration-200"
+																		onClick={async () => {
+																			form.setValue(
+																				"stepOne.location",
+																				property.address
+																			);
+																			form.setValue(
+																				"stepOne.name",
+																				property.name
+																			);
 
-														form.setValue("stepOne.id", apartment.id);
-														const isValid = await form.trigger("stepOne");
-														if (isValid) {
-															setActiveTab("checkin");
-														}
-													}}
-												>
-													<div className="w-6 h-6 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
-														<span className="text-amber-600 font-medium text-xs">
-															{apartment.name.charAt(0)}
-														</span>
-													</div>
-													<div className="min-w-0 flex-1">
-														<div className="font-medium text-gray-900 text-xs truncate">
-															{apartment.name}
+																			form.setValue(
+																				"stepOne.id",
+																				property.id
+																			);
+																			const isValid =
+																				await form.trigger(
+																					"stepOne"
+																				);
+																			if (
+																				isValid
+																			) {
+																				setActiveTab(
+																					"checkin"
+																				);
+																			}
+																		}}
+																	>
+																		<div className="w-6 h-6 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
+																			<span className="text-amber-600 font-medium text-xs">
+																				{property.address.charAt(
+																					0
+																				)}
+																			</span>
+																		</div>
+																		<div className="min-w-0 flex-1">
+																			<div className="font-medium text-gray-900 text-xs truncate">
+																				{
+																					property.name
+																				}
+																			</div>
+																			<div className="text-xs text-gray-500 truncate">
+																				{/* {
+																		property.address.split(
+																			","
+																		)[0]
+																	} */}
+
+																				{
+																					property.address
+																				}
+																			</div>
+																		</div>
+																	</button>
+																)
+															)}
 														</div>
-														<div className="text-xs text-gray-500 truncate">
-															{apartment.location.split(",")[0]}
+
+														<div className="flex items-center justify-center gap-4 mt-6">
+															<Button
+																disabled={
+																	!pagination.hasPrev
+																}
+																onClick={() =>
+																	setPage(
+																		(p) =>
+																			Math.max(
+																				p -
+																					1,
+																				1
+																			)
+																	)
+																}
+															>
+																Prev
+															</Button>
+															<span className="text-[12px]">
+																Page{" "}
+																{
+																	pagination.page
+																}{" "}
+																of{" "}
+																{
+																	pagination.pages
+																}
+															</span>
+															<Button
+																disabled={
+																	!pagination.hasNext
+																}
+																onClick={() =>
+																	setPage(
+																		(p) =>
+																			p +
+																			1
+																	)
+																}
+															>
+																Next
+															</Button>
 														</div>
-													</div>
-												</button>
-											))}
-										</div>
+													</>
+												);
+											}}
+										/>
 									</div>
 								)}
 
@@ -302,12 +439,21 @@ const AirbnbStyleSearch = () => {
 														className=" md:w-[80%] md:h-[50%] max-w-[520px] rounded-2xl border border-gray-200 shadow-md p-3"
 														mode="single"
 														disabled={(date) => {
-															const today = dayjs().startOf("day");
-															return dayjs(date).isBefore(today);
+															const today =
+																dayjs().startOf(
+																	"day"
+																);
+															return dayjs(
+																date
+															).isBefore(today);
 														}}
 														onSelect={(date) => {
-															field.onChange(date);
-															setActiveTab("checkout");
+															field.onChange(
+																date
+															);
+															setActiveTab(
+																"checkout"
+															);
 														}}
 														selected={field.value}
 													/>
@@ -340,10 +486,17 @@ const AirbnbStyleSearch = () => {
 														className=" md:w-[80%] md:h-[50%]  rounded-2xl border border-gray-200 shadow-md p-3"
 														mode="single"
 														disabled={(date) =>
-															dayjs(date).isSameOrBefore(checkIn, "day")
+															dayjs(
+																date
+															).isSameOrBefore(
+																checkIn,
+																"day"
+															)
 														}
 														onSelect={(date) => {
-															field.onChange(date);
+															field.onChange(
+																date
+															);
 															setActiveTab("who");
 														}}
 														selected={field.value}
@@ -370,7 +523,9 @@ const AirbnbStyleSearch = () => {
 														title="Adults"
 														subtitle="Ages 13 or above"
 														value={field.value}
-														onChange={field.onChange}
+														onChange={
+															field.onChange
+														}
 													/>
 												)}
 											/>
@@ -383,7 +538,9 @@ const AirbnbStyleSearch = () => {
 														title="Children"
 														subtitle="Ages 2-12"
 														value={field.value}
-														onChange={field.onChange}
+														onChange={
+															field.onChange
+														}
 													/>
 												)}
 											/>
@@ -396,7 +553,9 @@ const AirbnbStyleSearch = () => {
 														title="Infants"
 														subtitle="Under 2"
 														value={field.value}
-														onChange={field.onChange}
+														onChange={
+															field.onChange
+														}
 													/>
 												)}
 											/>

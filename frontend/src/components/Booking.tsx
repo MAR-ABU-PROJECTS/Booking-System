@@ -18,6 +18,7 @@ import type { SummaryData } from "@lib/type";
 import { useDispatch } from "react-redux";
 import { resetBooking } from "@lib/features/bookingSlice";
 import BookingStep from "@components/bookingComponents/BookingStep";
+import { ChevronLeft } from "lucide-react";
 
 const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
@@ -85,17 +86,12 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			checkIn: new Date(),
 			checkOut: dayjs().add(1, "day").toDate(),
 			guestEmail: "",
-			address: "",
-			arrivalTime: "",
 			agree: false,
 			specialRequests: "",
 			children: 0,
 			adults: 1,
 			infants: 0,
 			guestPhone: "",
-			idType: "",
-			paymentMethod: "",
-			emergencyContact: "",
 			guestName: "",
 		},
 		mode: "onChange",
@@ -106,12 +102,11 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		if (step == 2) return;
 		setStep((step) => step + 1);
 	};
-	
+
 	const handleBack = () => {
 		if (step == 1) return;
 		setStep((step) => step - 1);
 	};
-
 
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof createBookingSchema>) => {
@@ -132,6 +127,14 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			});
 			return response;
 		},
+		retry: (failureCount, error) => {
+			if (isAxiosError(error)) {
+				const status = error.response?.status;
+				if (!status || status >= 500) return failureCount < 3;
+			}
+			return false;
+		},
+		retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
 		onSuccess: async (res) => {
 			if (res?.success) {
 				const message = res?.message as string;
@@ -141,10 +144,10 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 				});
 				setSummaryData(res.data);
 				dispatch(resetBooking());
-				handleNext()
+				handleNext();
 			} else {
 				const message = res?.message as string;
-				toast.success(message, {
+				toast.error(message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
@@ -173,7 +176,11 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 					});
 				}
 			} else {
-				console.error("Non-Axios Error:", error);
+			
+				toast.error("Unexpected error, please try again", {
+					closeOnClick: false,
+					progress: undefined,
+				});
 			}
 		},
 	});
@@ -230,26 +237,34 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		});
 	}, []);
 
-
 	return (
 		<>
 			<Navbar />
 			<FormProvider {...form}>
 				<div className="bg-[#F1F1F1]">
 					<div className="mx-auto max-w-5xl px-[20px] lg:px-12 pt-[100px]">
-						<BookingStep
-							activeStep={step}
-							next={handleNext}
-							prev={handleBack}
-						/>
+						<BookingStep activeStep={step} />
 					</div>
 
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="mx-auto max-w-5xl px-[20px] lg:px-12 py-[30px]"
+						className="mx-auto max-w-5xl px-[20px] lg:px-12 pt-[20px] pb-[30px]"
 					>
+						<div className="mb-4">
+							{step === 2 && (
+								<button
+									type="button"
+									className="mb-4 cursor-pointer text-amber-500 flex items-center active:scale-95 hover:scale-95 transition-all"
+									onClick={handleBack}
+								>
+									{" "}
+									<ChevronLeft /> Back
+								</button>
+							)}
+						</div>
+
 						{step === 1 && (
-							<BookingForm isSubmitting={mutation.isPending}/>
+							<BookingForm isSubmitting={mutation.isPending} />
 						)}
 						{step === 2 && (
 							<BookingSummary

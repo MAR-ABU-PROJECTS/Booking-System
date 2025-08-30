@@ -54,7 +54,7 @@ export async function setSession(data: {
 		refreshToken: data.refreshToken,
 	};
 
-	const ttl = data.rememberMe ? 60 * 60 * 24 * 7 : 60 * 60 * 5;
+	const ttl = data.rememberMe ? 60 * 60 * 24 * 7 : 60 * 60 * 24;
 
 	session.updateConfig({
 		...sessionOptions,

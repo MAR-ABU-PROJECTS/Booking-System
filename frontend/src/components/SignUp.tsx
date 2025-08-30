@@ -104,7 +104,10 @@ const SignUp = () => {
 					});
 				}
 			} else {
-				console.error("Non-Axios Error:", error);
+				toast.error("Unexpected error, please try again", {
+					closeOnClick: false,
+					progress: undefined,
+				});
 			}
 		},
 	});
@@ -267,7 +270,7 @@ const SignUp = () => {
 						)}
 					/>
 
-					<div className=" mt-3 max-w-[50%] w-full">
+					<div className=" mt-3 w-full max-w-[300px]">
 						<PasswordStrengthChecker
 							strength={passwordStrength}
 							password={form.getValues("password")}
