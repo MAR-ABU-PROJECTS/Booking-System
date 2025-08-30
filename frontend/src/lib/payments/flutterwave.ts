@@ -1,7 +1,7 @@
 "use client";
 
 import { closePaymentModal } from "flutterwave-react-v3";
-import { apiService } from "@lib/apiService";
+// import { apiService } from "@lib/apiService";
 import { toast } from "react-toastify";
 
 interface FlutterwaveConfig {
@@ -36,6 +36,7 @@ interface FlutterwaveResponse {
 }
 
 export function initializeFlutterwavePayment(config: FlutterwaveConfig) {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const FlutterwaveCheckout = (window as any)?.FlutterwaveCheckout;
 
 	if (!FlutterwaveCheckout) {

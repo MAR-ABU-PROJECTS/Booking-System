@@ -14,15 +14,15 @@ import { isAxiosError } from "axios";
 import { Checkbox } from "@components/ui/checkbox";
 import { Label } from "@components/ui/label";
 import { Button } from "@components/ui/button";
-import {
-	Select,
-	SelectItem,
-	SelectTrigger,
-	SelectContent,
-	SelectGroup,
-	SelectValue,
-	SelectLabel,
-} from "@components/ui/select";
+// import {
+// 	Select,
+// 	SelectItem,
+// 	SelectTrigger,
+// 	SelectContent,
+// 	SelectGroup,
+// 	SelectValue,
+// 	SelectLabel,
+// } from "@components/ui/select";
 import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
 import { resumePayStackPayment } from "@lib/payments/paystack";
