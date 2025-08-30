@@ -36,7 +36,7 @@ interface FlutterwaveResponse {
 }
 
 export function initializeFlutterwavePayment(config: FlutterwaveConfig) {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const FlutterwaveCheckout = (window as any)?.FlutterwaveCheckout;
 
 	if (!FlutterwaveCheckout) {
@@ -52,14 +52,9 @@ export function initializeFlutterwavePayment(config: FlutterwaveConfig) {
 		customer: config.customer,
 		callback: async (response: FlutterwaveResponse) => {
 			try {
-				// await apiService.post("/")
-
 				config.onSuccess?.(response);
-
-				// Optional: verify transaction with your backend
-				// await fetch("/api/payments/verify", { ... })
 			} finally {
-				closePaymentModal(); // ensures modal closes after payment
+				closePaymentModal();
 			}
 		},
 		onclose: () => {

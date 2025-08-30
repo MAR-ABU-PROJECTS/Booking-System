@@ -14,15 +14,6 @@ import { isAxiosError } from "axios";
 import { Checkbox } from "@components/ui/checkbox";
 import { Label } from "@components/ui/label";
 import { Button } from "@components/ui/button";
-// import {
-// 	Select,
-// 	SelectItem,
-// 	SelectTrigger,
-// 	SelectContent,
-// 	SelectGroup,
-// 	SelectValue,
-// 	SelectLabel,
-// } from "@components/ui/select";
 import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
 import { resumePayStackPayment } from "@lib/payments/paystack";
@@ -136,7 +127,7 @@ const BookingSummary = ({
 						toast.error("Payment cancelled");
 					},
 					onError: (err) => {
-						console.error("Paystack error:", err);
+						
 						toast.error(`Paystack error: ${err?.message}`);
 					},
 				});
@@ -151,11 +142,18 @@ const BookingSummary = ({
 					},
 					currency: res?.data?.payment?.currency,
 					onSuccess: (resp) => {
-						console.log(resp)
-						toast.success("Payment successful");
-						router.push(
-							`/confirmation?bookingId=${summaryData.id}&ref=${resp.tx_ref}`
-						);
+						if (
+							(resp.status === "successful" || resp.status === "completed") &&
+							(resp.charge_response_code === "00" || resp.charge_response_code === "0")
+						) {
+							toast.success("Payment successful");
+					
+							router.push(
+								`/confirmation?bookingId=${summaryData.id}&ref=${resp.tx_ref}`
+							);
+						} else {
+							toast.error("Payment could not be verified. Please contact support.");
+						}
 					},
 					onClose: () => {
 						console.log("Payment modal closed");
