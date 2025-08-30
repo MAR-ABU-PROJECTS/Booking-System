@@ -96,7 +96,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		},
 		mode: "onChange",
 	});
-	const [step, setStep] = useState(2);
+	const [step, setStep] = useState(1);
 
 	const handleNext = () => {
 		if (step == 2) return;
@@ -176,8 +176,11 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 					});
 				}
 			} else {
-				console.error("Non-Axios Error:", error);
-				toast.error("Unexpected error, please try again");
+			
+				toast.error("Unexpected error, please try again", {
+					closeOnClick: false,
+					progress: undefined,
+				});
 			}
 		},
 	});

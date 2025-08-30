@@ -92,7 +92,10 @@ const LogIn = () => {
 					});
 				}
 			} else {
-				console.error("Non-Axios Error:", error);
+				toast.error('Unexpected error, please try again', {
+					closeOnClick: false,
+					progress: undefined,
+				});
 			}
 		},
 	});

@@ -293,6 +293,7 @@ const AirbnbStyleSearch = () => {
 										<QueryStateHandler
 											query={getProperties}
 											emptyMessage="No properties found. Try adjusting filters."
+											getItems={(res)=> res.data.properties}
 											render={(res) => {
 												const {
 													properties,

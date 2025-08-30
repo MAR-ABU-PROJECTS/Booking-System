@@ -186,10 +186,6 @@ export type BookingCardType = {
 	paymentStatus: PaymentStatus;
 };
 
-type Count = {
-	reviews: number;
-	bookings: number;
-};
 
 export type Propert = {
 	id: string;
