@@ -1,6 +1,6 @@
 import axios, { AxiosError, isAxiosError } from "axios";
 import axiosRetry from "axios-retry";
-import * as crypto from "crypto";
+// import * as crypto from "crypto";
 
 export interface FlutterwaveInitPayload {
   tx_ref: string;
@@ -26,12 +26,10 @@ export interface FlutterwaveRefundResponse {
 
 export class FlutterwaveService {
   private readonly baseUrl = "https://api.flutterwave.com/v3";
-  private readonly secretKey: string;
-  private readonly secretHash: string | undefined;
+  private readonly secretKey = process.env.FLW_SECRET_KEY || "";
+  private readonly secretHash = process.env.FLW_SECRET_HASH;
 
   constructor() {
-    this.secretKey = process.env.FLW_SECRET_KEY || "";
-    this.secretHash = process.env.FLW_SECRET_HASH;
     if (!this.secretKey) throw new Error("Missing FLW_SECRET_KEY in env");
 
     axiosRetry(axios, {
@@ -95,40 +93,29 @@ export class FlutterwaveService {
   }
 
   /** Full refund – always full, no partials */
-  async refundPayment(
-    transactionId: string
-  ): Promise<FlutterwaveRefundResponse> {
-    if (!transactionId) throw new Error("Missing transactionId for refund");
+  async refundPayment(transactionId: string) {
+    if (!transactionId) {
+      throw new Error("Missing Flutterwave transaction id");
+    }
     try {
-      const payload = { transaction: transactionId }; // full refund only
-
-      const res = await axios.post(`${this.baseUrl}/refunds`, payload, {
-        headers: this.headers,
-        timeout: 10000,
-      });
-
-      // ✅ Treat "already refunded" as success
-      if (
-        res.data?.status === "error" &&
-        res.data?.message?.toLowerCase().includes("already refunded")
-      ) {
-        return { ...res.data, status: "success" } as FlutterwaveRefundResponse;
-      }
-
-      return res.data as FlutterwaveRefundResponse;
+      const res = await axios.post(
+        `${this.baseUrl}/transactions/${transactionId}/refund`,
+        { comments: "Full refund initiated by admin" },
+        { headers: this.headers, timeout: 10000 }
+      );
+      return res.data;
     } catch (error: any) {
-      this.logError("Flutterwave refund error", error);
-      throw this.handleError(error, "Flutterwave refund error");
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Refund processing failed";
+      throw new Error(msg);
     }
   }
 
-  verifyWebhookSignature(body: string, signature: string): boolean {
+  verifyWebhookSignature(headerValue?: string): boolean {
     if (!this.secretHash) return false;
-    const hash = crypto
-      .createHmac("sha512", this.secretHash)
-      .update(body)
-      .digest("hex");
-    return hash === signature;
+    return headerValue === this.secretHash;
   }
 
   private logError(context: string, error: any) {

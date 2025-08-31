@@ -39,7 +39,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.flutterwaveService = exports.FlutterwaveService = void 0;
 const axios_1 = __importStar(require("axios"));
 const axios_retry_1 = __importDefault(require("axios-retry"));
-const crypto = __importStar(require("crypto"));
 class FlutterwaveService {
     constructor() {
         this.baseUrl = "https://api.flutterwave.com/v3";
@@ -102,34 +101,24 @@ class FlutterwaveService {
     }
     /** Full refund – always full, no partials */
     async refundPayment(transactionId) {
-        if (!transactionId)
-            throw new Error("Missing transactionId for refund");
+        if (!transactionId) {
+            throw new Error("Missing Flutterwave transaction id");
+        }
         try {
-            const payload = { transaction: transactionId }; // full refund only
-            const res = await axios_1.default.post(`${this.baseUrl}/refunds`, payload, {
-                headers: this.headers,
-                timeout: 10000,
-            });
-            // ✅ Treat "already refunded" as success
-            if (res.data?.status === "error" &&
-                res.data?.message?.toLowerCase().includes("already refunded")) {
-                return { ...res.data, status: "success" };
-            }
+            const res = await axios_1.default.post(`${this.baseUrl}/transactions/${transactionId}/refund`, { comments: "Full refund initiated by admin" }, { headers: this.headers, timeout: 10000 });
             return res.data;
         }
         catch (error) {
-            this.logError("Flutterwave refund error", error);
-            throw this.handleError(error, "Flutterwave refund error");
+            const msg = error?.response?.data?.message ||
+                error?.message ||
+                "Refund processing failed";
+            throw new Error(msg);
         }
     }
-    verifyWebhookSignature(body, signature) {
+    verifyWebhookSignature(headerValue) {
         if (!this.secretHash)
             return false;
-        const hash = crypto
-            .createHmac("sha512", this.secretHash)
-            .update(body)
-            .digest("hex");
-        return hash === signature;
+        return headerValue === this.secretHash;
     }
     logError(context, error) {
         if ((0, axios_1.isAxiosError)(error)) {
