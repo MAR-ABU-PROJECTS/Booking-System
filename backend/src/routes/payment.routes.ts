@@ -2020,78 +2020,97 @@ router.post(
       let isSuccessful = false;
 
       if (refund.payment.method === PaymentMethod.PAYSTACK) {
+        // === PAYSTACK FLOW ===
         providerResponse = await paystackService.refundPayment(
           refund.payment.reference
         );
-        console.log("Paystack refund response:", providerResponse);
-        isSuccessful = providerResponse?.status === true;
+        if (providerResponse?.status === true) {
+          // Refund is initiated, not completed yet
+          await prisma.refund.update({
+            where: { id: refund.id },
+            data: {
+              status: RefundStatus.PROCESSING,
+              providerResponse,
+              processedBy: req.user.id,
+              processedAt: new Date(),
+            },
+          });
+
+          await prisma.payment.update({
+            where: { id: refund.payment.id },
+            data: { refundStatus: RefundStatus.PROCESSING },
+          });
+
+          return res.json({
+            success: true,
+            message: "Refund initiated with Paystack (pending settlement)",
+            data: providerResponse,
+          });
+        }
       } else if (refund.payment.method === PaymentMethod.FLUTTERWAVE) {
         const flwId = refund.payment.transactionId || refund.payment.reference;
-        providerResponse = await flutterwaveService.refundPayment(flwId);
-        console.log("Flutterwave refund response:", providerResponse);
-        isSuccessful = providerResponse?.status === "success";
-      } else {
-        return res
-          .status(400)
-          .json({ success: false, message: "Unsupported payment method" });
-      }
+        if (!flwId)
+          throw new AppError("Missing Flutterwave transaction ID", 400);
 
-      if (isSuccessful) {
-        // ✅ Update DB after success
-        const [updatedRefund] = await prisma.$transaction([
+        const resp = await flutterwaveService.refundPayment(flwId);
+
+        const provStatus = String(resp?.status || "").toLowerCase();
+        const dataStatus = String(resp?.data?.status || "").toLowerCase();
+
+        const mapped =
+          provStatus === "success"
+            ? RefundStatus.PROCESSING
+            : RefundStatus.FAILED;
+
+        await prisma.$transaction([
           prisma.refund.update({
             where: { id: refund.id },
             data: {
-              status: RefundStatus.REFUNDED,
+              status: mapped,
+              providerResponse: resp,
+              processedBy: req.user.id,
               processedAt: new Date(),
-              providerResponse,
               updatedAt: new Date(),
             },
           }),
           prisma.payment.update({
             where: { id: refund.payment.id },
-            data: {
-              refundStatus: RefundStatus.REFUNDED,
-              refundAmount: refund.amount,
-              refundCompletedAt: new Date(),
-              refundedAt: new Date(),
-              status: PaymentStatus.REFUNDED,
-            },
+            data: { refundStatus: mapped },
           }),
         ]);
 
-        return res.json({
-          success: true,
-          message: "Refund approved and processed",
-          data: updatedRefund,
+        return res.status(mapped === RefundStatus.PROCESSING ? 202 : 400).json({
+          success: mapped !== RefundStatus.FAILED,
+          message:
+            mapped === RefundStatus.PROCESSING
+              ? "Refund initiated with Flutterwave (awaiting webhook confirmation)"
+              : resp?.message || "Refund initiation failed",
+          data: resp,
         });
       }
-
-      console.error("Refund provider failure:", providerResponse);
-      return res.status(400).json({
-        success: false,
-        message: providerResponse?.message || "Refund processing failed",
-        error: providerResponse,
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Unsupported payment method" });
     } catch (err: any) {
-      console.error(
-        "Refund processing error:",
-        err.response?.data || err.message || err
-      );
+      const raw = err.response?.data || err;
 
       await prisma.refund.update({
         where: { id: refund.id },
         data: {
           status: RefundStatus.FAILED,
-          providerResponse: err.response?.data || { error: err.message || err },
+          providerResponse: raw,
           updatedAt: new Date(),
         },
       });
 
       return res.status(500).json({
         success: false,
-        message: "Refund processing failed",
-        error: err.response?.data || err.message || err,
+        message:
+          raw?.data ||
+          raw?.message ||
+          (err as Error).message ||
+          "Refund processing failed",
+        error: raw,
       });
     }
   })
