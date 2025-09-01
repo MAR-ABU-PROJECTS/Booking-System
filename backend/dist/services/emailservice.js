@@ -52,13 +52,13 @@ class EmailService {
         const fromEmail = process.env.EMAIL_FROM || "no-reply@local.test";
         return `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <${fromEmail}>`;
     }
-    getBackendBaseapiUrl() {
-        return (process.env.BACKEND_apiUrl || "http://localhost:5050").replace(/\/$/, "");
+    getBackendBaseUrl() {
+        return (process.env.BACKEND_URL || "http://localhost:5050").replace(/\/$/, "");
     }
     apiUrl(path) {
         const prefix = process.env.API_PREFIX || "/api/v1";
         const clean = path.startsWith("/") ? path : `/${path}`;
-        return `${this.getBackendBaseapiUrl()}${prefix}${clean}`;
+        return `${this.getBackendBaseUrl()}${prefix}${clean}`;
     }
     async sendEmail(options) {
         try {
