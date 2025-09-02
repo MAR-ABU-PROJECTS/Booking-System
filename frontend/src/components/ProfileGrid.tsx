@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import ProfileSummary from "./ProfileSummary";
 import { QueryStateHandler } from "./QueryStateHandler";
 import { UserProfile } from "@lib/type";
+import ProfileSkeleton from "./ProfileSkeleton";
 
 const ProfileGrid = () => {
 	const getProfile = useQuery({
@@ -41,8 +42,9 @@ const ProfileGrid = () => {
 
 			<QueryStateHandler
 				query={getProfile}
-				emptyMessage="No properties found. Try adjusting filters."
-				getItems={(res) => res.data.properties}
+				emptyMessage="No profile found"
+				getItems={(res) => res.data}
+				loadingComponent={<ProfileSkeleton />}
 				render={(res) => {
 					const data = res.data;
 					return (

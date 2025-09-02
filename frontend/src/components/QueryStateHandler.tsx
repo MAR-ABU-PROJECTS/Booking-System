@@ -7,10 +7,20 @@ type QueryStateHandlerProps<T> = {
   query: UseQueryResult<T, Error>;
   render: (data: T) => React.ReactNode;
   emptyMessage?: string;
-  getItems?: (data: T) => unknown[];
+  getItems?: (data: T) => unknown;
   loadingComponent?: React.ReactNode;
   errorComponent?: (error: Error, retry: () => void, isFetching: boolean) => React.ReactNode;
 };
+
+function isEmptyData(data: unknown): boolean {
+  if (Array.isArray(data)) {
+    return data.length === 0;
+  }
+  if (data && typeof data === "object") {
+    return Object.keys(data).length === 0;
+  }
+  return data == null;
+}
 
 export function QueryStateHandler<T>({
   query,
@@ -20,7 +30,7 @@ export function QueryStateHandler<T>({
   loadingComponent,
   errorComponent,
 }: QueryStateHandlerProps<T>) {
-  // ⏳ Loading state
+
   if (query.isPending) {
     return (
       loadingComponent ?? (
@@ -31,7 +41,6 @@ export function QueryStateHandler<T>({
     );
   }
 
-  // ❌ Error state
   if (query.isError) {
     if (errorComponent) {
       return errorComponent(query.error, query.refetch, query.isFetching);
@@ -48,21 +57,16 @@ export function QueryStateHandler<T>({
           onClick={() => query.refetch()}
           disabled={query.isFetching}
         >
-          {query.isFetching ? (
-            <Loader2 className="animate-spin" />
-          ) : (
-            "Retry"
-          )}
+          {query.isFetching ? <Loader2 className="animate-spin" /> : "Retry"}
         </Button>
       </div>
     );
   }
 
-  // ✅ Success state
   if (query.isSuccess && query.data) {
     const items = getItems ? getItems(query.data) : query.data;
 
-    if (Array.isArray(items) && items.length === 0) {
+    if (isEmptyData(items)) {
       return (
         <div className="my-6 flex flex-col items-center justify-center text-gray-500">
           <h3 className="mb-1">{emptyMessage}</h3>
@@ -73,6 +77,5 @@ export function QueryStateHandler<T>({
     return <>{render(query.data)}</>;
   }
 
-  // 🔒 Fallback (shouldn't usually happen)
   return null;
 }
