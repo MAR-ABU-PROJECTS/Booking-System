@@ -110,7 +110,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 				{/* Logo */}
 
 				{whiteBg ? (
-					<Link href="/" className="flex items-center">
+					<Link href="/" className="flex items-center shrink-0">
 						<Image
 							src="/logo/black-logo.png"
 							alt="MAR ABU HOMES"
@@ -120,7 +120,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 						/>
 					</Link>
 				) : isScrolled ? (
-					<Link href="/" className="flex items-center">
+					<Link href="/" className="flex items-center shrink-0">
 						<Image
 							src="/logo/black-logo.png"
 							alt="MAR ABU HOMES"
@@ -130,7 +130,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 						/>
 					</Link>
 				) : (
-					<Link href="/" className="flex items-center">
+					<Link href="/" className="flex items-center shrink-0">
 						<Image
 							src="/logo/logo.png"
 							alt="MAR ABU HOMES"

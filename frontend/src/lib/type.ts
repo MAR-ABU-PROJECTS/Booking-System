@@ -244,3 +244,14 @@ export type Propert = {
 		bookings: number;
 	};
 };
+
+
+export type UserProfile = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  emailVerified: string;
+  role: string
+  status: string
+};

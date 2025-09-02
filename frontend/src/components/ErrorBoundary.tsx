@@ -15,10 +15,9 @@ export default function Error({
 	}, [error]);
 
 	return (
-		<div>
+		<div className="flex flex-col items-center h-svh justify-center gap-2">
 			<h2>Something went wrong!</h2>
-			<button onClick={() => reset()}>Try again</button>
-			<Button className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl">
+			<Button onClick={() => reset()} className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl">
 				Try Again
 			</Button>
 		</div>
