@@ -255,3 +255,9 @@ export type UserProfile = {
   role: string
   status: string
 };
+
+type ErrorComponentType = (
+  error: unknown,
+  refetch: () => void,
+  isFetching: boolean
+) => React.ReactNode;

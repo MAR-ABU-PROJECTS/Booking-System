@@ -9,17 +9,39 @@ type QueryStateHandlerProps<T> = {
   emptyMessage?: string;
   getItems?: (data: T) => unknown;
   loadingComponent?: React.ReactNode;
-  errorComponent?: (error: Error, retry: () => void, isFetching: boolean) => React.ReactNode;
+  errorComponent?: (
+    error: Error,
+    retry: () => void,
+    isFetching: boolean
+  ) => React.ReactNode;
 };
 
 function isEmptyData(data: unknown): boolean {
-  if (Array.isArray(data)) {
-    return data.length === 0;
-  }
-  if (data && typeof data === "object") {
-    return Object.keys(data).length === 0;
-  }
+  if (Array.isArray(data)) return data.length === 0;
+  if (data && typeof data === "object") return Object.keys(data).length === 0;
   return data == null;
+}
+
+function DefaultErrorComponent(
+  error: Error,
+  retry: () => void,
+  isFetching: boolean
+) {
+  return (
+    <div className="my-6 flex flex-col items-center justify-center">
+      <h3 className="mb-1 text-red-500">
+        {error.message || "Something went wrong"}
+      </h3>
+      <Button
+        className="!cursor-pointer hover:bg-[#F4A857] py-[10px] text-[16px] transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
+        type="button"
+        onClick={retry}
+        disabled={isFetching}
+      >
+        {isFetching ? <Loader2 className="animate-spin" /> : "Retry"}
+      </Button>
+    </div>
+  );
 }
 
 export function QueryStateHandler<T>({
@@ -28,9 +50,8 @@ export function QueryStateHandler<T>({
   emptyMessage = "No data found",
   getItems,
   loadingComponent,
-  errorComponent,
+  errorComponent = DefaultErrorComponent, // ✅ fallback
 }: QueryStateHandlerProps<T>) {
-
   if (query.isPending) {
     return (
       loadingComponent ?? (
@@ -42,25 +63,7 @@ export function QueryStateHandler<T>({
   }
 
   if (query.isError) {
-    if (errorComponent) {
-      return errorComponent(query.error, query.refetch, query.isFetching);
-    }
-
-    return (
-      <div className="my-6 flex flex-col items-center justify-center">
-        <h3 className="mb-1 text-red-500">
-          {query.error?.message || "Something went wrong"}
-        </h3>
-        <Button
-          className="!cursor-pointer hover:bg-[#F4A857] py-[10px] text-[16px] transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
-          type="button"
-          onClick={() => query.refetch()}
-          disabled={query.isFetching}
-        >
-          {query.isFetching ? <Loader2 className="animate-spin" /> : "Retry"}
-        </Button>
-      </div>
-    );
+    return errorComponent(query.error, query.refetch, query.isFetching);
   }
 
   if (query.isSuccess && query.data) {
