@@ -14,7 +14,7 @@ const ProfileGrid = () => {
 		queryKey: ["profile"],
 		queryFn: async () => {
 			try {
-				const response = await apiService.get(`/auth/me`);
+				const response = await apiService.get(`/users/profile`);
 				return response;
 			} catch (error) {
 				let errorMessage = "An unexpected error occurred";
@@ -26,7 +26,7 @@ const ProfileGrid = () => {
 					errorMessage = error.message;
 				}
 				toast.error(errorMessage, {
-					closeOnClick: false,
+					closeOnClick: true,
 					progress: undefined,
 				});
 
@@ -35,6 +35,8 @@ const ProfileGrid = () => {
 		},
 		retry: true,
 	});
+
+	console.log(getProfile.data)
 
 	return (
 		<div className="mt-[150px] lg:mt-[130px] px-4 mx-auto max-w-7xl mb-10">

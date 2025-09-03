@@ -200,6 +200,11 @@ export const ProfileSchema = z.object({
 	lastName: z.string().min(1, "Last name is required"),
 	email: z.email("Invalid email address"),
 	phone: z.string().min(10, "Phone number is required"),
-	address: z.string().min(1, "address is required"),
+	notificationPreferences: z.object({
+		email: z.boolean(),
+		sms: z.boolean(),
+	}),
+	avatar: z
+		.union([z.string().min(1, "Invalid image URL"), z.instanceof(File), z.null()])
+		.optional(),
 });
-//

@@ -13,14 +13,14 @@ const ProfileSkeleton = () => {
 
 				
 				<div className="space-y-1.5 text-center mb-4">
-					<Skeleton className="h-6 w-40 mx-auto" /> {/* name */}
-					<Skeleton className="h-4 w-24 mx-auto" /> {/* role */}
+					<Skeleton className="h-6 w-40 mx-auto" /> 
+					<Skeleton className="h-4 w-24 mx-auto" /> 
 				</div>
 
 				<hr />
 
 			
-				<div className="flex flex-col gap-2.5 text-[15px] text-black mt-4">
+				<div className="flex flex-col gap-2.5 text-[15px] text-black">
 					<div className="flex items-center gap-3">
 						<Skeleton className="h-5 w-full" />
 					</div>
