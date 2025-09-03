@@ -17,7 +17,7 @@ import { Button } from "@components/ui/button";
 import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
 import { resumePayStackPayment } from "@lib/payments/paystack";
-import { initializeFlutterwavePayment } from "@lib/payments/flutterwave";
+// import { initializeFlutterwavePayment } from "@lib/payments/flutterwave";
 import { useRouter } from "next/navigation";
 import PaymentStatus from "@components/PaymentStatus";
 import { CreditCard } from "lucide-react";
@@ -132,34 +132,34 @@ const BookingSummary = ({
 					},
 				});
 			}
-			if (res?.success && paymentMethod === PaymentMethod.FLUTTERWAVE) {
-				initializeFlutterwavePayment({
-					tx_ref: res?.data?.payment?.reference,
-					amount: res?.data?.payment?.amount,
-					customer: {
-						name: summaryData.guestName,
-						email: summaryData.guestEmail,
-					},
-					currency: res?.data?.payment?.currency,
-					onSuccess: (resp) => {
-						if (
-							(resp.status === "successful" || resp.status === "completed") &&
-							(resp.charge_response_code === "00" || resp.charge_response_code === "0")
-						) {
-							toast.success("Payment successful");
+			// if (res?.success && paymentMethod === PaymentMethod.FLUTTERWAVE) {
+			// 	initializeFlutterwavePayment({
+			// 		tx_ref: res?.data?.payment?.reference,
+			// 		amount: res?.data?.payment?.amount,
+			// 		customer: {
+			// 			name: summaryData.guestName,
+			// 			email: summaryData.guestEmail,
+			// 		},
+			// 		currency: res?.data?.payment?.currency,
+			// 		onSuccess: (resp) => {
+			// 			if (
+			// 				(resp.status === "successful" || resp.status === "completed") &&
+			// 				(resp.charge_response_code === "00" || resp.charge_response_code === "0")
+			// 			) {
+			// 				toast.success("Payment successful");
 					
-							router.push(
-								`/confirmation?bookingId=${summaryData.id}&ref=${resp.tx_ref}`
-							);
-						} else {
-							toast.error("Payment could not be verified. Please contact support.");
-						}
-					},
-					onClose: () => {
-						console.log("Payment modal closed");
-					},
-				});
-			}
+			// 				router.push(
+			// 					`/confirmation?bookingId=${summaryData.id}&ref=${resp.tx_ref}`
+			// 				);
+			// 			} else {
+			// 				toast.error("Payment could not be verified. Please contact support.");
+			// 			}
+			// 		},
+			// 		onClose: () => {
+			// 			console.log("Payment modal closed");
+			// 		},
+			// 	});
+			// }
 		} catch {
 		} finally {
 			setLoading(false);
