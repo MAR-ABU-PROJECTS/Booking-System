@@ -20,3 +20,28 @@ export const checkPasswordStrength = (pwd: string) => {
 
   return strength;
 };
+
+
+export function toTitleCase(str: string): string {
+  return str
+    .toLowerCase()
+    .split(" ")
+    .filter(Boolean) // remove extra spaces
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+export function flattenErrors(errorObj: unknown): string[] {
+		if (!errorObj) return [];
+
+		return Object.values(errorObj).flatMap((error) => {
+			if (!error) return [];
+			if (typeof error === "object" && "message" in error) {
+				return [error.message as string];
+			}
+			if (typeof error === "object") {
+				return flattenErrors(error);
+			}
+			return [];
+		});
+	}

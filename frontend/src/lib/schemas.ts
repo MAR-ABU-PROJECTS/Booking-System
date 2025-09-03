@@ -151,6 +151,7 @@ export const createBookingSchema = z
 	});
 
 export const BookSchema = z.object({
+	id: z.string().min(1, "property id is required"),
 	bookingDate: z
 		.object({
 			from: z.date({

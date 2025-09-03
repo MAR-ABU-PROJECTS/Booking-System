@@ -3,14 +3,15 @@ import { z } from "zod";
 import { useFormContext, Controller } from "react-hook-form";
 import { BookSchema } from "@lib/schemas";
 import dayjs from "dayjs";
-import { formatCurrency } from "@lib/utils";
+import { useDispatch } from "react-redux";
+import { updateBooking } from "@lib/features/bookingSlice";
+import { Button } from "./ui/button";
+import { flattenErrors } from "@lib/utils";
 
-type Props = {
-	price: number;
-};
-const AvailabilityCalendar = ({ price }: Props) => {
-	const { watch, control } = useFormContext<z.infer<typeof BookSchema>>();
-
+const AvailabilityCalendar = () => {
+	const { watch, control, formState } =
+		useFormContext<z.infer<typeof BookSchema>>();
+	const dispatch = useDispatch();
 	const bookingDate = watch("bookingDate");
 
 	const formattedCheckIn = bookingDate?.from
@@ -24,20 +25,16 @@ const AvailabilityCalendar = ({ price }: Props) => {
 		bookingDate?.from && bookingDate?.to
 			? dayjs(bookingDate.to).diff(dayjs(bookingDate.from), "day")
 			: 0;
-
 	const nightsLabel = nights === 1 ? "1 Night" : `${nights} Nights`;
 
-	const ratePerNight = price;
+	const allErrorMessages = flattenErrors(formState.errors);
 
-	const totalCost = nights * ratePerNight;
 	return (
 		<div className="p-5 py-8 md:p-6">
-			{totalCost > 0 ? (
-				<h3 className="text-[18px]">
-					{formatCurrency(totalCost)} for {nightsLabel}
-				</h3>
+			{nights > 0 ? (
+				<h3 className="text-[18px]">{nightsLabel}</h3>
 			) : (
-				<h3 className="text-[18px]">Add dates to see price</h3>
+				<h3 className="text-[18px]">Add dates to see duration</h3>
 			)}
 			<div className="flex flex-col mt-5 gap-3">
 				<div className="flex justify-between items-center">
@@ -59,7 +56,15 @@ const AvailabilityCalendar = ({ price }: Props) => {
 									title="Adults"
 									subtitle="Ages 13 or above"
 									value={field.value}
-									onChange={field.onChange}
+									onChange={(val) => {
+										field.onChange(val);
+										dispatch(
+											updateBooking({
+												key: "adults",
+												value: val,
+											})
+										);
+									}}
 								/>
 							</div>
 						)}
@@ -73,7 +78,15 @@ const AvailabilityCalendar = ({ price }: Props) => {
 									title="Children"
 									subtitle="Ages 2-12"
 									value={field.value}
-									onChange={field.onChange}
+									onChange={(val) => {
+										field.onChange(val);
+										dispatch(
+											updateBooking({
+												key: "children",
+												value: val,
+											})
+										);
+									}}
 								/>
 							</div>
 						)}
@@ -87,19 +100,39 @@ const AvailabilityCalendar = ({ price }: Props) => {
 									title="Infants"
 									subtitle="Under 2"
 									value={field.value}
-									onChange={field.onChange}
+									onChange={(val) => {
+										field.onChange(val);
+										dispatch(
+											updateBooking({
+												key: "infants",
+												value: val,
+											})
+										);
+									}}
 								/>
 							</div>
 						)}
 					/>
 				</div>
 
-				<button
-					type="button"
-					className="cursor-pointer mt-2 w-full py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-[17px] font-medium"
-				>
+				<div className="flex">
+					{allErrorMessages.length > 0 && (
+						<ul className="space-y-1 text-left pb-2">
+							{allErrorMessages.map((msg, idx) => (
+								<li
+									key={idx}
+									className="text-[14px] text-red-600"
+								>
+									{msg}
+								</li>
+							))}
+						</ul>
+					)}
+				</div>
+
+				<Button type="submit" className="!mt-2 text-[17px] h-[45px]">
 					Book Now
-				</button>
+				</Button>
 			</div>
 		</div>
 	);

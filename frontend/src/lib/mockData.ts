@@ -3,7 +3,7 @@ import { BookingStatus, PaymentStatus } from "@lib/type";
 
 export const properties: Property[] = [
 	{
-		id: "cmej5rmfc0003ttlocuwe7zxf",
+		id: "cmey9ncc00003g44ti3p1lepe",
 		status: "Premium",
 		desc: "Sophisticated penthouse with contemporary design and premium amenities",
 		name: "ABIKE PENTHOUSE",
@@ -35,7 +35,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmej5rqnb000uttlogpvst5cz",
+		id: "cmey9nct6001fg44t022an0b6",
 		name: "WHITE-STONE",
 		type: "Short Let",
 		location: "Victoria Island, Lagos",
@@ -65,7 +65,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmej5ro4t000dttloj7897ljy",
+		id: "cmey9ncj9000lg44tak039o90",
 		name: "OBUDU VILLA",
 		type: "Short Let",
 		location: "Lekki Phase 1, Lagos",
@@ -95,7 +95,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmej5rpeg000lttlozfcrhzvo",
+		id: "cmey9ncoa000zg44t64k1s8z",
 		name: "ZIRCON",
 		type: "Short Let",
 		location: "Banana Island, Lagos",
