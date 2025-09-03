@@ -38,13 +38,13 @@ const SingleProperty = ({ property }: { property: Property }) => {
 		form.reset({
 			id: property.id,
 		});
-	}, [form]);
+	}, [form, property.id]);
 
 	useEffect(() => {
 		dispatch(updateBooking({ key: "id", value: property.id }));
 		dispatch(updateBooking({ key: "location", value: property.location }));
 		dispatch(updateBooking({ key: "name", value: property.name }));
-	}, []);
+	}, [dispatch, property.name, property.location, property.id]);
 
 	
 
@@ -52,12 +52,13 @@ const SingleProperty = ({ property }: { property: Property }) => {
 		try {
 			await navigator.clipboard.writeText(window.location.href);
 			toast.success("link copied!", {
-				closeOnClick: false,
+				closeOnClick: true,
 				progress: undefined,
 			});
-		} catch (err) {
-			toast.error("failed to copy!", {
-				closeOnClick: false,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} catch (error: any) {
+			toast.error(`failed to copy!: ${error?.message ?? 'unknown error'}`, {
+				closeOnClick: true,
 				progress: undefined,
 			});
 		}

@@ -256,7 +256,7 @@ export type UserProfile = {
   status: string
 };
 
-type ErrorComponentType = (
+export type ErrorComponentType = (
   error: unknown,
   refetch: () => void,
   isFetching: boolean
