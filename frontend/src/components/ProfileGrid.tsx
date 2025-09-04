@@ -36,7 +36,6 @@ const ProfileGrid = () => {
 		retry: true,
 	});
 
-	console.log(getProfile.data)
 
 	return (
 		<div className="mt-[150px] lg:mt-[130px] px-4 mx-auto max-w-7xl mb-10">

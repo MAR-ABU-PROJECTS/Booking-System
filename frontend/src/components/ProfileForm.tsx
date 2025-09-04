@@ -51,6 +51,7 @@ const ProfileForm = ({ data }: { data: UserProfile }) => {
 		<section>
 			<FormProvider {...form}>
 				<form onSubmit={form.handleSubmit(onSubmit)}>
+					
 					<Card className="border-2 border-[#f7d5b0] !pt-0 overflow-hidden mb-5">
 						<CardHeader className="bg-orange-50/50 py-5">
 							<CardTitle className="!text-[16px] flex items-start">
@@ -168,23 +169,7 @@ const ProfileForm = ({ data }: { data: UserProfile }) => {
 							</CardContent>
 						</fieldset>
 
-						<CardFooter>
-							{isEditProfile ? (
-								<div className="flex gap-3">
-									<Button>Save Changes</Button>
-									<Button
-										variant={"destructive"}
-										onClick={() => setIsEditProfile(false)}
-									>
-										Cancel
-									</Button>
-								</div>
-							) : (
-								<Button onClick={() => setIsEditProfile(true)}>
-									Edit Profile
-								</Button>
-							)}
-						</CardFooter>
+					
 					</Card>
 					<Card className="border-2 border-[#f7d5b0] !pt-0 overflow-hidden">
 						<CardHeader className="bg-orange-50/50 py-5">
