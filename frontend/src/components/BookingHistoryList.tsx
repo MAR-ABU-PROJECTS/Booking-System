@@ -23,6 +23,8 @@ import BookingCard from "@components/BookingCard";
 import { bookings } from "@lib/mockData";
 import { DateRange } from "react-day-picker";
 import dayjs from "dayjs";
+import { QueryStateHandler } from "./QueryStateHandler";
+import { BookingCardSkeleton } from "./BookingCardSkeleton";
 
 const BookingHistoryList = () => {
 	const [uiDateRange, setUiDateRange] = useState<DateRange | undefined>(
@@ -122,6 +124,16 @@ const BookingHistoryList = () => {
 		setFilter({});
 	};
 
+	const Loader = () => {
+		return (
+			<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+				{Array.from({ length: 8 }).map((_, i) => (
+					<BookingCardSkeleton key={i} />
+				))}
+			</div>
+		);
+	};
+
 	return (
 		<div className="mt-[150px] lg:mt-[130px] px-4 mx-auto max-w-7xl mb-10">
 			<h2 className="text-2xl font-bold text-gray-900 mb-5">
@@ -138,7 +150,7 @@ const BookingHistoryList = () => {
 									variant="outline"
 									id="date"
 									className="w-full justify-between font-normal border-[#f7d5b0] border-2 text-muted-foreground px-2 py-1.5"
-									disabled={getHistory.isPending}
+									// disabled={getHistory.isPending}
 								>
 									{uiDateRange?.from && uiDateRange?.to ? (
 										<p>
@@ -182,7 +194,7 @@ const BookingHistoryList = () => {
 									value as BookingStatus
 								)
 							}
-							disabled={getHistory.isPending}
+							// disabled={getHistory.isPending}
 						>
 							<SelectTrigger className="w-full border-2 border-[#f7d5b0]">
 								<SelectValue placeholder="Select Booking Status" />
@@ -212,7 +224,7 @@ const BookingHistoryList = () => {
 									value as PaymentStatus
 								)
 							}
-							disabled={getHistory.isPending}
+							// disabled={getHistory.isPending}
 						>
 							<SelectTrigger className="w-full border-2 border-[#f7d5b0]">
 								<SelectValue placeholder="Select Payment Status" />
@@ -234,22 +246,28 @@ const BookingHistoryList = () => {
 					</div>
 
 					<div className="ml-auto">
-						<div className="h-4"/>
-						<Button
-							onClick={resetFilters}
-					
-						>
-							Reset Filter
-						</Button>
+						<div className="h-4" />
+						<Button onClick={resetFilters}>Reset Filter</Button>
 					</div>
 				</div>
 			</div>
 
-			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-				{bookings.map((booking, i: number) => (
-					<BookingCard key={i} {...booking} />
-				))}
-			</div>
+			<QueryStateHandler
+				query={getHistory}
+				emptyMessage="No Booking Found"
+				getItems={(res) => res.data}
+				loadingComponent={<Loader />}
+				render={(res) => {
+					// const data = res.data;
+					return (
+						<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+							{bookings.map((booking, i: number) => (
+								<BookingCard key={i} {...booking} />
+							))}
+						</div>
+					);
+				}}
+			/>
 		</div>
 	);
 };

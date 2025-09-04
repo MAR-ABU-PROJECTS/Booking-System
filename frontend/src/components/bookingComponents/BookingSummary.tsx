@@ -40,7 +40,6 @@ const BookingSummary = ({
 	const formattedCheckOut = summaryData.checkOutDate
 		? dayjs(summaryData.checkOutDate).format("ddd, MMM D")
 		: "";
-
 	const ratePerNight = summaryData.baseAmount;
 	const subtotal = ratePerNight * nights;
 	const cleaningFee = summaryData.cleaningFee;
@@ -168,7 +167,7 @@ const BookingSummary = ({
 
 	const paymentOptions = [
 		{ label: "PAYSTACK", value: PaymentMethod.PAYSTACK },
-		{ label: "FLUTTERWAVE", value: PaymentMethod.FLUTTERWAVE },
+		// { label: "FLUTTERWAVE", value: PaymentMethod.FLUTTERWAVE },
 	];
 
 	return (

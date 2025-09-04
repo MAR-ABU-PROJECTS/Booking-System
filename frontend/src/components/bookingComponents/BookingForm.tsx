@@ -379,7 +379,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 
 					</div>
 				</div>
-				<div className="flex-col w-full gap-[20px] hidden">
+				{/* <div className="flex-col w-full gap-[20px] hidden">
 					<div className="flex gap-[5px] items-center">
 						<div className="p-[3px] bg-[#FEF9F3] rounded-md">
 							<CreditCard size={"18px"} />
@@ -389,101 +389,9 @@ const BookingForm = ({ isSubmitting }: Props) => {
 						</p>
 					</div>
 					<div className=" flex-col w-full gap-[20px] hidden">
-						{/* <Controller
-							control={control}
-							name="paymentMethod"
-							render={({ field, fieldState }) => (
-								<div className="w-full grid items-center gap-1">
-									<Label>
-										Preferred Payment Method
-										<span className="text-red-600">*</span>
-									</Label>
-									<Select
-										value={field.value}
-										onValueChange={field.onChange}
-									>
-										<SelectTrigger className="w-full border-2 border-[#f7d5b0]">
-											<SelectValue placeholder="Select Payment Method" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectGroup>
-												<SelectLabel>
-													Select Payment Method
-												</SelectLabel>
-												<SelectItem value="bank-transfer">
-													Bank Transfer
-												</SelectItem>
-												<SelectItem value="credit-card">
-													Credit Card
-												</SelectItem>
-												<SelectItem value="mobile-money">
-													Mobile Money
-												</SelectItem>
-												<SelectItem value="cash-on-arrival">
-													Cash On Arrival
-												</SelectItem>
-												<SelectItem value="corporate-account">
-													Corporate Account
-												</SelectItem>
-											</SelectGroup>
-										</SelectContent>
-									</Select>
-									{fieldState.error && (
-										<p className="text-sm text-red-600">
-											{fieldState.error.message}
-										</p>
-									)}
-								</div>
-							)}
-						/> */}
-
-						{/* <div className="w-full grid items-center gap-1">
-							<Label htmlFor="file-upload">
-								Upload Payment Receipt
-							</Label>
-							<label
-								htmlFor="file-upload"
-								className={`h-[150px] w-full flex flex-col justify-center items-center mx-auto border-2 border-dashed cursor-pointer rounded-xl
-                  ${
-						fileName !== "No file chosen"
-							? "bg-green-100 border-green-500 text-green-700"
-							: "bg-[#fef9f3] border-[#f7d5b0] text-[#667085] hover:border-[#F4A857]"
-					}`}
-							>
-								<div>
-									{fileName !== "No file chosen" ? (
-										<CircleCheckBig className="text-green-600" />
-									) : (
-										<FileText className="text-[#F4A857]" />
-									)}
-								</div>
-								<p
-									className={`font-medium text-center ${fileName !== "No file chosen" ? "text-green-700" : ""}`}
-								>
-									{fileName !== "No file chosen"
-										? "File uploaded successfully!"
-										: "Click or drag file to upload"}
-								</p>
-								<p className="text-[12px] text-[#667085]">
-									{fileName === "No file chosen"
-										? "Supported formats: JPG, PNG, PDF (Max 5MB)"
-										: "Click to change file"}
-								</p>
-								<input
-									id="file-upload"
-									type="file"
-									className="hidden"
-									onChange={handleFileChange}
-								/>
-								<p
-									className={`text-[12px] mt-1 ${fileName !== "No file chosen" ? "text-green-700 font-semibold" : "text-[#667085]"}`}
-								>
-									{fileName}
-								</p>
-							</label>
-						</div> */}
+					
 					</div>
-				</div>
+				</div> */}
 				<div className="flex flex-col w-full gap-[20px]">
 					<div className="flex gap-[5px] items-center">
 						<div className="p-[3px] bg-[#FEF9F3] rounded-md">

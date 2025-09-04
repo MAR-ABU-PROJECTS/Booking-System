@@ -1,16 +1,12 @@
-import Image from "next/image";
 import { Card } from "./ui/card";
 import {
-	BadgeCent,
 	BadgeCheck,
 	BookOpen,
 	Calendar,
 	House,
 	Mail,
-	MapPin,
 	Phone,
 } from "lucide-react";
-import photo from "@public/images/profile.png";
 import { UserProfile } from "@lib/type";
 import dayjs from "dayjs";
 import advancedFormat from "dayjs/plugin/advancedFormat";
@@ -19,19 +15,12 @@ import { ProfileAvatar } from "./ProfileAvatar";
 
 const ProfileSummary = ({ data }: { data?: UserProfile }) => {
 	dayjs.extend(advancedFormat);
-	dayjs.locale("en"); // set locale
+	dayjs.locale("en");
 
-	const formattedDate = `${dayjs(data?.createdAt).format("Do, MMM YYYY")}`;
+	const formattedDate = `${dayjs(data?.createdAt).format("MMM, Do YYYY")}`;
 	return (
 		<Card className="p-5 border-2 border-[#f7d5b0] self-start">
-			{/* <div className="mt-4 mx-auto relative rounded-full flex justify-center items-center overflow-hidden object-center object-cover size-[150px] mb-2">
-				<Image
-					src={photo}
-					fill
-					className="object-cover object-center"
-					alt="profile pic"
-				/>
-			</div> */}
+			
 			<div>
 				<ProfileAvatar  initialPhoto={data?.avatar as string}/>
 			</div>
@@ -49,7 +38,7 @@ const ProfileSummary = ({ data }: { data?: UserProfile }) => {
 					<Mail className="size-4 text-gray-400" />
 					<span>{data?.email}</span>{" "}
 					{data?.emailVerified ? (
-						<BadgeCheck className="text-green-500 size-6" />
+						<BadgeCheck className="text-green-500 size-5" />
 					) : null}
 				</div>
 				<div className="flex items-center gap-3">
@@ -58,13 +47,13 @@ const ProfileSummary = ({ data }: { data?: UserProfile }) => {
 				</div>
 				<div className="flex items-center gap-3">
 					<Calendar className="size-4 text-gray-400" />
-					<span>Member since {formattedDate}</span>
+					<span>Joined on {formattedDate}</span>
 				</div>
 			</div>
 
 			<hr />
 			<div>
-				<h3 className="text-sm font-medium text-gray-900 text-center mb-4">
+				<h3 className="text-[16px] font-medium text-gray-900 text-center mb-4">
 					Activity Stats
 				</h3>
 				<div className="grid grid-cols-2 gap-2 text-center">

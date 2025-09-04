@@ -78,6 +78,7 @@ export function ProfileAvatar({ initialPhoto }: ProfileAvatarProps) {
 			);
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {
+			setPreview(initialPhoto);
 			throw err;
 		} finally {
 			setUploading(false);

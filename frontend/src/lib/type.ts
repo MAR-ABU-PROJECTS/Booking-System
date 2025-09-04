@@ -249,17 +249,18 @@ export type UserProfile = {
 	firstName: string;
 	lastName: string;
 	email: string;
-	emailVerified: string | null; // can be null if not verified
+	emailVerified: string | null;
 	phone: string;
 	avatar: string | null;
+	address: string;
 	role: string;
-	status: "ACTIVE" | "INACTIVE" | "SUSPENDED"; // adjust based on your statuses
+	status: "ACTIVE" | "INACTIVE" | "SUSPENDED"; 
 	notificationPreferences: {
 		email: boolean;
 		sms: boolean;
-	}; // expand if you know the structure
-	createdAt: string; // ISO date string
-	updatedAt: string; // ISO date string
+	};
+	createdAt: string; 
+	updatedAt: string; 
 	_count: {
 		bookings: number;
 		hostedProperties: number;
