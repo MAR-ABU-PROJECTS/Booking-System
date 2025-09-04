@@ -186,7 +186,6 @@ export type BookingCardType = {
 	paymentStatus: PaymentStatus;
 };
 
-
 export type Propert = {
 	id: string;
 	name: string;
@@ -210,7 +209,7 @@ export type Propert = {
 	baseRate: number;
 	cleaningFee: number;
 	securityDeposit: number;
-	serviceFee: number; 
+	serviceFee: number;
 	weekendPremium: number;
 	monthlyDiscount: number;
 	averageRating: number;
@@ -225,7 +224,7 @@ export type Propert = {
 	houseRules: string | null;
 	cancellationPolicy: string | null;
 	adminNotes: string | null;
-	checkInTime: string; 
+	checkInTime: string;
 	checkOutTime: string;
 	currency: string;
 	isActive: boolean;
@@ -244,3 +243,33 @@ export type Propert = {
 		bookings: number;
 	};
 };
+
+export type UserProfile = {
+	id: string;
+	firstName: string;
+	lastName: string;
+	email: string;
+	emailVerified: string | null;
+	phone: string;
+	avatar: string | null;
+	address: string;
+	role: string;
+	status: "ACTIVE" | "INACTIVE" | "SUSPENDED"; 
+	notificationPreferences: {
+		email: boolean;
+		sms: boolean;
+	};
+	createdAt: string; 
+	updatedAt: string; 
+	_count: {
+		bookings: number;
+		hostedProperties: number;
+		reviews: number;
+	};
+};
+
+export type ErrorComponentType = (
+	error: unknown,
+	refetch: () => void,
+	isFetching: boolean
+) => React.ReactNode;

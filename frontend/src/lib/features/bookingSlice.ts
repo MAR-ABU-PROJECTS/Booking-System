@@ -6,8 +6,8 @@ type BookingSliceType = {
 	id:string;
 	location: string;
 	name: string;
-	checkIn: undefined | Date;
-	checkOut: undefined | Date;
+	checkIn: undefined | null;
+	checkOut: undefined | null;
 	adults: number;
 	children: number;
 	infants: number;

@@ -277,7 +277,7 @@ const SignUp = () => {
 						/>
 					</div>
 					<Button
-						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
+						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform"
 						disabled={mutation.isPending}
 						type="submit"
 					>

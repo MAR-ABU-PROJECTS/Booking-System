@@ -3,7 +3,6 @@ import { Label } from "@components/ui/label";
 import {
 	CalendarMinus2,
 	CalendarRange,
-	CreditCard,
 	MessageSquareMore,
 	UserRound,
 	Loader2
@@ -16,15 +15,6 @@ import {
 } from "@components/ui/popover";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
-// import {
-// 	Select,
-// 	SelectContent,
-// 	SelectGroup,
-// 	SelectItem,
-// 	SelectLabel,
-// 	SelectTrigger,
-// 	SelectValue,
-// } from "@components/ui/select";
 import { Checkbox } from "@components/ui/checkbox";
 import { Controller, useFormContext } from "react-hook-form";
 import { createBookingSchema } from "@lib/schemas";
@@ -377,96 +367,9 @@ const BookingForm = ({ isSubmitting }: Props) => {
 							/>
 						</div>
 
-						{/* <Controller
-							control={control}
-							name="address"
-							render={({ field, fieldState }) => (
-								<div className="flex flex-col w-full gap-1">
-									<Label>Address</Label>
-									<Input
-										type="text"
-										placeholder="Complete Address for billing purpose"
-										className="border-2 border-[#f7d5b0]"
-										{...field}
-									/>
-									{fieldState.error && (
-										<p className="text-sm text-red-600">
-											{fieldState.error.message}
-										</p>
-									)}
-								</div>
-							)}
-						/> */}
-
-						{/* <div className="hidden">
-							<Controller
-								control={control}
-								name="idType"
-								render={({ field, fieldState }) => (
-									<div className="grid w-full items-center gap-1">
-										<Label>
-											ID Type
-											<span className="text-red-600">
-												*
-											</span>
-										</Label>
-										<Select
-											value={field.value}
-											onValueChange={field.onChange}
-										>
-											<SelectTrigger className="w-[full] border-2 border-[#f7d5b0]">
-												<SelectValue placeholder="Select ID Type" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectGroup>
-													<SelectItem value="nin">
-														National ID
-													</SelectItem>
-													<SelectItem value="passport">
-														International Passport
-													</SelectItem>
-													<SelectItem value="drivers-license">
-														Driver‘s License
-													</SelectItem>
-													<SelectItem value="voters-card">
-														Voter‘s Card
-													</SelectItem>
-												</SelectGroup>
-											</SelectContent>
-										</Select>
-										{fieldState.error && (
-											<p className="text-sm text-red-600">
-												{fieldState.error.message}
-											</p>
-										)}
-									</div>
-								)}
-							/>
-						</div> */}
-
-						{/* <Controller
-							control={control}
-							name="emergencyContact"
-							render={({ field, fieldState }) => (
-								<div className="flex flex-col w-full gap-1">
-									<Label>Emergency Contact</Label>
-									<Input
-										type="text"
-										placeholder="Emergency contact and phone number"
-										className="border-2 border-[#f7d5b0]"
-										{...field}
-									/>
-									{fieldState.error && (
-										<p className="text-sm text-red-600">
-											{fieldState.error.message}
-										</p>
-									)}
-								</div>
-							)}
-						/> */}
 					</div>
 				</div>
-				<div className="flex-col w-full gap-[20px] hidden">
+				{/* <div className="flex-col w-full gap-[20px] hidden">
 					<div className="flex gap-[5px] items-center">
 						<div className="p-[3px] bg-[#FEF9F3] rounded-md">
 							<CreditCard size={"18px"} />
@@ -476,101 +379,9 @@ const BookingForm = ({ isSubmitting }: Props) => {
 						</p>
 					</div>
 					<div className=" flex-col w-full gap-[20px] hidden">
-						{/* <Controller
-							control={control}
-							name="paymentMethod"
-							render={({ field, fieldState }) => (
-								<div className="w-full grid items-center gap-1">
-									<Label>
-										Preferred Payment Method
-										<span className="text-red-600">*</span>
-									</Label>
-									<Select
-										value={field.value}
-										onValueChange={field.onChange}
-									>
-										<SelectTrigger className="w-full border-2 border-[#f7d5b0]">
-											<SelectValue placeholder="Select Payment Method" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectGroup>
-												<SelectLabel>
-													Select Payment Method
-												</SelectLabel>
-												<SelectItem value="bank-transfer">
-													Bank Transfer
-												</SelectItem>
-												<SelectItem value="credit-card">
-													Credit Card
-												</SelectItem>
-												<SelectItem value="mobile-money">
-													Mobile Money
-												</SelectItem>
-												<SelectItem value="cash-on-arrival">
-													Cash On Arrival
-												</SelectItem>
-												<SelectItem value="corporate-account">
-													Corporate Account
-												</SelectItem>
-											</SelectGroup>
-										</SelectContent>
-									</Select>
-									{fieldState.error && (
-										<p className="text-sm text-red-600">
-											{fieldState.error.message}
-										</p>
-									)}
-								</div>
-							)}
-						/> */}
-
-						{/* <div className="w-full grid items-center gap-1">
-							<Label htmlFor="file-upload">
-								Upload Payment Receipt
-							</Label>
-							<label
-								htmlFor="file-upload"
-								className={`h-[150px] w-full flex flex-col justify-center items-center mx-auto border-2 border-dashed cursor-pointer rounded-xl
-                  ${
-						fileName !== "No file chosen"
-							? "bg-green-100 border-green-500 text-green-700"
-							: "bg-[#fef9f3] border-[#f7d5b0] text-[#667085] hover:border-[#F4A857]"
-					}`}
-							>
-								<div>
-									{fileName !== "No file chosen" ? (
-										<CircleCheckBig className="text-green-600" />
-									) : (
-										<FileText className="text-[#F4A857]" />
-									)}
-								</div>
-								<p
-									className={`font-medium text-center ${fileName !== "No file chosen" ? "text-green-700" : ""}`}
-								>
-									{fileName !== "No file chosen"
-										? "File uploaded successfully!"
-										: "Click or drag file to upload"}
-								</p>
-								<p className="text-[12px] text-[#667085]">
-									{fileName === "No file chosen"
-										? "Supported formats: JPG, PNG, PDF (Max 5MB)"
-										: "Click to change file"}
-								</p>
-								<input
-									id="file-upload"
-									type="file"
-									className="hidden"
-									onChange={handleFileChange}
-								/>
-								<p
-									className={`text-[12px] mt-1 ${fileName !== "No file chosen" ? "text-green-700 font-semibold" : "text-[#667085]"}`}
-								>
-									{fileName}
-								</p>
-							</label>
-						</div> */}
+					
 					</div>
-				</div>
+				</div> */}
 				<div className="flex flex-col w-full gap-[20px]">
 					<div className="flex gap-[5px] items-center">
 						<div className="p-[3px] bg-[#FEF9F3] rounded-md">
@@ -601,29 +412,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 							)}
 						/>
 
-						{/* <div className="flex justify-between items-center gap-[20px]">
-							<Controller
-								control={control}
-								name="arrivalTime"
-								render={({ field, fieldState }) => (
-									<div className="grid w-full items-center gap-1">
-										<Label htmlFor="time-picker">
-											Estimated Arrival Time
-										</Label>
-										<Input
-											type="time"
-											className="bg-background border-2 border-[#f7d5b0] appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-											{...field}
-										/>
-										{fieldState.error && (
-											<p className="text-sm text-red-600">
-												{fieldState.error.message}
-											</p>
-										)}
-									</div>
-								)}
-							/>
-						</div> */}
+					
 
 						<div className="w-full h-full p-[10px] bg-[#fef9f3] border-2 border-[#f7d5b0] rounded-xl">
 							<Controller

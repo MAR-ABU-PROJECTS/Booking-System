@@ -20,11 +20,6 @@
 				"name": "next"
 			}
 		],
-		// "paths": {
-		//   "@/*": [
-		//     "./src/*"
-		//   ]
-		// }
 		"baseUrl": ".",
 		"paths": {
 			"@public/*": ["public/*"],

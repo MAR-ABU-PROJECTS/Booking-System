@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
 import GuestCounter from "@components/GuestCounter";
 import { Calendar } from "@components/ui/calendar";
-import { useDispatch } from "react-redux";
+import { useDispatch} from "react-redux";
 import { updateBooking } from "@lib/features/bookingSlice";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +25,6 @@ const AirbnbStyleSearch = () => {
 	dayjs.extend(isSameOrBefore);
 	const [activeTab, setActiveTab] = useState<string | null>(null);
 	const router = useRouter();
-
 	const dispatch = useDispatch();
 
 	const handleTabClick = (tab: string) => {
@@ -37,38 +36,6 @@ const AirbnbStyleSearch = () => {
 	};
 
 	const [page, setPage] = useState(1);
-
-	// MAR ABU HOMES current apartments
-	// const marAbuApartments = [
-	// 	{
-	// 		id: "cmej5rqnb000uttlogpvst5cz",
-	// 		name: "WHITE-STONE",
-	// 		location: "Victoria Island, Lagos",
-	// 		type: "Luxury Apartment",
-	// 		price: 85000,
-	// 	},
-	// 	{
-	// 		id: "cmej5rmfc0003ttlocuwe7zxf",
-	// 		name: "ABIKE PENTHOUSE",
-	// 		location: "Ikoyi, Lagos",
-	// 		type: "Premium Penthouse",
-	// 		price: 120000,
-	// 	},
-	// 	{
-	// 		id: "cmej5ro4t000dttloj7897ljy",
-	// 		name: "OBUDU VILLA",
-	// 		location: "Lekki Phase 1, Lagos",
-	// 		type: "Executive Villa",
-	// 		price: 95000,
-	// 	},
-	// 	{
-	// 		id: "cmej5rpeg000lttlozfcrhzvo",
-	// 		name: "ZIRCON",
-	// 		location: "Banana Island, Lagos",
-	// 		type: "Luxury Suite",
-	// 		price: 110000,
-	// 	},
-	// ];
 
 	const form = useForm({
 		resolver: zodResolver(homePageBookingSchema),
@@ -86,20 +53,7 @@ const AirbnbStyleSearch = () => {
 		},
 	});
 
-	// function flattenErrors(errorObj: unknown): string[] {
-	// 	if (!errorObj) return [];
-
-	// 	return Object.values(errorObj).flatMap((error) => {
-	// 		if (!error) return [];
-	// 		if (typeof error === "object" && "message" in error) {
-	// 			return [error.message as string];
-	// 		}
-	// 		if (typeof error === "object") {
-	// 			return flattenErrors(error);
-	// 		}
-	// 		return [];
-	// 	});
-	// }
+	
 
 	// const allErrorMessages = flattenErrors(form.formState.errors);
 
@@ -122,10 +76,10 @@ const AirbnbStyleSearch = () => {
 		dispatch(updateBooking({ key: "name", value: data.stepOne.name }));
 
 		dispatch(
-			updateBooking({ key: "checkIn", value: data.stepTwo.checkin })
+			updateBooking({ key: "checkIn", value: data.stepTwo.checkin.toISOString() })
 		);
 		dispatch(
-			updateBooking({ key: "checkOut", value: data.stepThree.checkout })
+			updateBooking({ key: "checkOut", value: data.stepThree.checkout.toISOString() })
 		);
 		dispatch(
 			updateBooking({ key: "adults", value: data.stepFour.Guests.adults })

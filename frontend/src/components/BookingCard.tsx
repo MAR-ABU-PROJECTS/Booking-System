@@ -84,6 +84,10 @@ const BookingCard = ({
 			<div className="space-y-1.5 text-[17px] mt-4">
 				{/* Booking Dates & Guests separated */}
 				<div className="flex justify-between font-[600]">
+					<p className="text-sm text-gray-700">Booking Ref No:</p>
+					<p className="text-sm text-gray-700">wdndw</p>
+				</div>
+				<div className="flex justify-between font-[600]">
 					<p className="text-sm text-gray-700">Check-in:</p>
 					<p className="text-sm text-gray-700">{checkIn}</p>
 				</div>

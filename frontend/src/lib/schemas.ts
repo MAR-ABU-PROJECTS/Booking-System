@@ -151,6 +151,7 @@ export const createBookingSchema = z
 	});
 
 export const BookSchema = z.object({
+	id: z.string().min(1, "property id is required"),
 	bookingDate: z
 		.object({
 			from: z.date({
@@ -194,4 +195,9 @@ export const ForgotPasswordSchema = z.object({
 	email: z.email("Invalid email address"),
 });
 
-//
+export const ProfileSchema = z.object({
+	firstName: z.string().min(1, "First name is required"),
+	lastName: z.string().min(1, "Last name is required"),
+	email: z.email("Invalid email address"),
+	phone: z.string().min(10, "Phone number is required"),
+});

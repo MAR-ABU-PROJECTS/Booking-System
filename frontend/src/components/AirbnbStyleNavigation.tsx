@@ -110,7 +110,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 				{/* Logo */}
 
 				{whiteBg ? (
-					<Link href="/" className="flex items-center">
+					<Link href="/" className="flex items-center shrink-0">
 						<Image
 							src="/logo/black-logo.png"
 							alt="MAR ABU HOMES"
@@ -120,7 +120,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 						/>
 					</Link>
 				) : isScrolled ? (
-					<Link href="/" className="flex items-center">
+					<Link href="/" className="flex items-center shrink-0">
 						<Image
 							src="/logo/black-logo.png"
 							alt="MAR ABU HOMES"
@@ -130,7 +130,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 						/>
 					</Link>
 				) : (
-					<Link href="/" className="flex items-center">
+					<Link href="/" className="flex items-center shrink-0">
 						<Image
 							src="/logo/logo.png"
 							alt="MAR ABU HOMES"
@@ -240,21 +240,21 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 												</Link>
 												<Link
 													href="/wishlist"
-													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors items-center gap-3 hidden"
 												>
 													<Heart className="w-5 h-5" />
 													<span>Wishlist</span>
 												</Link>
 												<Link
 													href="/messages"
-													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors hidden items-center gap-3"
 												>
 													<MessageSquare className="w-5 h-5" />
 													<span>Messages</span>
 												</Link>
 												<Link
 													href="/help-center"
-													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors hidden items-center gap-3"
 												>
 													<HelpCircle className="w-5 h-5" />
 													<span>Help Center</span>
@@ -306,21 +306,22 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 											<div>
 												<Link
 													href="/wishlist"
-													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors hidden items-center gap-3"
 												>
 													<Heart className="w-5 h-5" />
 													<span>Wishlist</span>
 												</Link>
 												<Link
+												
 													href="/messages"
-													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors hidden items-center gap-3"
 												>
 													<MessageSquare className="w-5 h-5" />
 													<span>Messages</span>
 												</Link>
 												<Link
 													href="/help-center"
-													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors hidden items-center gap-3"
 												>
 													<HelpCircle className="w-5 h-5" />
 													<span>Help Center</span>
