@@ -30,7 +30,7 @@ const BookingHistoryList = () => {
 	);
 
 	type BookingHistoryFilter = {
-		dateFrom?: string; // formatted as YYYY-MM-DD
+		dateFrom?: string;
 		dateTo?: string;
 		paymentStatus?: PaymentStatus;
 		bookingStatus?: BookingStatus;
@@ -38,7 +38,6 @@ const BookingHistoryList = () => {
 	};
 	const [filter, setFilter] = useState<BookingHistoryFilter>({});
 
-	// --- Query
 	const getHistory = useQuery({
 		queryKey: ["booking-history", filter],
 		queryFn: async () => {
@@ -118,15 +117,19 @@ const BookingHistoryList = () => {
 
 	const [open, setOpen] = useState(false);
 
+	const resetFilters = () => {
+		setUiDateRange(undefined);
+		setFilter({});
+	};
+
 	return (
 		<div className="mt-[150px] lg:mt-[130px] px-4 mx-auto max-w-7xl mb-10">
 			<h2 className="text-2xl font-bold text-gray-900 mb-5">
 				Booking History
 			</h2>
-			<div className="flex justify-between flex-wrap gap-6 mb-5 items-center">
+			<div className="flex justify-between flex-wrap gap-4 mb-5 items-center">
 				<h3 className="text-xl font-semibold">Filter:</h3>
-				<div className="flex items-center flex-wrap gap-5">
-					{/* --- Date */}
+				<div className="flex items-center flex-wrap gap-4">
 					<div className="flex flex-col gap-1">
 						<Label>Date</Label>
 						<Popover open={open} onOpenChange={setOpen}>
@@ -170,7 +173,6 @@ const BookingHistoryList = () => {
 						</Popover>
 					</div>
 
-					{/* --- Booking Status */}
 					<div className="flex flex-col gap-1">
 						<Label>Booking Status</Label>
 						<Select
@@ -201,7 +203,6 @@ const BookingHistoryList = () => {
 						</Select>
 					</div>
 
-					{/* --- Payment Status */}
 					<div className="flex flex-col gap-1">
 						<Label>Payment Status</Label>
 						<Select
@@ -231,10 +232,19 @@ const BookingHistoryList = () => {
 							</SelectContent>
 						</Select>
 					</div>
+
+					<div className="ml-auto">
+						<div className="h-4"/>
+						<Button
+							onClick={resetFilters}
+					
+						>
+							Reset Filter
+						</Button>
+					</div>
 				</div>
 			</div>
 
-			{/* --- Booking cards */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 				{bookings.map((booking, i: number) => (
 					<BookingCard key={i} {...booking} />
