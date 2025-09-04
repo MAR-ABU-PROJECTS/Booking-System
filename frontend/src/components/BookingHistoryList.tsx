@@ -18,9 +18,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@components/ui/select";
-import { BookingStatus, PaymentStatus } from "@lib/type";
+import { BookingCardType, BookingStatus, PaymentStatus } from "@lib/type";
 import BookingCard from "@components/BookingCard";
-import { bookings } from "@lib/mockData";
 import { DateRange } from "react-day-picker";
 import dayjs from "dayjs";
 import { QueryStateHandler } from "./QueryStateHandler";
@@ -258,11 +257,11 @@ const BookingHistoryList = () => {
 				emptyMessage="No Booking Found"
 				getItems={(res) => res.data}
 				loadingComponent={<Loader />}
-				render={() => {
-					// const data = res.data;
+				render={(res) => {
+					const data = res.data?.bookings as BookingCardType[];
 					return (
 						<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-							{bookings.map((booking, i: number) => (
+							{data.map((booking, i: number) => (
 								<BookingCard key={i} {...booking} />
 							))}
 						</div>
