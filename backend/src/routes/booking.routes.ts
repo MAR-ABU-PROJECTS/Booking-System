@@ -62,29 +62,6 @@ const validate = (req: any, res: any, next: any) => {
   next();
 };
 
-// Helper function to calculate booking costs
-const calculateBookingCosts = (
-  property: any,
-  checkIn: Date,
-  checkOut: Date
-) => {
-  const nights = Math.ceil(
-    (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const subtotal = property.baseRate * nights;
-  const cleaningFee = property.cleaningFee || 0;
-  const serviceFee = Math.round(subtotal * 0.1); // 10% service fee
-  const total = subtotal + cleaningFee + serviceFee;
-
-  return {
-    nights,
-    subtotal,
-    cleaningFee,
-    serviceFee,
-    total,
-  };
-};
-
 // ===============================
 // BOOKING ROUTES
 // ===============================
@@ -99,7 +76,7 @@ const calculateBookingCosts = (
  * /bookings:
  *   get:
  *     summary: Get bookings with filters
- *     description: Retrieve a list of bookings with optional filters based on user role. Customers see their own, hosts see bookings for their properties, and admins can see all.
+ *     description: Retrieve a list of bookings with optional filters based on user role. Customers see only their own bookings, and admins can see all bookings.
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
@@ -135,7 +112,7 @@ const calculateBookingCosts = (
  *         name: customerId
  *         schema:
  *           type: string
- *         description: Filter by customer ID (Admin only)
+ *         description: Filter by customer ID (Admin only - ignored for other roles)
  *       - in: query
  *         name: bookingCode
  *         schema:
@@ -193,7 +170,7 @@ const calculateBookingCosts = (
  */
 router.get(
   "/",
-  requireAuth({ role: UserRole.ADMIN }),
+  requireAuth(),
   asyncHandler(async (req: any, res: any) => {
     const parsed = searchBookingsSchema.parse(req.query);
     const {
@@ -211,12 +188,22 @@ router.get(
 
     const whereClause: any = {};
 
+    // Role-based filtering
+    if (req.user.role === UserRole.CUSTOMER) {
+      // Customers can only see their own bookings
+      whereClause.customerId = req.user.id;
+    }
+    // Admins can see all bookings (no additional filter)
+
     if (status) whereClause.status = status;
     if (paymentStatus) whereClause.paymentStatus = paymentStatus;
     if (propertyId) whereClause.propertyId = propertyId;
-    if (customerId) whereClause.customerId = customerId;
-    if (bookingCode) whereClause.bookingCode = bookingCode;
-    if (guestEmail) whereClause.guestEmail = guestEmail;
+    if (customerId && req.user.role === UserRole.ADMIN)
+      whereClause.customerId = customerId;
+    if (bookingCode)
+      whereClause.bookingCode = { contains: bookingCode, mode: "insensitive" };
+    if (guestEmail)
+      whereClause.guestEmail = { contains: guestEmail, mode: "insensitive" };
     if (checkInFrom || checkInTo) {
       whereClause.checkInDate = {};
       if (checkInFrom) whereClause.checkInDate.gte = new Date(checkInFrom);
@@ -226,8 +213,32 @@ router.get(
     const bookings = await prisma.booking.findMany({
       where: whereClause,
       include: {
-        customer: true,
-        property: true,
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          },
+        },
+        property: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            state: true,
+            type: true,
+            host: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -585,11 +596,17 @@ router.post(
         );
       }
 
-      // Calculate costs
-      const costs = calculateBookingCosts(
-        property,
-        data.checkIn,
-        data.checkOut
+      // Calculate pricing using booking service (consistent with pricing route)
+      const pricing = await bookingService.calculatePricing(
+        data.propertyId,
+        data.checkIn.toISOString(),
+        data.checkOut.toISOString(),
+        data.adults
+      );
+
+      const nights = Math.ceil(
+        (data.checkOut.getTime() - data.checkIn.getTime()) /
+          (1000 * 60 * 60 * 24)
       );
 
       // Generate booking number
@@ -610,11 +627,13 @@ router.post(
           guestEmail: data.guestEmail,
           guestPhone: data.guestPhone,
           specialRequests: data.specialRequests,
-          nights: costs.nights,
-          baseAmount: costs.subtotal,
-          cleaningFee: costs.cleaningFee,
-          serviceFee: costs.serviceFee,
-          total: costs.total,
+          nights: nights,
+          baseAmount: pricing.baseAmount,
+          cleaningFee: pricing.cleaningFee,
+          serviceFee: pricing.serviceFee,
+          taxes: pricing.taxes,
+          discount: pricing.discounts,
+          total: pricing.totalAmount,
           status: BookingStatus.APPROVED, // <-- Auto-approve
           paymentStatus: PaymentStatus.PENDING,
           approvedBy: req.user.id,
