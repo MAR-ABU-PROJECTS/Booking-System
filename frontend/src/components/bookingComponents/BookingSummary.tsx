@@ -91,7 +91,6 @@ const BookingSummary = ({
 		PaymentMethod | undefined
 	>();
 
-
 	const [loading, setLoading] = useState(false);
 
 	const handlePayment = async () => {
@@ -126,7 +125,6 @@ const BookingSummary = ({
 						toast.error("Payment cancelled");
 					},
 					onError: (err) => {
-						
 						toast.error(`Paystack error: ${err?.message}`);
 					},
 				});
@@ -146,7 +144,7 @@ const BookingSummary = ({
 			// 				(resp.charge_response_code === "00" || resp.charge_response_code === "0")
 			// 			) {
 			// 				toast.success("Payment successful");
-					
+
 			// 				router.push(
 			// 					`/confirmation?bookingId=${summaryData.id}&ref=${resp.tx_ref}`
 			// 				);

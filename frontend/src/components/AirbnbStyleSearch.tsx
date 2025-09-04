@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
 import GuestCounter from "@components/GuestCounter";
 import { Calendar } from "@components/ui/calendar";
-import { useDispatch } from "react-redux";
+import { useDispatch} from "react-redux";
 import { updateBooking } from "@lib/features/bookingSlice";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +25,6 @@ const AirbnbStyleSearch = () => {
 	dayjs.extend(isSameOrBefore);
 	const [activeTab, setActiveTab] = useState<string | null>(null);
 	const router = useRouter();
-
 	const dispatch = useDispatch();
 
 	const handleTabClick = (tab: string) => {
@@ -77,10 +76,10 @@ const AirbnbStyleSearch = () => {
 		dispatch(updateBooking({ key: "name", value: data.stepOne.name }));
 
 		dispatch(
-			updateBooking({ key: "checkIn", value: data.stepTwo.checkin })
+			updateBooking({ key: "checkIn", value: data.stepTwo.checkin.toISOString() })
 		);
 		dispatch(
-			updateBooking({ key: "checkOut", value: data.stepThree.checkout })
+			updateBooking({ key: "checkOut", value: data.stepThree.checkout.toISOString() })
 		);
 		dispatch(
 			updateBooking({ key: "adults", value: data.stepFour.Guests.adults })
