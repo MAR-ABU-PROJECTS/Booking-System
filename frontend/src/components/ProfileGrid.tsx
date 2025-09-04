@@ -49,7 +49,7 @@ const ProfileGrid = () => {
 				render={(res) => {
 					const data = res.data;
 					return (
-						<div className="grid grid-cols-1 sm:grid-cols-[280px_auto] gap-5 md:gap-7 lg:grid-cols-[400px_auto]">
+						<div className="grid grid-cols-1 sm:grid-cols-[300px_auto] gap-5 md:gap-7 lg:grid-cols-[400px_auto]">
 							<ProfileSummary data={data as UserProfile} />
 							<ProfileForm data={data as UserProfile} />
 						</div>

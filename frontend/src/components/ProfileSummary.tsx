@@ -38,7 +38,7 @@ const ProfileSummary = ({ data }: { data?: UserProfile }) => {
 					<Mail className="size-4 text-gray-400" />
 					<span>{data?.email}</span>{" "}
 					{data?.emailVerified ? (
-						<BadgeCheck className="text-green-500 size-5" />
+						<BadgeCheck className="text-green-500 size-4 shrink-0" />
 					) : null}
 				</div>
 				<div className="flex items-center gap-3">

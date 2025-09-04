@@ -44,6 +44,7 @@ const BookingHistoryList = () => {
 		queryKey: ["booking-history", filter],
 		queryFn: async () => {
 			try {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const params: Record<string, any> = {
 					page: filter.page ?? 1,
 					limit: 12,
@@ -257,7 +258,7 @@ const BookingHistoryList = () => {
 				emptyMessage="No Booking Found"
 				getItems={(res) => res.data}
 				loadingComponent={<Loader />}
-				render={(res) => {
+				render={() => {
 					// const data = res.data;
 					return (
 						<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

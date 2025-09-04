@@ -3,7 +3,6 @@ import { Label } from "@components/ui/label";
 import {
 	CalendarMinus2,
 	CalendarRange,
-	CreditCard,
 	MessageSquareMore,
 	UserRound,
 	Loader2
@@ -16,15 +15,6 @@ import {
 } from "@components/ui/popover";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
-// import {
-// 	Select,
-// 	SelectContent,
-// 	SelectGroup,
-// 	SelectItem,
-// 	SelectLabel,
-// 	SelectTrigger,
-// 	SelectValue,
-// } from "@components/ui/select";
 import { Checkbox } from "@components/ui/checkbox";
 import { Controller, useFormContext } from "react-hook-form";
 import { createBookingSchema } from "@lib/schemas";
@@ -422,29 +412,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 							)}
 						/>
 
-						{/* <div className="flex justify-between items-center gap-[20px]">
-							<Controller
-								control={control}
-								name="arrivalTime"
-								render={({ field, fieldState }) => (
-									<div className="grid w-full items-center gap-1">
-										<Label htmlFor="time-picker">
-											Estimated Arrival Time
-										</Label>
-										<Input
-											type="time"
-											className="bg-background border-2 border-[#f7d5b0] appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-											{...field}
-										/>
-										{fieldState.error && (
-											<p className="text-sm text-red-600">
-												{fieldState.error.message}
-											</p>
-										)}
-									</div>
-								)}
-							/>
-						</div> */}
+					
 
 						<div className="w-full h-full p-[10px] bg-[#fef9f3] border-2 border-[#f7d5b0] rounded-xl">
 							<Controller

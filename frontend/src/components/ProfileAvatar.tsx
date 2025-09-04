@@ -28,7 +28,7 @@ export function ProfileAvatar({ initialPhoto }: ProfileAvatarProps) {
 		if (initialPhoto) {
 			setPreview(`${BASE_URL}${initialPhoto}`);
 		}
-	}, [initialPhoto]);
+	}, [initialPhoto, BASE_URL]);
 
 	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
