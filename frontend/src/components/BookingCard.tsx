@@ -1,37 +1,52 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+// import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { BookingCardType } from "@lib/type";
 import { formatCurrency } from "@lib/utils";
-import Image from "next/image";
+// import Image from "next/image";
 import BookingStatus from '@components/BookingStatus';
 import PaymentStatus from '@components/PaymentStatus';
+import dayjs from "dayjs";
+import advancedFormat from "dayjs/plugin/advancedFormat";
+
+
 
 const BookingCard = ({
-	checkIn,
-	checkOut,
-	guests,
-	totalAmount,
-	images,
+	checkInDate,
+	checkOutDate,
 	status,
 	paymentStatus,
+	bookingCode,
+	createdAt,
+	adults,
+	children,
+	infants,
+	property,
+	total
 }: BookingCardType) => {
-	const [currentImageIndex, setCurrentImageIndex] = useState(0);
+	dayjs.extend(advancedFormat);
+	// const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-	const formattedPrice = formatCurrency(totalAmount);
+	const formattedCheckin = dayjs(checkInDate).format("Do, MMM YYYY");
+	const formattedCheckOut = dayjs(checkOutDate).format("Do, MMM YYYY");
+	const formattedDateBooked = dayjs(createdAt).format("Do, MMM YYYY");
 
-	const nextImage = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		setCurrentImageIndex((prev) => (prev + 1) % (images.length || 1));
-	};
+	const formattedPrice = formatCurrency(total);
 
-	const prevImage = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		setCurrentImageIndex((prev) =>
-			prev === 0 ? images.length - 1 : prev - 1
-		);
-	};
+	const totalGuests =  adults + children + infants
+
+	// const nextImage = (e: React.MouseEvent) => {
+	// 	e.stopPropagation();
+	// 	setCurrentImageIndex((prev) => (prev + 1) % (images.length || 1));
+	// };
+
+	// const prevImage = (e: React.MouseEvent) => {
+	// 	e.stopPropagation();
+	// 	setCurrentImageIndex((prev) =>
+	// 		prev === 0 ? images.length - 1 : prev - 1
+	// 	);
+	// };
 
 	return (
 		<motion.div
@@ -40,8 +55,8 @@ const BookingCard = ({
 			transition={{ duration: 0.2 }}
 		>
 			{/* Image Carousel */}
-			<div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3">
-				<div className="w-full h-full transition-all duration-500 ease-in-out relative">
+			<div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3 hidden">
+				{/* <div className="w-full h-full transition-all duration-500 ease-in-out relative">
 					{images.length > 0 ? (
 						<Image
 							src={images[currentImageIndex]}
@@ -54,10 +69,10 @@ const BookingCard = ({
 							No images available
 						</span>
 					)}
-				</div>
+				</div> */}
 
 				{/* Navigation Arrows */}
-				{images.length > 1 && (
+				{/* {images.length > 1 && (
 					<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between px-2">
 						<motion.button
 							className="p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md !cursor-pointer"
@@ -77,27 +92,43 @@ const BookingCard = ({
 							<ChevronRight className="w-4 h-4 text-gray-700" />
 						</motion.button>
 					</div>
-				)}
+				)} */}
 			</div>
 
 			{/* Content */}
-			<div className="space-y-1.5 text-[17px] mt-4">
+			<div className="space-y-1.5 text-[17px] mt-4 p-4 bg-gray-100 rounded-xl">
 				{/* Booking Dates & Guests separated */}
 				<div className="flex justify-between font-[600]">
-					<p className="text-sm text-gray-700">Booking Ref No:</p>
-					<p className="text-sm text-gray-700">wdndw</p>
+					<p className="text-sm text-gray-700">Name:</p>
+					<p className="text-sm text-gray-700">{property.name}</p>
 				</div>
 				<div className="flex justify-between font-[600]">
-					<p className="text-sm text-gray-700">Check-in:</p>
-					<p className="text-sm text-gray-700">{checkIn}</p>
+					<p className="text-sm text-gray-700">Location:</p>
+					<p className="text-sm text-gray-700">{property.state}</p>
 				</div>
 				<div className="flex justify-between font-[600]">
-					<p className="text-sm text-gray-700">Check-Out:</p>
-					<p className="text-sm text-gray-700">{checkOut}</p>
+					<p className="text-sm text-gray-700">Type:</p>
+					<p className="text-sm text-gray-700">{property.type}</p>
+				</div>
+				<div className="flex justify-between font-[600]">
+					<p className="text-sm text-gray-700">Booking Code:</p>
+					<p className="text-sm text-gray-700">{bookingCode}</p>
+				</div>
+				<div className="flex justify-between font-[600]">
+					<p className="text-sm text-gray-700">Date Booked:</p>
+					<p className="text-sm text-gray-700">{formattedDateBooked}</p>
+				</div>
+				<div className="flex justify-between font-[600]">
+					<p className="text-sm text-gray-700">Check-in Date:</p>
+					<p className="text-sm text-gray-700">{formattedCheckin}</p>
+				</div>
+				<div className="flex justify-between font-[600]">
+					<p className="text-sm text-gray-700">Check-Out Date:</p>
+					<p className="text-sm text-gray-700">{formattedCheckOut}</p>
 				</div>
 				<div className="flex justify-between font-[600]">
 					<p className="text-sm text-gray-700">Guests:</p>
-					<p className="text-sm text-gray-700">{guests}</p>
+					<p className="text-sm text-gray-700">{totalGuests}</p>
 				</div>
 				<div className="flex justify-between font-[600]">
 					<p className="text-sm text-gray-700">Total:</p>
