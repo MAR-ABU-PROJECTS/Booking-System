@@ -626,5 +626,5 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 		);
 	}
 );
-
+ConfirmationMeta.displayName = "ConfirmationMeta";
 export default ConfirmationMeta;
