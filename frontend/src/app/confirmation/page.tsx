@@ -1,12 +1,14 @@
 import ConfirmationPage from "@components/ConfirmationPage";
 
-type Props = {
-	searchParams: {
-		[key: string]: string | string[] | undefined;
-	};
+type SearchParams = {
+	[key: string]: string | string[] | undefined;
 };
 
-const Page = async ({ searchParams }: Props) => {
+const Page = async ({
+	searchParams,
+}: {
+	searchParams: Promise<SearchParams>;
+}) => {
 	const query = await searchParams;
 	const bookingId = query?.bookingId as string;
 
