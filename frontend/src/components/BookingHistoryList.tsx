@@ -43,7 +43,7 @@ const BookingHistoryList = () => {
 		queryKey: ["booking-history", filter],
 		queryFn: async () => {
 			try {
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const params: Record<string, any> = {
 					page: filter.page ?? 1,
 					limit: 12,
@@ -126,8 +126,8 @@ const BookingHistoryList = () => {
 
 	const Loader = () => {
 		return (
-			<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-				{Array.from({ length: 8 }).map((_, i) => (
+			<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3  gap-6">
+				{Array.from({ length: 6 }).map((_, i) => (
 					<BookingCardSkeleton key={i} />
 				))}
 			</div>
@@ -258,9 +258,10 @@ const BookingHistoryList = () => {
 				getItems={(res) => res.data}
 				loadingComponent={<Loader />}
 				render={(res) => {
-					const data = res.data?.bookings as BookingCardType[];
+					const data = res.data as BookingCardType[];
+					
 					return (
-						<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+						<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 							{data.map((booking, i: number) => (
 								<BookingCard key={i} {...booking} />
 							))}

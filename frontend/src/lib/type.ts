@@ -173,17 +173,67 @@ export type SummaryData = {
 
 export type BookingCardType = {
 	id: string;
-	propertyId: string;
-	userId?: string;
-	checkIn: string;
-	checkOut: string;
-	guests: number;
-	totalAmount: number;
+	bookingCode: string;
 	status: BookingStatus;
+	paymentStatus: PaymentStatus;
+
+	// Dates
+	checkInDate: string; // ISO date string
+	checkOutDate: string; // ISO date string
 	createdAt: string;
 	updatedAt: string;
-	images: string[];
-	paymentStatus: PaymentStatus;
+	approvedAt: string | null;
+	cancelledAt: string | null;
+	completedAt: string | null;
+	paidAt: string | null;
+
+	// Relations
+	customerId: string;
+	customer: {
+		id: string;
+		firstName: string;
+		lastName: string;
+		email: string;
+		phone: string;
+	};
+	propertyId: string;
+	property: {
+		id: string;
+		name: string;
+		city: string;
+		state: string;
+		type: string;
+	};
+
+	// Guest info
+	guestName: string;
+	guestEmail: string;
+	guestPhone: string;
+	guestAddress: string | null;
+
+	// Numbers
+	adults: number;
+	children: number;
+	infants: number;
+	nights: number;
+	baseAmount: number;
+	cleaningFee: number;
+	serviceFee: number;
+	taxes: number;
+	discount: number;
+	total: number;
+	paidAmount: number;
+	refundAmount: number | null;
+
+	// Misc
+	currency: string;
+	specialRequests: string;
+	cancellationReason: string | null;
+	source: string | null;
+	adminNotes: string | null;
+	approvedBy: string | null;
+	cancelledBy: string | null;
+	arrivalTime: string | null;
 };
 
 export type Propert = {
@@ -254,13 +304,13 @@ export type UserProfile = {
 	avatar: string | null;
 	address: string;
 	role: string;
-	status: "ACTIVE" | "INACTIVE" | "SUSPENDED"; 
+	status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
 	notificationPreferences: {
 		email: boolean;
 		sms: boolean;
 	};
-	createdAt: string; 
-	updatedAt: string; 
+	createdAt: string;
+	updatedAt: string;
 	_count: {
 		bookings: number;
 		hostedProperties: number;

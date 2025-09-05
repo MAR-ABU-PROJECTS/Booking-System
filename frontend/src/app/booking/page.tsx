@@ -7,8 +7,8 @@ export default async function Page({
 }: {
 	searchParams: Promise<SearchParams>;
 }) {
-	const params = await searchParams;
-	const id = params.id as string;
+	const query = await searchParams;
+	const id = query.id as string;
 
 	return <Booking propertyId={id} />;
 }
