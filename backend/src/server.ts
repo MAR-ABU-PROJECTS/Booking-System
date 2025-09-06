@@ -77,6 +77,7 @@ app.use(
       "http://localhost:3001",
       "http://localhost:5050",
       "https://booking-system-n26e.onrender.com",
+      "https://booking-system-ochre.vercel.app",
       process.env.FRONTEND_URL,
       process.env.ADMIN_URL,
     ].filter(
@@ -229,10 +230,7 @@ cron.schedule("0 3 * * *", async () => {
   try {
     const result = await prisma.refreshToken.deleteMany({
       where: {
-        OR: [
-          { expiresAt: { lt: new Date() } },
-          { revoked: true },
-        ],
+        OR: [{ expiresAt: { lt: new Date() } }, { revoked: true }],
       },
     });
     if (result.count > 0) {
