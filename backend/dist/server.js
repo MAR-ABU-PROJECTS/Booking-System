@@ -69,6 +69,9 @@ app.use((0, cors_1.default)({
         "http://localhost:3001",
         "http://localhost:5050",
         "https://booking-system-n26e.onrender.com",
+        "https://booking-system-ochre.vercel.app",
+        "https://booking-system-git-dev-mar-abus-projects.vercel.app/",
+        "https://booking-system-72iy03kcv-mar-abus-projects.vercel.app/",
         process.env.FRONTEND_URL,
         process.env.ADMIN_URL,
     ].filter((origin) => typeof origin === "string" && origin.length > 0),
@@ -201,10 +204,7 @@ node_cron_1.default.schedule("0 3 * * *", async () => {
     try {
         const result = await exports.prisma.refreshToken.deleteMany({
             where: {
-                OR: [
-                    { expiresAt: { lt: new Date() } },
-                    { revoked: true },
-                ],
+                OR: [{ expiresAt: { lt: new Date() } }, { revoked: true }],
             },
         });
         if (result.count > 0) {
