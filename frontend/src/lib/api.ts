@@ -11,3 +11,11 @@ export const getPropertyById = async (id: string) => {
 	await delay(4000);
 	return properties.find((item) => item.id === id);
 };
+
+export const getPropertyImages = (id: string) => {
+	const property = properties.find((item) => item.id === id);
+	if (property) {
+		return property?.images;
+	}
+	return [];
+};
