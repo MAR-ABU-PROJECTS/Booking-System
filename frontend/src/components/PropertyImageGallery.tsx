@@ -10,8 +10,8 @@ interface ImageBlockProps {
 
 const PropertyImagesGallery = ({ images }: ImageBlockProps) => {
 	const isMobile = useIsMobile();
-
 	if (!images || images.length === 0) return null;
+
 
 	return (
 		<div>

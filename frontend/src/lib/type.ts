@@ -19,7 +19,7 @@ export type Property = {
 	guests: number;
 	isNew?: boolean;
 	type?: string;
-	specials?:string[];
+	specials?: string[];
 };
 
 // {

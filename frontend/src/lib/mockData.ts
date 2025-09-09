@@ -40,14 +40,14 @@ export const properties: Property[] = [
 		type: "Short Let",
 		rating: 5.0,
 		reviews: 89,
-		specials: [
+		specials : [
 			"2 Spacious Bedrooms &ndash; Contemporary finishes for comfort and style.",
 			"Tastefully Curated Interiors &ndash; Premium furniture and décor for a luxurious feel.",
 			"Fully Equipped Kitchen &ndash; Modern appliances for convenient cooking.",
 			"Sleek Bathrooms &ndash; Fitted with top-grade sanitary wares.",
 			"Elegant Lighting &ndash; Natural light and ambient lighting create a welcoming atmosphere.",
 			"Private Top-Floor Access &ndash; Enjoy serene views and exclusive privacy.",
-		],
+		]
 	},
 
 	{

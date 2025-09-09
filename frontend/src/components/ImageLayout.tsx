@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import Image from 'next/image';
 
 type Props = {
 	images: string[];
@@ -13,6 +14,7 @@ const renderImage = (
 	index: number,
 	onClick: () => void
 ) => {
+	
 	return (
 		<motion.img
 			key={index}
