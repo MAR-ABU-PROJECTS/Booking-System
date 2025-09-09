@@ -46,8 +46,6 @@ const SingleProperty = ({ property }: { property: Property }) => {
 		dispatch(updateBooking({ key: "name", value: property.name }));
 	}, [dispatch, property.name, property.location, property.id]);
 
-	
-
 	const handleShare = async () => {
 		try {
 			await navigator.clipboard.writeText(window.location.href);
@@ -55,12 +53,15 @@ const SingleProperty = ({ property }: { property: Property }) => {
 				closeOnClick: true,
 				progress: undefined,
 			});
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (error: any) {
-			toast.error(`failed to copy!: ${error?.message ?? 'unknown error'}`, {
-				closeOnClick: true,
-				progress: undefined,
-			});
+			toast.error(
+				`failed to copy!: ${error?.message ?? "unknown error"}`,
+				{
+					closeOnClick: true,
+					progress: undefined,
+				}
+			);
 		}
 	};
 
@@ -133,27 +134,39 @@ const SingleProperty = ({ property }: { property: Property }) => {
 								</div>
 
 								<div className="py-5  border-b-[1px] border-black/20">
-									<h3 className="font-semibold mb-3 sm:text-[22px] lg:text-[30px] text-black">
+									<h3 className="font-semibold mb-3 text-[18px] sm:text-[22px] lg:text-[30px] text-black">
 										About this place
 									</h3>
 									<p>{property.desc}</p>
 								</div>
 
 								<div className="py-5 sm:py-7 border-b-[1px] border-black/20">
-									<p className="font-semibold mb-3 text-[18px] sm:text-[22px] text-black">
-										What this place Offers
+									<p className="font-semibold mb-3 text-[18px] sm:text-[22px] lg:text-[30px] text-black">
+										Ameneties
 									</p>
 
-									<div className="grid grid-cols-2">
+									<ul className="grid grid-cols-2 gap-4 list-disc">
 										{property.amenities.map((item, i) => (
-											<li
-												className="list-none m-1"
-												key={i}
-											>
+											<li className="m-1" key={i}>
 												{item}
 											</li>
 										))}
-									</div>
+									</ul>
+								</div>
+								<div className="py-5 sm:py-7 border-b-[1px] border-black/20">
+									<p className="font-semibold mb-3 text-[18px] sm:text-[22px] lg:text-[30px] text-black">
+										What this place Offers
+									</p>
+
+									<ul className="grid sm:grid-cols-2 gap-5 list-disc">
+										{property.specials?.map((item, i) => (
+											<li className="m-1" key={i}>
+												{item
+													.replace(/&apos;/g, "'")
+													.replace(/&ndash;/g, "-")}
+											</li>
+										))}
+									</ul>
 								</div>
 
 								<Controller

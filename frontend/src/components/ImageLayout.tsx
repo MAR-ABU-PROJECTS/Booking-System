@@ -13,6 +13,7 @@ const renderImage = (
 	index: number,
 	onClick: () => void
 ) => {
+	
 	return (
 		<motion.img
 			key={index}

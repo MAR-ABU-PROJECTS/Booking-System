@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import PaymentStatus from "@components/PaymentStatus";
 import { CreditCard } from "lucide-react";
 import PaymentMethodSelector from "@components/PaymentMethodSelector";
+import { getPropertyImages } from "@lib/api";
 
 const BookingSummary = ({
 	summaryData,
@@ -47,15 +48,7 @@ const BookingSummary = ({
 	const taxes = summaryData.taxes;
 	const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
 	const location = booking.location;
-
-	const images = [
-		"/apartment-images/IMG_5673.JPG",
-		"/apartment-images/IMG_5674.JPG",
-		"/apartment-images/IMG_5675.JPG",
-		"/apartment-images/IMG_5676.JPG",
-		"/apartment-images/IMG_5677.JPG",
-		"/apartment-images/IMG_5678.JPG",
-	];
+	const images = getPropertyImages(propertyId)
 
 	const getProperty = useQuery({
 		queryKey: ["property", propertyId],
@@ -171,7 +164,7 @@ const BookingSummary = ({
 	return (
 		<div className="order-[-1] md:order-2 flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] static self-start">
 			<div className="flex flex-col gap-[5px]">
-				<div className="w-full rounded-xl max-h-[550px] h-full overflow-y-hidden">
+				<div className="w-full rounded-xl max-h-[600px] h-full">
 					<PropertyCarousel images={images} />
 				</div>
 				<div className="flex justify-center items-center">
