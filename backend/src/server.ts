@@ -69,23 +69,11 @@ app.use(
   })
 );
 
-// CORS configuration
+// CORS configuration (allow all origins)
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:5050",
-      "https://booking-system-n26e.onrender.com",
-      "https://booking-system-ochre.vercel.app",
-      "https://booking-system-git-dev-mar-abus-projects.vercel.app/",
-      "https://booking-system-72iy03kcv-mar-abus-projects.vercel.app/",
-      process.env.FRONTEND_URL,
-      process.env.ADMIN_URL,
-    ].filter(
-      (origin): origin is string =>
-        typeof origin === "string" && origin.length > 0
-    ),
+    // Reflect request origin (enables credentials with dynamic origins)
+    origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
