@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import { forwardRef } from "react";
 import { toast } from "react-toastify";
 import advancedFormat from "dayjs/plugin/advancedFormat";
+import { generateConfirmationPdf } from "@lib/generateConfirmationPdf";
 dayjs.extend(advancedFormat);
 
 const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
@@ -576,13 +577,14 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 					</div>
 				</div>
 				<div className="flex flex-col gap-[20px] pb-[50px] print:hidden">
-					<div className="grid grid-cols-1 lg:grid-cols-4 pb-[10px] gap-[15px]">
+					<div className="grid grid-cols-1 md:grid-cols-3 pb-[10px] gap-[15px]">
 						<motion.button
 							whileHover={{ y: -5 }}
 							transition={{
 								type: "spring",
 								stiffness: 300,
 							}}
+							onClick={() => generateConfirmationPdf(data)}
 							className="w-full cursor-pointer bg-black text-white font-[500] py-2 rounded-md hover:bg-[#F4A857]"
 						>
 							📄 Download PDF
@@ -608,7 +610,7 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 						>
 							📤 Share Booking
 						</motion.button>
-						<motion.button
+						{/* <motion.button
 							whileHover={{ y: -5 }}
 							transition={{
 								type: "spring",
@@ -617,7 +619,7 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 							className="w-full cursor-pointer bg-transparent text-black font-[500] py-2 rounded-md border-1 border-black hover:bg-[#F4A857]"
 						>
 							📍 Track Status
-						</motion.button>
+						</motion.button> */}
 					</div>
 					<div className="flex flex-col p-[20px] bg-[#FEF9F3] rounded-md border-2 border-[#f7d5b0] justify-center items-center gap-[4px] text-center hover:-translate-y-1 transition-transform duration-300 cursor-pointer hover:border-[#F4A857]">
 						<div className="text-[32px]">📅</div>
