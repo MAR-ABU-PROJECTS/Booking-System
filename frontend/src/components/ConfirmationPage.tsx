@@ -73,7 +73,7 @@ const ConfirmationPage = ({ bookingId }: { bookingId: string }) => {
 					printFn={print}
 					queryResolved={getBooking.isSuccess}
 				/>
-				{/* <QueryStateHandler
+				<QueryStateHandler
 					query={getBooking}
 					emptyMessage="Booking not Found"
 					getItems={(res) => res.data}
@@ -89,7 +89,7 @@ const ConfirmationPage = ({ bookingId }: { bookingId: string }) => {
 							</div>
 						);
 					}}
-				/> */}
+				/>
 			</div>
 		</>
 	);

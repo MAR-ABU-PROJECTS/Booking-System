@@ -365,7 +365,7 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 												key={index}
 												className="flex items-start bg-[#fcfdff] p-[10px] gap-2 rounded-md"
 											>
-												<div className="w-[25px] h-[25px] bg-[#2e90fa] rounded-full flex items-center justify-center mt-[2px]">
+												<div className="w-[25px] h-[25px] bg-[#2e90fa] rounded-full flex items-center justify-center mt-[2px] shrink-0">
 													<p className="text-white font-semibold text-[13px] leading-none">
 														{item.no}
 													</p>
