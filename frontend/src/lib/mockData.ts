@@ -136,7 +136,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmey9ncoa000zg44t64k1s8z",
+		id: "cmey9ncoa000zg44t64k1s8zj",
 		name: "ZIRCON",
 		type: "Short Let",
 		location: "Banana Island, Lagos",
