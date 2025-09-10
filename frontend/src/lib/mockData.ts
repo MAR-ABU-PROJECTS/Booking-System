@@ -75,7 +75,7 @@ export const properties: Property[] = [
 			"/apartment-images/whitestone/IMG_0522.JPG",
 			"/apartment-images/whitestone/IMG_0509.JPG",
 			"/apartment-images/whitestone/IMG_0516.JPG",
-			"/apartment-images/whitestone/IMG_0509.JPG",
+
 		],
 		isNew: true,
 		bed: 2,
