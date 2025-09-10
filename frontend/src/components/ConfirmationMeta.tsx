@@ -7,6 +7,9 @@ import { formatCurrency } from "@lib/utils";
 import dayjs from "dayjs";
 import { forwardRef } from "react";
 import { toast } from "react-toastify";
+import advancedFormat from "dayjs/plugin/advancedFormat";
+import { generateConfirmationPdf } from "@lib/generateConfirmationPdf";
+dayjs.extend(advancedFormat);
 
 const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 	({ data }, ref) => {
@@ -37,6 +40,8 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 			},
 		];
 
+		console.log({data})
+
 		const contact = [
 			{
 				icon: "📞",
@@ -60,10 +65,12 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 			},
 		];
 
-		const formattedCheckIn = dayjs(data.checkInDate).format("MMMM D, YYYY");
+		const formattedCheckIn = dayjs(data.checkInDate).format("MMMM Do, YYYY");
 		const formattedCheckOut = dayjs(data.checkOutDate).format(
-			"MMMM D, YYYY"
+			"MMMM Do, YYYY"
 		);
+		const bookingSubmitted = dayjs(data.createdAt, "M/D/YYYY, h:mm:ss A").format("MMMM Do, YYYY h:mm A"); 
+		const approvedAt = dayjs(data.approvedAt, "M/D/YYYY, h:mm:ss A").format("MMMM Do, YYYY h:mm A"); 
 		const subtotal = data.total * data.nights;
 		const totalAmount =
 			subtotal + data.cleaningFee + data.serviceFee + data.taxes;
@@ -110,7 +117,9 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 						</p>
 					</div>
 				</div>
-				<div className="grid lg:grid-cols-[60%_35%] justify-between lg:gap-[40px] py-[30px] gap-[40px]">
+
+
+				<div className="grid grid-cols-1 lg:grid-cols-[60%_35%] justify-between lg:gap-[40px] py-[30px] gap-[40px] w-full">
 					<div className="flex flex-col w-full h-full p-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] gap-[30px]">
 						<div className="flex flex-col gap-[10px]">
 							<div className="flex gap-[5px] items-center">
@@ -443,7 +452,35 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 											received
 										</p>
 										<p className="text-[14px] text-[#667085]">
-											June 12, 2024 - 2:30 PM
+										{bookingSubmitted}
+										</p>
+									</li>
+									<li className="mb-10 ps-6">
+										<span className="absolute -left-4 flex h-8 w-8 items-center justify-center rounded-full bg-green-200 ring-4 ring-white dark:bg-green-900 dark:ring-gray-900">
+											<svg
+												className="h-3.5 w-3.5 text-green-500 dark:text-green-400"
+												xmlns="http://www.w3.org/2000/svg"
+												fill="none"
+												viewBox="0 0 16 12"
+												aria-hidden="true"
+											>
+												<path
+													stroke="currentColor"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth="2"
+													d="M1 5.917 5.724 10.5 15 1.5"
+												/>
+											</svg>
+										</span>
+										<h3 className="font-medium leading-tight">
+											Admin Approval
+										</h3>
+										<p className="text-[15px] text-[#667085]">
+											Your booking has been approved!
+										</p>
+										<p className="text-[14px] text-[#667085]">
+										{approvedAt}
 										</p>
 									</li>
 
@@ -472,36 +509,7 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 											Your payment has been confirmed
 										</p>
 										<p className="text-[14px] text-[#667085]">
-											June 12, 2024 - 2:45 PM
-										</p>
-									</li>
-
-									<li className="mb-10 ps-6">
-										<span className="absolute -left-4 flex h-8 w-8 items-center justify-center rounded-full bg-green-200 ring-4 ring-white dark:bg-green-900 dark:ring-gray-900">
-											<svg
-												className="h-3.5 w-3.5 text-green-500 dark:text-green-400"
-												xmlns="http://www.w3.org/2000/svg"
-												fill="none"
-												viewBox="0 0 16 12"
-												aria-hidden="true"
-											>
-												<path
-													stroke="currentColor"
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth="2"
-													d="M1 5.917 5.724 10.5 15 1.5"
-												/>
-											</svg>
-										</span>
-										<h3 className="font-medium leading-tight">
-											Admin Approval
-										</h3>
-										<p className="text-[15px] text-[#667085]">
-											Your booking has been approved!
-										</p>
-										<p className="text-[14px] text-[#667085]">
-											7/11/2025, 2:22:11 AM
+										{approvedAt}
 										</p>
 									</li>
 
@@ -530,7 +538,7 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 											Official confirmation email sent
 										</p>
 										<p className="text-[14px] text-[#667085]">
-											7/11/2025, 2:22:14 AM
+											{approvedAt}
 										</p>
 									</li>
 
@@ -569,13 +577,14 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 					</div>
 				</div>
 				<div className="flex flex-col gap-[20px] pb-[50px] print:hidden">
-					<div className="grid grid-cols-1 lg:grid-cols-4 pb-[10px] gap-[15px]">
+					<div className="grid grid-cols-1 md:grid-cols-3 pb-[10px] gap-[15px]">
 						<motion.button
 							whileHover={{ y: -5 }}
 							transition={{
 								type: "spring",
 								stiffness: 300,
 							}}
+							onClick={() => generateConfirmationPdf(data)}
 							className="w-full cursor-pointer bg-black text-white font-[500] py-2 rounded-md hover:bg-[#F4A857]"
 						>
 							📄 Download PDF
@@ -597,11 +606,11 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 								stiffness: 300,
 							}}
 							className="w-full cursor-pointer bg-transparent text-black font-[500] py-2 rounded-md border-1 border-black hover:bg-[#F4A857]"
-              onClick={handleShare}
+							onClick={handleShare}
 						>
 							📤 Share Booking
 						</motion.button>
-						<motion.button
+						{/* <motion.button
 							whileHover={{ y: -5 }}
 							transition={{
 								type: "spring",
@@ -610,7 +619,7 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 							className="w-full cursor-pointer bg-transparent text-black font-[500] py-2 rounded-md border-1 border-black hover:bg-[#F4A857]"
 						>
 							📍 Track Status
-						</motion.button>
+						</motion.button> */}
 					</div>
 					<div className="flex flex-col p-[20px] bg-[#FEF9F3] rounded-md border-2 border-[#f7d5b0] justify-center items-center gap-[4px] text-center hover:-translate-y-1 transition-transform duration-300 cursor-pointer hover:border-[#F4A857]">
 						<div className="text-[32px]">📅</div>

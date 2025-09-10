@@ -9,9 +9,9 @@ import { QueryStateHandler } from "./QueryStateHandler";
 import { BookingCardType } from "@lib/type";
 import ConfirmationMeta from "./ConfirmationMeta";
 import { useReactToPrint } from "react-to-print";
+import ConfirmationMetaSkeleton from "./ConfirmationMetaSkeleton";
 
 const ConfirmationPage = ({ bookingId }: { bookingId: string }) => {
-	
 	const getBooking = useQuery({
 		queryKey: ["booking-details", bookingId],
 		queryFn: async () => {
@@ -62,8 +62,7 @@ const ConfirmationPage = ({ bookingId }: { bookingId: string }) => {
 		});
 	}, []);
 
-
-	const contentRef = useRef<HTMLDivElement | null>(null)
+	const contentRef = useRef<HTMLDivElement | null>(null);
 
 	const print = useReactToPrint({ contentRef });
 	return (
@@ -78,12 +77,15 @@ const ConfirmationPage = ({ bookingId }: { bookingId: string }) => {
 					query={getBooking}
 					emptyMessage="Booking not Found"
 					getItems={(res) => res.data}
-					loadingComponent={<p>loading</p>}
+					loadingComponent={<ConfirmationMetaSkeleton />}
 					render={(res) => {
 						const data = res.data as BookingCardType;
 						return (
 							<div>
-								<ConfirmationMeta data={data} ref={contentRef} />
+								<ConfirmationMeta
+									data={data}
+									ref={contentRef}
+								/>
 							</div>
 						);
 					}}
