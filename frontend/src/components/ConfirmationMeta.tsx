@@ -365,7 +365,7 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 												key={index}
 												className="flex items-start bg-[#fcfdff] p-[10px] gap-2 rounded-md"
 											>
-												<div className="w-[25px] h-[25px] bg-[#2e90fa] rounded-full flex items-center justify-center mt-[2px]">
+												<div className="w-[25px] h-[25px] bg-[#2e90fa] rounded-full flex items-center justify-center mt-[2px] shrink-0">
 													<p className="text-white font-semibold text-[13px] leading-none">
 														{item.no}
 													</p>
@@ -397,7 +397,7 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 													className="flex flex-row bg-[#fcfdff] p-[10px] rounded-md gap-[10px]"
 												>
 													<div className="w-[40px] h-[40px] bg-[#1ab96f] rounded-md flex items-center justify-center mt-[2px]">
-														<p className="text-white font-semibold text-[13px] leading-none">
+														<p className="text-white font-semibold text-[13px] leading-none shrink-0">
 															{item.icon}
 														</p>
 													</div>
@@ -576,6 +576,8 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 						</div>
 					</div>
 				</div>
+
+
 				<div className="flex flex-col gap-[20px] pb-[50px] print:hidden">
 					<div className="grid grid-cols-1 md:grid-cols-3 pb-[10px] gap-[15px]">
 						<motion.button
