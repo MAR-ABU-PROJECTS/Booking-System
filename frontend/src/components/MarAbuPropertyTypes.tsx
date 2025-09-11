@@ -13,6 +13,7 @@ import {
 import { properties } from "@lib/mockData";
 import { formatCurrency } from "@lib/utils";
 import Link from "next/link";
+import Image from "next/image";
 
 const MarAbuPropertyTypes = () => {
 	const propertyTypes = [
@@ -158,13 +159,22 @@ const MarAbuPropertyTypes = () => {
 							{/* Apartment Image */}
 							<div className="relative h-48">
 								{/* Using indoor.jpg as background for all apartments */}
-								<div
+								{/* <div
 									className="absolute inset-0 bg-center bg-cover"
 									style={{
 										backgroundImage: `url(${apartment.images[0]})`,
 									}}
 								>
 									<div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+								</div> */}
+								<div className="relative h-[200px]">
+									<Image
+										src={apartment.images[0]}
+										alt={`${apartment.name}-image`}
+										className="object-cover object-center"
+										fill
+										quality={70}
+									/>
 								</div>
 
 								{/* Property Type Badge */}
@@ -173,7 +183,7 @@ const MarAbuPropertyTypes = () => {
 								</div>
 
 								{/* Rating Badge */}
-								<div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs">
+								<div className="absolute top-3 right-3 flex items-start gap-1 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs">
 									<span className="text-amber-500">★</span>
 									<span className="font-medium">
 										{apartment.rating}

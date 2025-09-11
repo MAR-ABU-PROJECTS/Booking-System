@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, X, Maximize2 } from "lucide-react";
+import Image from 'next/image';
 
 interface PropertyImage {
   id: number;
@@ -216,8 +217,10 @@ const PropertyImageShowcase = () => {
             {/* Using specific MAR ABU HOMES images based on category */}
             <div
               className="w-full h-full bg-center bg-cover"
-              style={{ backgroundImage: `url('${getImagePath(image.category, index)}')` }}
+              // style={{ backgroundImage: `url('${getImagePath(image.category, index)}')` }}
             >
+
+              <Image src={getImagePath(image.category, index)} alt={image.alt}  fill/>
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <span className="text-white text-sm font-medium">{image.alt}</span>
