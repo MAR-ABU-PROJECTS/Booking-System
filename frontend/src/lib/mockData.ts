@@ -6,7 +6,7 @@ export const properties: Property[] = [
 		status: "Premium",
 		desc: `Nestled within the prestigious Abike Residence, the Abike Penthouse is a stunning 2-bedroom luxury suite that reflects the very essence of Mar Abu${"'"}s commitment to excellence. Built by us, owned by us.Designed for those who appreciate refined living, this fully furnished penthouse offers a seamless blend of modern comfort, sophisticated aesthetics, and unmatched build quality.`,
 		name: "ABIKE PENTHOUSE",
-		location: "Ikoyi, Lagos",
+		location: "Oribanwa phase II, ibeju-Lekki",
 		amenities: [
 			"Curated Interiors",
 			"Equipped Kitchen",
@@ -17,7 +17,7 @@ export const properties: Property[] = [
 		bed: 2,
 		baths: 1,
 		roomStatus: "AVAILABLE",
-		price: 120000,
+		price: 200000,
 		images: [
 			"/apartment-images/abike-penthouse/IMG_5289.jpeg",
 			"/apartment-images/abike-penthouse/IMG_5280.jpeg",
@@ -54,10 +54,10 @@ export const properties: Property[] = [
 		id: "cmey9nct6001fg44t022an0b6",
 		name: "WHITE-STONE",
 		type: "Short Let",
-		location: "Victoria Island, Lagos",
+		location: "Whitestone by Schlepp, Perchstone & Graeys Close, Lekki",
 		desc: "Prime location: Whitestone by Schlepp, Perchstone & Graeys Close, Lekki. This is where luxury, smart living, and minimalist elegance meet. Located in the heart of Lekki, this ultra-spacious 2-bedroom shortlet is designed for those who crave comfort, luxury with sophistication.",
 		amenities: ["Smart Technology", "Outdoor Pool", "Minimalist Interiors"],
-		price: 85000,
+		price: 350000,
 		rating: 4.9,
 		reviews: 127,
 		images: [
@@ -94,7 +94,7 @@ export const properties: Property[] = [
 		id: "cmey9ncj9000lg44tak039o90",
 		name: "OBUDU VILLA",
 		type: "Short Let",
-		location: "Lekki Phase 1, Lagos",
+		location: "lakowe lakes golf & country estate, ibeju-lekki",
 		desc: "Escape to Obudu Villa, a luxurious 2 bedroom apartment tucked within Lakowe Lakes Golf & Country Estate—a grand 308-hectare sanctuary dubbed West Africa’s best-kept secret  . This exceptional estate blends breathtaking nature with upscale leisure: an 18-hole championship golf course, over 14 serene lakes, lush palm groves, and resort-style recreation.",
 		amenities: [
 			"Stylish Accommodation",
@@ -105,7 +105,7 @@ export const properties: Property[] = [
 			"Resort-Style Amenities",
 			"High-Speed Internet",
 		],
-		price: 95000,
+		price: 320000,
 		rating: 4.8,
 		reviews: 156,
 		images: [
@@ -139,7 +139,7 @@ export const properties: Property[] = [
 		id: "cmey9ncoa000zg44t64k1s8zj",
 		name: "ZIRCON",
 		type: "Short Let",
-		location: "Banana Island, Lagos",
+		location: "sapphire garden estate, awoyaya, ibeju lekki",
 		desc: `Located on Zircon Road, Sapphire Garden Estate, in the heart of Awoyaya, Ibeju-Lekki, Zircon is a beautifully designed 4-Bedroom Semi-Detached Duplex tailored for comfort, leisure, and connection. Whether it${"'"}s a cozy family weekend, a lively hangout with friends, or an intimate private party, Zircon gives you the perfect setting. With its spacious interiors, modern finishing, and warm, homely atmosphere, it combines both comfort and functionality.`,
 		amenities: [
 			"Furnishings",
@@ -152,7 +152,7 @@ export const properties: Property[] = [
 			"Air-Conditioned",
 			"Parking",
 		],
-		price: 110000,
+		price: 160000,
 		rating: 4.9,
 		reviews: 203,
 		images: [
