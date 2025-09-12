@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { MouseEvent, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -20,18 +20,18 @@ const PropertyCarousel = ({ images }: Props) => {
 
   const total = images.length || placeholderImages.length;
 
-  const nextImage = (e: React.MouseEvent) => {
+  const nextImage = (e: MouseEvent) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) => (prev + 1) % total);
   };
 
-  const prevImage = (e: React.MouseEvent) => {
+  const prevImage = (e: MouseEvent) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) => (prev - 1 + total) % total);
   };
 
   return (
-    <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3 group">
+    <div className="relative aspect-[4/3] rounded-xl overflow-hidden mb-3 group no-scrollbar">
       {/* Slider Row */}
       <motion.div
         className="flex w-full h-full"

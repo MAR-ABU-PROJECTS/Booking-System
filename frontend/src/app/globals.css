@@ -172,3 +172,15 @@ html.dark ol.border-s-\[3px\] li:last-child::before {
 	height: 32px;
 	line-height: 32px;
 }
+
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}

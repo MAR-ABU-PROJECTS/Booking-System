@@ -73,7 +73,7 @@ const SingleProperty = ({ property }: { property: Property }) => {
 		<section className="mt-[160px] lg:mt-[110px]">
 			<div className="max-w-7xl mx-auto px-4  pb-10">
 				<div>
-					<div className="flex justify-between items-center">
+					<div className="flex justify-between items-center gap-4 flex-wrap">
 						<h2 className="font-medium text-[18px] sm:text-2xl">
 							{toTitleCase(property.name)}, {property.location}
 						</h2>
