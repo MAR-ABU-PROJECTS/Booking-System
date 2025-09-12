@@ -3,7 +3,6 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@components/ui/button";
 import { toast } from "react-toastify";
 import { apiService } from "@lib/apiService";
-import { useRouter } from "next/navigation";
 import { isAxiosError } from "axios";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -12,7 +11,8 @@ type Props = {
 	email: string;
 };
 const VerifyEmail = ({ email }: Props) => {
-	const router = useRouter();
+
+	
 	const mutation = useMutation({
 		mutationFn: async () => {
 			const response = await apiService.post(
