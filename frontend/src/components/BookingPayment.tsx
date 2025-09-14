@@ -1,25 +1,51 @@
 "use client";
 
 import { useState } from "react";
-import { CircleCheckBig, Copy, FileText } from "lucide-react";
+import { CircleCheckBig, Copy, FileText, Loader2 } from "lucide-react";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { toast } from "react-toastify";
 import { SummaryData } from "@lib/type";
 import { formatCurrency } from "@lib/utils";
+import { useMutation } from "@tanstack/react-query";
+import { apiService } from "@lib/apiService";
+import { isAxiosError } from "axios";
+import { useRouter } from "next/navigation";
 
 const BookingPayment = ({
 	summaryData,
-	propertyId,
+	paymentId,
 }: {
 	summaryData: SummaryData;
-	propertyId: string;
+	paymentId: string;
 }) => {
 	const [receipt, setReceipt] = useState<File | null>(null);
+	const router = useRouter();
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files && e.target.files.length > 0) {
-			setReceipt(e.target.files[0]);
+			const file = e.target.files[0];
+
+			const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
+			const maxSize = 5 * 1024 * 1024; // 5MB
+
+			if (!allowedTypes.includes(file.type)) {
+				toast.error("Only JPG, PNG or PDF files are allowed.");
+				setReceipt(null);
+				return;
+			}
+
+			if (file.size > maxSize) {
+				toast.error("File size must be less than 5 MB.", {
+					closeOnClick: false,
+					progress: undefined,
+				});
+
+				setReceipt(null);
+				return;
+			}
+
+			setReceipt(file);
 		} else {
 			setReceipt(null);
 		}
@@ -51,12 +77,63 @@ const BookingPayment = ({
 	const taxes = summaryData.taxes;
 	const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
 
+	const mutation = useMutation({
+		mutationFn: async () => {
+			if (!receipt) return;
+
+			const formData = new FormData();
+			formData.append("receipt", receipt);
+
+			const response = await apiService.post(
+				`/payment/${paymentId}/upload-receipt`,
+				formData,
+				{ headers: { "Content-Type": "multipart/form-data" } }
+			);
+			return response;
+		},
+
+		onSuccess: async (res) => {
+			if (res?.success) {
+				const message = res?.message as string;
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+				setReceipt(null);
+				setTimeout(() => router.push("/"), 3000);
+			} else {
+				const message = res?.message as string;
+				toast.error(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			}
+		},
+
+		onError: (error) => {
+			if (isAxiosError(error)) {
+				const message =
+					(error.response?.data?.message as string) ||
+					"Something went wrong";
+				toast.error(`${message}`, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			} else {
+				toast.error("Unexpected error, please try again", {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			}
+		},
+	});
+
 	return (
 		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] self-start">
 			<div className="flex flex-col justify-center items-center">
-				<h1 className="text-[20px] font-bold text-center">
-					To confirm booking for the selected apartment, a payment of {" "}
-					{formatCurrency(totalAmount)}, is required. Kindly pay into
+				<h1 className="text-[18px] font-bold text-center">
+					To confirm booking for the selected apartment, a payment of{" "}
+					{formatCurrency(totalAmount)} is required. Kindly pay into
 					our account below and upload payment receipt.`
 				</h1>
 				<p className="text-[16px] text-[#667085] text-center">
@@ -70,7 +147,7 @@ const BookingPayment = ({
 						Account Details
 					</h2>
 
-					<div className="mt-5 flex flex-col gap-4">
+					<div className="mt-5 flex flex-col gap-3">
 						<p className="font-bold">
 							ACCOUNT NAME: MAR ABU PROJECT SERVICES LTD AIRBNB
 						</p>
@@ -91,7 +168,8 @@ const BookingPayment = ({
 					</div>
 				</div>
 				<p className="bg-red-500 text-center font-semibold text-[18px] mt-4 rounded-xl p-2">
-					You can only continue after you have made the payment of {formatCurrency(totalAmount)}.
+					You can only continue after you have made the payment of{" "}
+					{formatCurrency(totalAmount)}.
 				</p>
 			</div>
 
@@ -130,6 +208,7 @@ const BookingPayment = ({
 					<input
 						id="file-upload"
 						type="file"
+						accept=".jpg,.jpeg,.png,.pdf"
 						className="hidden"
 						onChange={handleFileChange}
 					/>
@@ -145,22 +224,20 @@ const BookingPayment = ({
 				</label>
 			</div>
 
-      <div className="flex flex-col mt-5">
+			<div className="flex flex-col mt-5">
 				<Button
 					className="!cursor-pointer hover:bg-[#F4A857] py-[22px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-2xl"
 					type="button"
-					// disabled={
-					// 	!paymentMethod || !checked || !totalAmount || loading
-					// }
-					// onClick={handlePayment}
+					disabled={!receipt}
+					onClick={() => mutation.mutate()}
 				>
-					{/* {loading ? (
+					{mutation.isPending ? (
 						<Loader2
 							className="animate-spin size-5"
 							strokeWidth={3}
 						/>
-					) : null} */}
-					Continue
+					) : null}
+					Upload Receipt
 				</Button>
 			</div>
 		</div>

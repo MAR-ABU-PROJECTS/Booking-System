@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { MapPin, ShieldHalf, Loader2 } from "lucide-react";
 import dayjs from "dayjs";
 import { RootState } from "@lib/features/store";
@@ -16,7 +16,7 @@ import { Label } from "@components/ui/label";
 import { Button } from "@components/ui/button";
 import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
-import { resumePayStackPayment } from "@lib/payments/paystack";
+// import { resumePayStackPayment } from "@lib/payments/paystack";
 // import { initializeFlutterwavePayment } from "@lib/payments/flutterwave";
 import { useRouter } from "next/navigation";
 import PaymentStatus from "@components/PaymentStatus";
@@ -28,10 +28,13 @@ const BookingSummary = ({
 	summaryData,
 	propertyId,
 	handleNext,
+	setPaymentId
 }: {
 	summaryData: SummaryData;
 	propertyId: string;
 	handleNext: () => void;
+	setPaymentId: Dispatch<SetStateAction<string>>
+
 }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const nights = summaryData.nights;
@@ -91,13 +94,19 @@ const BookingSummary = ({
 	const handlePayment = async () => {
 		if (!paymentMethod || !checked || !totalAmount || loading) return;
 		try {
-			// setLoading(true);
-			handleNext()
-			// const res = await apiService.post("/payment/initialize", {
-			// 	bookingId: summaryData.id,
-			// 	paymentMethod: paymentMethod,
-			// 	currency: "NGN",
-			// });
+			setLoading(true);
+
+			const res = await apiService.post("/payment/initialize", {
+				bookingId: summaryData.id,
+				paymentMethod: paymentMethod,
+				currency: "NGN",
+			});
+
+			if (paymentMethod === PaymentMethod.BANK_TRANSFER) {
+				const Id = res?.data?.payment.id
+				setPaymentId(Id)
+				handleNext();
+			}
 
 			// if (res?.success && paymentMethod === PaymentMethod.PAYSTACK) {
 			// 	resumePayStackPayment({
