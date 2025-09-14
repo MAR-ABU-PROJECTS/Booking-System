@@ -108,6 +108,145 @@ const options = {
                         location: { type: "string" },
                     },
                 },
+                Payment: {
+                    type: "object",
+                    properties: {
+                        id: {
+                            type: "string",
+                            description: "Unique payment identifier",
+                        },
+                        bookingId: {
+                            type: "string",
+                            description: "Associated booking ID",
+                        },
+                        amount: {
+                            type: "number",
+                            description: "Payment amount",
+                        },
+                        currency: {
+                            type: "string",
+                            default: "NGN",
+                            description: "Payment currency",
+                        },
+                        status: {
+                            type: "string",
+                            enum: ["PENDING", "PROCESSING", "PAID", "FAILED", "REFUNDED"],
+                            description: "Payment status",
+                        },
+                        method: {
+                            type: "string",
+                            enum: ["CARD", "BANK_TRANSFER", "CASH"],
+                            description: "Payment method",
+                        },
+                        receiptUrl: {
+                            type: "string",
+                            nullable: true,
+                            description: "Receipt filename for manual payments",
+                        },
+                        verifiedAt: {
+                            type: "string",
+                            format: "date-time",
+                            nullable: true,
+                            description: "When payment was verified by admin",
+                        },
+                        adminNotes: {
+                            type: "string",
+                            nullable: true,
+                            description: "Admin notes about payment verification",
+                        },
+                        createdAt: {
+                            type: "string",
+                            format: "date-time",
+                            description: "Payment creation timestamp",
+                        },
+                        updatedAt: {
+                            type: "string",
+                            format: "date-time",
+                            description: "Payment last update timestamp",
+                        },
+                    },
+                },
+                ManualPaymentVerificationRequest: {
+                    type: "object",
+                    required: ["approved"],
+                    properties: {
+                        approved: {
+                            type: "boolean",
+                            description: "Whether to approve (true) or reject (false) the payment",
+                        },
+                        adminNotes: {
+                            type: "string",
+                            maxLength: 500,
+                            description: "Optional admin notes about the verification decision",
+                        },
+                    },
+                },
+                PaymentWithBookingDetails: {
+                    allOf: [
+                        { $ref: "#/components/schemas/Payment" },
+                        {
+                            type: "object",
+                            properties: {
+                                booking: {
+                                    type: "object",
+                                    properties: {
+                                        id: { type: "string" },
+                                        bookingCode: { type: "string" },
+                                        checkInDate: { type: "string", format: "date" },
+                                        checkOutDate: { type: "string", format: "date" },
+                                        nights: { type: "integer" },
+                                        total: { type: "number" },
+                                        property: {
+                                            type: "object",
+                                            properties: {
+                                                id: { type: "string" },
+                                                name: { type: "string" },
+                                                address: { type: "string" },
+                                            },
+                                        },
+                                        customer: {
+                                            type: "object",
+                                            properties: {
+                                                id: { type: "string" },
+                                                firstName: { type: "string" },
+                                                lastName: { type: "string" },
+                                                email: { type: "string" },
+                                                phone: { type: "string" },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
+                ApiResponse: {
+                    type: "object",
+                    properties: {
+                        success: {
+                            type: "boolean",
+                            description: "Indicates if the request was successful",
+                        },
+                        message: {
+                            type: "string",
+                            description: "Response message",
+                        },
+                    },
+                },
+                ApiErrorResponse: {
+                    allOf: [
+                        { $ref: "#/components/schemas/ApiResponse" },
+                        {
+                            type: "object",
+                            properties: {
+                                error: {
+                                    type: "string",
+                                    description: "Error details",
+                                },
+                            },
+                        },
+                    ],
+                },
             },
         },
         security: [

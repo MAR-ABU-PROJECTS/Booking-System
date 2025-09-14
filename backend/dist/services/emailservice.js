@@ -616,6 +616,37 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
             html: this.getBaseTemplate(content),
         });
     }
+    /**
+     * Send admin notification about new receipt upload
+     */
+    async sendAdminReceiptUploadNotification(adminEmail, payment, booking, filename) {
+        const content = `
+      <h2>Payment Receipt Verification Required</h2>
+      <p>A customer has uploaded a payment receipt that requires manual verification.</p>
+      
+      <div class="info-box">
+        <h3>Payment Details:</h3>
+        <ul>
+          <li><strong>Payment ID:</strong> ${payment.id}</li>
+          <li><strong>Booking ID:</strong> ${booking.id}</li>
+          <li><strong>Booking Code:</strong> ${booking.bookingCode}</li>
+          <li><strong>Amount:</strong> ₦${payment.amount.toLocaleString()}</li>
+          <li><strong>Property:</strong> ${booking.property.name}</li>
+          <li><strong>Customer:</strong> ${booking.customer.firstName} ${booking.customer.lastName}</li>
+          <li><strong>Customer Email:</strong> ${booking.customer.email}</li>
+          <li><strong>Receipt File:</strong> ${filename}</li>
+        </ul>
+      </div>
+      
+      <p>Please verify this payment in the admin dashboard within 24 hours.</p>
+      <a href="${this.apiUrl(`/admin/payments/pending-verification`)}" class="button">Review Payment</a>
+    `;
+        return this.sendEmail({
+            to: adminEmail,
+            subject: `New Payment Receipt Uploaded - ${booking.bookingCode}`,
+            html: this.getBaseTemplate(content),
+        });
+    }
 }
 exports.EmailService = EmailService;
 exports.emailService = new EmailService();

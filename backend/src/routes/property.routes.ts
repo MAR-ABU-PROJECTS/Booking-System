@@ -667,13 +667,13 @@ router.get(
  *         schema:
  *           type: integer
  *           example: 1
- *         description: Page number for pagination (default: 1)
+ *         description: "Page number for pagination (default: 1)"
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           example: 20
- *         description: Number of items per page (default: 20)
+ *         description: "Number of items per page (default: 20)"
  *       - in: query
  *         name: status
  *         schema:
@@ -685,14 +685,14 @@ router.get(
  *         schema:
  *           type: string
  *           example: createdAt
- *         description: Field to sort by (default: createdAt)
+ *         description: "Field to sort by (default: createdAt)"
  *       - in: query
  *         name: order
  *         schema:
  *           type: string
  *           enum: [asc, desc]
  *           example: desc
- *         description: Sort order (default: desc)
+ *         description: "Sort order (default: desc)"
  *     responses:
  *       200:
  *         description: Successfully retrieved user's properties
