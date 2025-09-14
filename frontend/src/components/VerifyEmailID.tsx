@@ -57,7 +57,7 @@ const VerifyEmailId = ({ id }: Props) => {
 
 			return () => clearTimeout(timer);
 		}
-	}, [getStatus.data?.success, router]);
+	}, [getStatus.data, router]);
 
 	return (
 		<div className="h-full flex items-center ">

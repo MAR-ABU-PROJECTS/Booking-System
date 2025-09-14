@@ -18,7 +18,6 @@ import BookingStatus from "@components/BookingStatus";
 import { PaymentMethod } from "@lib/type";
 // import { resumePayStackPayment } from "@lib/payments/paystack";
 // import { initializeFlutterwavePayment } from "@lib/payments/flutterwave";
-import { useRouter } from "next/navigation";
 import PaymentStatus from "@components/PaymentStatus";
 import { CreditCard } from "lucide-react";
 import PaymentMethodSelector from "@components/PaymentMethodSelector";
@@ -38,7 +37,6 @@ const BookingSummary = ({
 }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const nights = summaryData.nights;
-	const router = useRouter();
 	const nightsLabel = nights === 1 ? "1 Night" : `${nights} Nights`;
 	const formattedCheckIn = summaryData.checkInDate
 		? dayjs(summaryData.checkInDate).format("ddd, MMM D")
