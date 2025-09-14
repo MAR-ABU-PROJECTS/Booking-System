@@ -27,9 +27,11 @@ import { getPropertyImages } from "@lib/api";
 const BookingSummary = ({
 	summaryData,
 	propertyId,
+	handleNext,
 }: {
 	summaryData: SummaryData;
 	propertyId: string;
+	handleNext: () => void;
 }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const nights = summaryData.nights;
@@ -48,7 +50,7 @@ const BookingSummary = ({
 	const taxes = summaryData.taxes;
 	const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
 	const location = booking.location;
-	const images = getPropertyImages(propertyId)
+	const images = getPropertyImages(propertyId);
 
 	const getProperty = useQuery({
 		queryKey: ["property", propertyId],
@@ -87,41 +89,42 @@ const BookingSummary = ({
 	const [loading, setLoading] = useState(false);
 
 	const handlePayment = async () => {
-		if (loading) return;
+		if (!paymentMethod || !checked || !totalAmount || loading) return;
 		try {
-			setLoading(true);
-			const res = await apiService.post("/payment/initialize", {
-				bookingId: summaryData.id,
-				paymentMethod: paymentMethod,
-				currency: "NGN",
-			});
+			// setLoading(true);
+			handleNext()
+			// const res = await apiService.post("/payment/initialize", {
+			// 	bookingId: summaryData.id,
+			// 	paymentMethod: paymentMethod,
+			// 	currency: "NGN",
+			// });
 
-			if (res?.success && paymentMethod === PaymentMethod.PAYSTACK) {
-				resumePayStackPayment({
-					accessCode: res.data.paymentData.data.access_code as string,
-					onSuccess: async (trx) => {
-						if (
-							trx?.status === "success" &&
-							trx?.message === "Approved"
-						) {
-							toast.success(trx?.message);
-							router.push(
-								`/confirmation?bookingId=${summaryData.id}`
-							);
-						} else {
-							toast.error(
-								trx?.message ?? "Payment verification failed"
-							);
-						}
-					},
-					onCancel: () => {
-						toast.error("Payment cancelled");
-					},
-					onError: (err) => {
-						toast.error(`Paystack error: ${err?.message}`);
-					},
-				});
-			}
+			// if (res?.success && paymentMethod === PaymentMethod.PAYSTACK) {
+			// 	resumePayStackPayment({
+			// 		accessCode: res.data.paymentData.data.access_code as string,
+			// 		onSuccess: async (trx) => {
+			// 			if (
+			// 				trx?.status === "success" &&
+			// 				trx?.message === "Approved"
+			// 			) {
+			// 				toast.success(trx?.message);
+			// 				router.push(
+			// 					`/confirmation?bookingId=${summaryData.id}`
+			// 				);
+			// 			} else {
+			// 				toast.error(
+			// 					trx?.message ?? "Payment verification failed"
+			// 				);
+			// 			}
+			// 		},
+			// 		onCancel: () => {
+			// 			toast.error("Payment cancelled");
+			// 		},
+			// 		onError: (err) => {
+			// 			toast.error(`Paystack error: ${err?.message}`);
+			// 		},
+			// 	});
+			// }
 			// if (res?.success && paymentMethod === PaymentMethod.FLUTTERWAVE) {
 			// 	initializeFlutterwavePayment({
 			// 		tx_ref: res?.data?.payment?.reference,
@@ -157,7 +160,8 @@ const BookingSummary = ({
 	};
 
 	const paymentOptions = [
-		{ label: "PAYSTACK", value: PaymentMethod.PAYSTACK },
+		{ label: "BANK TRANSFER", value: PaymentMethod.BANK_TRANSFER },
+		// { label: "PAYSTACK", value: PaymentMethod.PAYSTACK }
 		// { label: "FLUTTERWAVE", value: PaymentMethod.FLUTTERWAVE },
 	];
 

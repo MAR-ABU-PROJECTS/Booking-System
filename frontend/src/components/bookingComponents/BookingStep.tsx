@@ -84,6 +84,12 @@ const BookingStep = ({ activeStep }: { activeStep: number }) => {
 					isActive={activeStep === 2}
 					isCompleted={activeStep > 2}
 				/>
+					<HeaderItem
+					number={"2"}
+					title="Payment"
+					isActive={activeStep === 3}
+					isCompleted={activeStep > 3}
+				/>
 			</div>
 		</div>
 	);

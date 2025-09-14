@@ -68,7 +68,7 @@ const VerifyEmail = ({ email }: Props) => {
 				<h1 className="text-[21px] sm:text-2xl  font-bold mb-3">
 					Verify your email address
 				</h1>
-				<h2 className="text-[18px] mb-3">
+				<h2 className="text-[17px] mb-3 text-gray-400">
 					We&apos;ve sent a verification link to{" "}
 					<span className="font-semibold">{email}</span>. <br />
 					Please check your email and click the verification link to

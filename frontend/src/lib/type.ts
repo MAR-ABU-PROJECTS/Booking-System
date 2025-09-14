@@ -62,7 +62,7 @@ export enum PaymentStatus {
 
 export enum PaymentMethod {
 	// CARD = "CARD",
-	// BANK_TRANSFER = "BANK_TRANSFER",
+	BANK_TRANSFER = "BANK_TRANSFER",
 	// CASH = "CASH",
 	// STRIPE = "STRIPE",
 	PAYSTACK = "PAYSTACK",
