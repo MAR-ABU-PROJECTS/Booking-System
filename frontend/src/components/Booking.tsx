@@ -19,11 +19,13 @@ import { useDispatch } from "react-redux";
 import { resetBooking } from "@lib/features/bookingSlice";
 import BookingStep from "@components/bookingComponents/BookingStep";
 import { ChevronLeft } from "lucide-react";
+import BookingPayment from "./BookingPayment";
 
 const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const user = useSelector((state: RootState) => state.auth);
 	const dispatch = useDispatch();
+	const [paymentId, setPaymentId] = useState("")
 
 	const [summaryData, setSummaryData] = useState<SummaryData>({
 		id: "",
@@ -99,7 +101,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 	const [step, setStep] = useState(1);
 
 	const handleNext = () => {
-		if (step == 2) return;
+		if (step == 3) return;
 		setStep((step) => step + 1);
 	};
 
@@ -176,7 +178,6 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 					});
 				}
 			} else {
-			
 				toast.error("Unexpected error, please try again", {
 					closeOnClick: false,
 					progress: undefined,
@@ -251,7 +252,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 						className="mx-auto max-w-5xl px-[20px] lg:px-12 pt-[20px] pb-[30px]"
 					>
 						<div className="mb-4">
-							{step === 2 && (
+							{step != 1 && (
 								<button
 									type="button"
 									className="mb-4 cursor-pointer text-amber-500 flex items-center active:scale-95 hover:scale-95 transition-all"
@@ -266,10 +267,22 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 						{step === 1 && (
 							<BookingForm isSubmitting={mutation.isPending} />
 						)}
+
 						{step === 2 && (
 							<BookingSummary
 								propertyId={propertyId}
 								summaryData={summaryData}
+								handleNext={handleNext}
+		
+								setPaymentId={setPaymentId}
+							/>
+						)}
+
+						{step === 3 && (
+							<BookingPayment
+								
+								summaryData={summaryData}
+								paymentId={paymentId}
 							/>
 						)}
 					</form>

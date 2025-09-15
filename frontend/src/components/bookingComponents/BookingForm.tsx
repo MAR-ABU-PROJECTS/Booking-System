@@ -287,31 +287,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 								)}
 							/>
 
-							{/* <Controller
-								control={control}
-								name="lastName"
-								render={({ field, fieldState }) => (
-									<div className="grid w-full max-w-sm items-center gap-1">
-										<Label>
-											Last Name
-											<span className="text-red-600">
-												*
-											</span>
-										</Label>
-										<Input
-											type="text"
-											placeholder="Enter Last Name"
-											className="border-2 border-[#f7d5b0]"
-											{...field}
-										/>
-										{fieldState.error && (
-											<p className="text-sm text-red-600">
-												{fieldState.error.message}
-											</p>
-										)}
-									</div>
-								)}
-							/> */}
+						
 						</div>
 						<div className="flex justify-between items-center gap-[20px]">
 							<Controller
