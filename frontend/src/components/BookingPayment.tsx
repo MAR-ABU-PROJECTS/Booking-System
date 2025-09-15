@@ -134,7 +134,7 @@ const BookingPayment = ({
 				<h1 className="text-[18px] font-bold text-center">
 					To confirm booking for the selected apartment, a payment of{" "}
 					{formatCurrency(totalAmount)} is required. Kindly pay into
-					our account below and upload payment receipt.`
+					our account below and upload payment receipt.
 				</h1>
 				<p className="text-[16px] text-[#667085] text-center">
 					Secure your premium accommodation experience

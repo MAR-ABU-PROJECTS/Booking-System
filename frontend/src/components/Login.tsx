@@ -51,6 +51,7 @@ const LogIn = () => {
 					rememberMe: variables.rememberMe,
 					token: res.data.accessToken,
 					refreshToken: res.data.refreshToken,
+					role: res.data.user.role
 				});
 				dispatch(
 					setUser({

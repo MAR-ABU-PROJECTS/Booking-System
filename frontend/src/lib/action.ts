@@ -28,6 +28,7 @@ export async function getSessionUser() {
 			name: session.user?.name,
 			email: session.user?.email,
 			isLoggedIn: session.user?.isLoggedIn,
+			role: session.user?.role
 		},
 	};
 }
@@ -39,6 +40,7 @@ export async function setSession(data: {
 	token: string;
 	refreshToken: string;
 	rememberMe?: boolean;
+	role:string
 }) {
 	const session = await getIronSession<SessionData>(
 		await cookies(),
@@ -52,6 +54,7 @@ export async function setSession(data: {
 		email: data.email,
 		token: data.token,
 		refreshToken: data.refreshToken,
+		role:data.role
 	};
 
 	const ttl = data.rememberMe ? 60 * 60 * 24 * 7 : 60 * 60 * 24;
