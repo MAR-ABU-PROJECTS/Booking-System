@@ -46,8 +46,12 @@ const validate = (req: any, res: any, next: any) => {
   next();
 };
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(process.cwd(), "uploads", "receipts");
+// Create uploads directory - use /tmp for production (Render compatible)
+const uploadsDir =
+  process.env.NODE_ENV === "production"
+    ? path.join("/tmp", "receipts")
+    : path.join(process.cwd(), "uploads", "receipts");
+
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -65,13 +69,21 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 1 * 1024 * 1024 }, // 1MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // Increased to 5MB for better user experience
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|pdf/;
     const extname = allowedTypes.test(
       path.extname(file.originalname).toLowerCase()
     );
     const mimetype = allowedTypes.test(file.mimetype);
+
+    console.log("DEBUG: File filter check:", {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      extname: extname,
+      mimetypeMatch: mimetype,
+      uploadsDir,
+    });
 
     if (mimetype && extname) {
       return cb(null, true);
@@ -84,6 +96,58 @@ const upload = multer({
 // ===============================
 // MANUAL BANK TRANSFER ROUTES
 // ===============================
+
+// PRODUCTION DEBUG ROUTE - Remove after confirming storage works
+router.get("/debug/storage", requireAuth(), async (req: any, res: any) => {
+  if (req.user.role !== "ADMIN") {
+    return res.status(403).json({ message: "Admin only" });
+  }
+
+  try {
+    const info = {
+      environment: process.env.NODE_ENV,
+      platform: process.platform,
+      processDir: process.cwd(),
+      uploadsDir,
+      directories: {
+        uploadsExists: fs.existsSync(uploadsDir),
+        tmpExists: fs.existsSync("/tmp"),
+        processUploads: fs.existsSync(path.join(process.cwd(), "uploads")),
+        tmpReceipts: fs.existsSync("/tmp/receipts"),
+      },
+      files: {
+        uploadsContent: fs.existsSync(uploadsDir)
+          ? fs.readdirSync(uploadsDir)
+          : [],
+        tmpContent: fs.existsSync("/tmp")
+          ? fs.readdirSync("/tmp").slice(0, 10)
+          : [],
+        tmpReceiptsContent: fs.existsSync("/tmp/receipts")
+          ? fs.readdirSync("/tmp/receipts")
+          : [],
+      },
+      recentPayments: await prisma.payment.findMany({
+        where: {
+          receiptUploaded: true,
+          status: "PROCESSING",
+        },
+        select: {
+          id: true,
+          receiptUrl: true,
+          updatedAt: true,
+          gatewayResponse: true,
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 5,
+      }),
+    };
+
+    res.json(info);
+  } catch (error: any) {
+    res.json({ error: error?.message || "Unknown error" });
+  }
+});
+
 /**
  * @route   POST /api/v1/payment/:id/upload-receipt
  * @desc    Upload payment receipt for manual verification
@@ -260,6 +324,36 @@ router.post(
         });
       }
 
+      console.log("DEBUG: File uploaded successfully:", {
+        filename: req.file.filename,
+        path: req.file.path,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        uploadsDir,
+      });
+
+      // Read file data and store as base64 (production backup for ephemeral storage)
+      let fileData: string | null = null;
+      let fileMetadata = null;
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        fileData = fileBuffer.toString("base64");
+        fileMetadata = {
+          originalName: req.file.originalname,
+          mimeType: req.file.mimetype,
+          size: req.file.size,
+          uploadedAt: new Date().toISOString(),
+          environment: process.env.NODE_ENV,
+          storagePath: req.file.path,
+        };
+        console.log(
+          "DEBUG: File stored as base64 backup for production compatibility"
+        );
+      } catch (e) {
+        console.error("ERROR: Could not read file for backup:", e);
+        // Continue anyway - file might still be accessible via disk in dev
+      }
+
       console.log("DEBUG: About to update payment in database");
       // Update payment with receipt information and mark booking paymentStatus as PROCESSING
       const [updatedPayment] = await prisma.$transaction([
@@ -272,6 +366,14 @@ router.post(
             // For BANK_TRANSFER, use paidAt to record receipt upload time
             paidAt: new Date(),
             updatedAt: new Date(),
+            // Store file data as base64 backup for production (ephemeral storage)
+            gatewayResponse: {
+              ...((payment.gatewayResponse as Record<string, any>) || {}),
+              receiptBackup: fileData,
+              receiptMetadata: fileMetadata,
+              uploadMethod: "file_with_backup",
+              backupCreated: !!fileData,
+            },
           },
         }),
         prisma.booking.update({
@@ -1107,18 +1209,31 @@ router.get("/receipt/:filename", requireAuth(), async (req: any, res: any) => {
     const filename = req.params.filename;
     const userId = req.user.id;
 
+    console.log("Receipt request:", {
+      filename,
+      userId,
+      uploadsDir,
+      processDir: process.cwd(),
+      environment: process.env.NODE_ENV,
+    });
+
     // Check if user is admin or owns the payment
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
     let hasAccess = false;
+    let payment = null;
 
     if (user?.role === "ADMIN") {
       hasAccess = true;
+      // Get payment for potential database fallback
+      payment = await prisma.payment.findFirst({
+        where: { receiptUrl: filename },
+      });
     } else {
       // Check if user owns the payment
-      const payment = await prisma.payment.findFirst({
+      payment = await prisma.payment.findFirst({
         where: {
           receiptUrl: filename,
           booking: {
@@ -1136,22 +1251,108 @@ router.get("/receipt/:filename", requireAuth(), async (req: any, res: any) => {
       });
     }
 
-    const filePath = path.join(uploadsDir, filename);
+    // Try multiple possible file paths (for different environments and deployments)
+    const possiblePaths = [
+      path.join(uploadsDir, filename),
+      path.join(process.cwd(), "uploads", "receipts", filename),
+      path.join(__dirname, "..", "..", "uploads", "receipts", filename),
+      path.join("/tmp", "receipts", filename),
+      path.join("/tmp", "uploads", "receipts", filename),
+    ];
 
-    if (!fs.existsSync(filePath)) {
+    console.log("Checking file paths:", possiblePaths);
+
+    let filePath: string | null = null;
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        filePath = testPath;
+        console.log("Found file at:", filePath);
+        break;
+      }
+    }
+
+    // If file not found on disk, try database backup (production fallback)
+    const gatewayResponse = payment?.gatewayResponse as any;
+    if (!filePath && gatewayResponse?.receiptBackup) {
+      console.log("File not found on disk, serving from database backup");
+
+      try {
+        const buffer = Buffer.from(gatewayResponse.receiptBackup, "base64");
+        const metadata = gatewayResponse.receiptMetadata || {};
+
+        res.set({
+          "Content-Type": metadata.mimeType || "application/octet-stream",
+          "Content-Length": buffer.length.toString(),
+          "Content-Disposition": `inline; filename="${metadata.originalName || filename}"`,
+          "Cache-Control": "private, max-age=3600", // Cache for 1 hour
+        });
+
+        return res.send(buffer);
+      } catch (e) {
+        console.error("Error serving from database backup:", e);
+      }
+    }
+
+    if (!filePath) {
+      console.log("File not found anywhere. Debug info:");
+      try {
+        if (fs.existsSync(uploadsDir)) {
+          const files = fs.readdirSync(uploadsDir);
+          console.log("Upload dir contents:", files);
+        } else {
+          console.log("Upload directory doesn't exist");
+        }
+
+        // Check /tmp directory
+        if (fs.existsSync("/tmp")) {
+          console.log("/tmp exists");
+          if (fs.existsSync("/tmp/receipts")) {
+            console.log(
+              "/tmp/receipts contents:",
+              fs.readdirSync("/tmp/receipts")
+            );
+          }
+        }
+      } catch (e) {
+        console.log("Error checking directories:", e);
+      }
+
       return res.status(404).json({
         success: false,
         message: "Receipt file not found",
+        debug:
+          process.env.NODE_ENV === "development"
+            ? {
+                filename,
+                checkedPaths: possiblePaths,
+                uploadsDir,
+                directoryExists: fs.existsSync(uploadsDir),
+                hasBackup: !!(payment?.gatewayResponse as any)?.receiptBackup,
+              }
+            : undefined,
       });
     }
 
-    res.sendFile(filePath);
+    // Send the file with proper headers
+    const stats = fs.statSync(filePath);
+    const gatewayResponseData = payment?.gatewayResponse as any;
+    const mimeType =
+      gatewayResponseData?.receiptMetadata?.mimeType ||
+      (filename.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
+
+    res.set({
+      "Content-Type": mimeType,
+      "Content-Length": stats.size.toString(),
+      "Cache-Control": "private, max-age=3600",
+    });
+
+    res.sendFile(path.resolve(filePath));
   } catch (error: any) {
     console.error("Receipt retrieval error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to retrieve receipt",
-      error: error.message,
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
@@ -1231,12 +1432,10 @@ router.post(
         .json({ success: false, message: "Payment not found" });
 
     if (payment.method !== PaymentMethod.BANK_TRANSFER) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Refund approval only supported for BANK_TRANSFER",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Refund approval only supported for BANK_TRANSFER",
+      });
     }
 
     // Find pending/processing refund for this payment
@@ -1248,12 +1447,10 @@ router.post(
       orderBy: { createdAt: "desc" },
     });
     if (!refund) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "No pending refund request for this payment",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "No pending refund request for this payment",
+      });
     }
 
     // Idempotency: if already refunded, return success
@@ -1385,12 +1582,10 @@ router.post(
     // Validate body
     const parsed = refundRejectSchema.safeParse(req.body || {});
     if (!parsed.success) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: parsed.error.errors?.[0]?.message || "Invalid input",
-        });
+      return res.status(400).json({
+        success: false,
+        message: parsed.error.errors?.[0]?.message || "Invalid input",
+      });
     }
     const { reason } = parsed.data;
 
@@ -1405,12 +1600,10 @@ router.post(
         .json({ success: false, message: "Payment not found" });
 
     if (payment.method !== PaymentMethod.BANK_TRANSFER) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Refund rejection only supported for BANK_TRANSFER",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Refund rejection only supported for BANK_TRANSFER",
+      });
     }
 
     const refund = await prisma.refund.findFirst({
@@ -1421,12 +1614,10 @@ router.post(
       orderBy: { createdAt: "desc" },
     });
     if (!refund) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "No pending refund request for this payment",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "No pending refund request for this payment",
+      });
     }
 
     // Idempotency: if already failed, return success
@@ -2466,8 +2657,6 @@ router.post(
 // ===============================
 // REFUND MANAGEMENT (ADMIN)
 // ===============================
-
-
 
 // /**
 //  * @route   POST /api/v1/payment/webhook/flutterwave

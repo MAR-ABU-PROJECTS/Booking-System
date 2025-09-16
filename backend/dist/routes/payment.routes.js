@@ -40,8 +40,10 @@ const validate = (req, res, next) => {
     }
     next();
 };
-// Create uploads directory if it doesn't exist
-const uploadsDir = path_1.default.join(process.cwd(), "uploads", "receipts");
+// Create uploads directory - use /tmp for production (Render compatible)
+const uploadsDir = process.env.NODE_ENV === "production"
+    ? path_1.default.join("/tmp", "receipts")
+    : path_1.default.join(process.cwd(), "uploads", "receipts");
 if (!fs_1.default.existsSync(uploadsDir)) {
     fs_1.default.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -57,11 +59,18 @@ const storage = multer_1.default.diskStorage({
 });
 const upload = (0, multer_1.default)({
     storage,
-    limits: { fileSize: 1 * 1024 * 1024 }, // 1MB limit
+    limits: { fileSize: 5 * 1024 * 1024 }, // Increased to 5MB for better user experience
     fileFilter: (req, file, cb) => {
         const allowedTypes = /jpeg|jpg|png|pdf/;
         const extname = allowedTypes.test(path_1.default.extname(file.originalname).toLowerCase());
         const mimetype = allowedTypes.test(file.mimetype);
+        console.log("DEBUG: File filter check:", {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            extname: extname,
+            mimetypeMatch: mimetype,
+            uploadsDir,
+        });
         if (mimetype && extname) {
             return cb(null, true);
         }
@@ -73,6 +82,55 @@ const upload = (0, multer_1.default)({
 // ===============================
 // MANUAL BANK TRANSFER ROUTES
 // ===============================
+// PRODUCTION DEBUG ROUTE - Remove after confirming storage works
+router.get("/debug/storage", (0, authservice_1.requireAuth)(), async (req, res) => {
+    if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Admin only" });
+    }
+    try {
+        const info = {
+            environment: process.env.NODE_ENV,
+            platform: process.platform,
+            processDir: process.cwd(),
+            uploadsDir,
+            directories: {
+                uploadsExists: fs_1.default.existsSync(uploadsDir),
+                tmpExists: fs_1.default.existsSync("/tmp"),
+                processUploads: fs_1.default.existsSync(path_1.default.join(process.cwd(), "uploads")),
+                tmpReceipts: fs_1.default.existsSync("/tmp/receipts"),
+            },
+            files: {
+                uploadsContent: fs_1.default.existsSync(uploadsDir)
+                    ? fs_1.default.readdirSync(uploadsDir)
+                    : [],
+                tmpContent: fs_1.default.existsSync("/tmp")
+                    ? fs_1.default.readdirSync("/tmp").slice(0, 10)
+                    : [],
+                tmpReceiptsContent: fs_1.default.existsSync("/tmp/receipts")
+                    ? fs_1.default.readdirSync("/tmp/receipts")
+                    : [],
+            },
+            recentPayments: await server_1.prisma.payment.findMany({
+                where: {
+                    receiptUploaded: true,
+                    status: "PROCESSING",
+                },
+                select: {
+                    id: true,
+                    receiptUrl: true,
+                    updatedAt: true,
+                    gatewayResponse: true,
+                },
+                orderBy: { updatedAt: "desc" },
+                take: 5,
+            }),
+        };
+        res.json(info);
+    }
+    catch (error) {
+        res.json({ error: error?.message || "Unknown error" });
+    }
+});
 /**
  * @route   POST /api/v1/payment/:id/upload-receipt
  * @desc    Upload payment receipt for manual verification
@@ -238,6 +296,33 @@ router.post("/:id/upload-receipt", (0, authservice_1.requireAuth)(), upload.sing
                 message: "Receipt file is required",
             });
         }
+        console.log("DEBUG: File uploaded successfully:", {
+            filename: req.file.filename,
+            path: req.file.path,
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            uploadsDir,
+        });
+        // Read file data and store as base64 (production backup for ephemeral storage)
+        let fileData = null;
+        let fileMetadata = null;
+        try {
+            const fileBuffer = fs_1.default.readFileSync(req.file.path);
+            fileData = fileBuffer.toString("base64");
+            fileMetadata = {
+                originalName: req.file.originalname,
+                mimeType: req.file.mimetype,
+                size: req.file.size,
+                uploadedAt: new Date().toISOString(),
+                environment: process.env.NODE_ENV,
+                storagePath: req.file.path,
+            };
+            console.log("DEBUG: File stored as base64 backup for production compatibility");
+        }
+        catch (e) {
+            console.error("ERROR: Could not read file for backup:", e);
+            // Continue anyway - file might still be accessible via disk in dev
+        }
         console.log("DEBUG: About to update payment in database");
         // Update payment with receipt information and mark booking paymentStatus as PROCESSING
         const [updatedPayment] = await server_1.prisma.$transaction([
@@ -250,6 +335,14 @@ router.post("/:id/upload-receipt", (0, authservice_1.requireAuth)(), upload.sing
                     // For BANK_TRANSFER, use paidAt to record receipt upload time
                     paidAt: new Date(),
                     updatedAt: new Date(),
+                    // Store file data as base64 backup for production (ephemeral storage)
+                    gatewayResponse: {
+                        ...(payment.gatewayResponse || {}),
+                        receiptBackup: fileData,
+                        receiptMetadata: fileMetadata,
+                        uploadMethod: "file_with_backup",
+                        backupCreated: !!fileData,
+                    },
                 },
             }),
             server_1.prisma.booking.update({
@@ -1048,17 +1141,29 @@ router.get("/receipt/:filename", (0, authservice_1.requireAuth)(), async (req, r
     try {
         const filename = req.params.filename;
         const userId = req.user.id;
+        console.log("Receipt request:", {
+            filename,
+            userId,
+            uploadsDir,
+            processDir: process.cwd(),
+            environment: process.env.NODE_ENV,
+        });
         // Check if user is admin or owns the payment
         const user = await server_1.prisma.user.findUnique({
             where: { id: userId },
         });
         let hasAccess = false;
+        let payment = null;
         if (user?.role === "ADMIN") {
             hasAccess = true;
+            // Get payment for potential database fallback
+            payment = await server_1.prisma.payment.findFirst({
+                where: { receiptUrl: filename },
+            });
         }
         else {
             // Check if user owns the payment
-            const payment = await server_1.prisma.payment.findFirst({
+            payment = await server_1.prisma.payment.findFirst({
                 where: {
                     receiptUrl: filename,
                     booking: {
@@ -1074,21 +1179,95 @@ router.get("/receipt/:filename", (0, authservice_1.requireAuth)(), async (req, r
                 message: "Access denied",
             });
         }
-        const filePath = path_1.default.join(uploadsDir, filename);
-        if (!fs_1.default.existsSync(filePath)) {
+        // Try multiple possible file paths (for different environments and deployments)
+        const possiblePaths = [
+            path_1.default.join(uploadsDir, filename),
+            path_1.default.join(process.cwd(), "uploads", "receipts", filename),
+            path_1.default.join(__dirname, "..", "..", "uploads", "receipts", filename),
+            path_1.default.join("/tmp", "receipts", filename),
+            path_1.default.join("/tmp", "uploads", "receipts", filename),
+        ];
+        console.log("Checking file paths:", possiblePaths);
+        let filePath = null;
+        for (const testPath of possiblePaths) {
+            if (fs_1.default.existsSync(testPath)) {
+                filePath = testPath;
+                console.log("Found file at:", filePath);
+                break;
+            }
+        }
+        // If file not found on disk, try database backup (production fallback)
+        const gatewayResponse = payment?.gatewayResponse;
+        if (!filePath && gatewayResponse?.receiptBackup) {
+            console.log("File not found on disk, serving from database backup");
+            try {
+                const buffer = Buffer.from(gatewayResponse.receiptBackup, "base64");
+                const metadata = gatewayResponse.receiptMetadata || {};
+                res.set({
+                    "Content-Type": metadata.mimeType || "application/octet-stream",
+                    "Content-Length": buffer.length.toString(),
+                    "Content-Disposition": `inline; filename="${metadata.originalName || filename}"`,
+                    "Cache-Control": "private, max-age=3600", // Cache for 1 hour
+                });
+                return res.send(buffer);
+            }
+            catch (e) {
+                console.error("Error serving from database backup:", e);
+            }
+        }
+        if (!filePath) {
+            console.log("File not found anywhere. Debug info:");
+            try {
+                if (fs_1.default.existsSync(uploadsDir)) {
+                    const files = fs_1.default.readdirSync(uploadsDir);
+                    console.log("Upload dir contents:", files);
+                }
+                else {
+                    console.log("Upload directory doesn't exist");
+                }
+                // Check /tmp directory
+                if (fs_1.default.existsSync("/tmp")) {
+                    console.log("/tmp exists");
+                    if (fs_1.default.existsSync("/tmp/receipts")) {
+                        console.log("/tmp/receipts contents:", fs_1.default.readdirSync("/tmp/receipts"));
+                    }
+                }
+            }
+            catch (e) {
+                console.log("Error checking directories:", e);
+            }
             return res.status(404).json({
                 success: false,
                 message: "Receipt file not found",
+                debug: process.env.NODE_ENV === "development"
+                    ? {
+                        filename,
+                        checkedPaths: possiblePaths,
+                        uploadsDir,
+                        directoryExists: fs_1.default.existsSync(uploadsDir),
+                        hasBackup: !!payment?.gatewayResponse?.receiptBackup,
+                    }
+                    : undefined,
             });
         }
-        res.sendFile(filePath);
+        // Send the file with proper headers
+        const stats = fs_1.default.statSync(filePath);
+        const gatewayResponseData = payment?.gatewayResponse;
+        const mimeType = gatewayResponseData?.receiptMetadata?.mimeType ||
+            (filename.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
+        res.set({
+            "Content-Type": mimeType,
+            "Content-Length": stats.size.toString(),
+            "Cache-Control": "private, max-age=3600",
+        });
+        res.sendFile(path_1.default.resolve(filePath));
     }
     catch (error) {
         console.error("Receipt retrieval error:", error);
         res.status(500).json({
             success: false,
             message: "Failed to retrieve receipt",
-            error: error.message,
+            error: process.env.NODE_ENV === "development" ? error.message : undefined,
         });
     }
 });
@@ -1162,9 +1341,7 @@ router.post("/:id/refund/approve", (0, authservice_1.requireAuth)(), (0, error_m
             .status(404)
             .json({ success: false, message: "Payment not found" });
     if (payment.method !== client_1.PaymentMethod.BANK_TRANSFER) {
-        return res
-            .status(400)
-            .json({
+        return res.status(400).json({
             success: false,
             message: "Refund approval only supported for BANK_TRANSFER",
         });
@@ -1178,9 +1355,7 @@ router.post("/:id/refund/approve", (0, authservice_1.requireAuth)(), (0, error_m
         orderBy: { createdAt: "desc" },
     });
     if (!refund) {
-        return res
-            .status(404)
-            .json({
+        return res.status(404).json({
             success: false,
             message: "No pending refund request for this payment",
         });
@@ -1303,9 +1478,7 @@ router.post("/:id/refund/reject", (0, authservice_1.requireAuth)(), (0, error_mi
     // Validate body
     const parsed = refundRejectSchema.safeParse(req.body || {});
     if (!parsed.success) {
-        return res
-            .status(400)
-            .json({
+        return res.status(400).json({
             success: false,
             message: parsed.error.errors?.[0]?.message || "Invalid input",
         });
@@ -1321,9 +1494,7 @@ router.post("/:id/refund/reject", (0, authservice_1.requireAuth)(), (0, error_mi
             .status(404)
             .json({ success: false, message: "Payment not found" });
     if (payment.method !== client_1.PaymentMethod.BANK_TRANSFER) {
-        return res
-            .status(400)
-            .json({
+        return res.status(400).json({
             success: false,
             message: "Refund rejection only supported for BANK_TRANSFER",
         });
@@ -1336,9 +1507,7 @@ router.post("/:id/refund/reject", (0, authservice_1.requireAuth)(), (0, error_mi
         orderBy: { createdAt: "desc" },
     });
     if (!refund) {
-        return res
-            .status(404)
-            .json({
+        return res.status(404).json({
             success: false,
             message: "No pending refund request for this payment",
         });
