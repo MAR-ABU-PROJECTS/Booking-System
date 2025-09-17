@@ -25,7 +25,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const user = useSelector((state: RootState) => state.auth);
 	const dispatch = useDispatch();
-	const [paymentId, setPaymentId] = useState("")
+	const [paymentId, setPaymentId] = useState("");
 
 	const [summaryData, setSummaryData] = useState<SummaryData>({
 		id: "",
@@ -273,14 +273,12 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 								propertyId={propertyId}
 								summaryData={summaryData}
 								handleNext={handleNext}
-		
 								setPaymentId={setPaymentId}
 							/>
 						)}
 
 						{step === 3 && (
 							<BookingPayment
-								
 								summaryData={summaryData}
 								paymentId={paymentId}
 							/>

@@ -1,9 +1,9 @@
-import Payments from "@components/admin/Payments";
+import Bookings from "@components/admin/Bookings";
 
 const page = () => {
 	return (
 		<div>
-			<Payments />
+			<Bookings />
 		</div>
 	);
 };

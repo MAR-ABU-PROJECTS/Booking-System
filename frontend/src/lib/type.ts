@@ -116,6 +116,11 @@ export interface Booking {
 	propertyId: string;
 	// customer?: User
 	// property?: Property
+	property: {
+		name: string;
+		type: string;
+		city: string;
+	};
 }
 
 export type SummaryData = {
@@ -324,3 +329,39 @@ export type ErrorComponentType = (
 	refetch: () => void,
 	isFetching: boolean
 ) => React.ReactNode;
+
+export type PaymentType = {
+	id: string;
+	userId: string;
+	bookingId: string;
+	amount: number;
+	currency: string;
+	method: PaymentMethod;
+	status: string;
+	reference: string;
+	transactionId: string;
+	receiptUploaded: boolean;
+	receiptUrl: string | null;
+	receiptVerified: boolean;
+	refundAmount: number | null;
+	refundStatus: "NONE" | "REQUESTED" | "COMPLETED" | "FAILED";
+	refundRequestedAt: string | null;
+	refundCompletedAt: string | null;
+	refundFailedReason: string | null;
+	paidAt: string | null;
+	failedAt: string | null;
+	verifiedAt: string | null;
+	verifiedBy: string | null;
+	createdAt: string;
+	updatedAt: string;
+	adminNotes: string | null;
+	gatewayResponse: {
+		bank_details: {
+			bank_name: string;
+			account_name: string;
+			account_number: string;
+		};
+		instructions: string[];
+		payment_url: string | null;
+	};
+};

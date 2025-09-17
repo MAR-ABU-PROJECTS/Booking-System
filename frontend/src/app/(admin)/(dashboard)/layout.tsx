@@ -7,9 +7,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 		<AdminGuard>
 			<SidebarProvider>
 				<AppSidebar />
-				<main>
-					<SidebarTrigger />
-					{children}
+				<main className="flex flex-col w-full">
+					<div className="w-full">
+						<SidebarTrigger />
+					</div>
+					<div className="px-4 md:px-6 h-full w-full">{children}</div>
 				</main>
 			</SidebarProvider>
 		</AdminGuard>
