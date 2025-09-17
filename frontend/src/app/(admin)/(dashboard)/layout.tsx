@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@components/ui/sidebar";
 import { AppSidebar } from "@components/admin/app-sidebar";
 import AdminGuard from "@components/admin/AdminGuard";
+import Navbar from "@components/admin/Navbar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
 	return (
@@ -8,10 +9,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 			<SidebarProvider>
 				<AppSidebar />
 				<main className="flex flex-col w-full">
-					<div className="w-full">
-						<SidebarTrigger />
-					</div>
-					<div className="px-4 md:px-6 h-full w-full">{children}</div>
+					<Navbar />
+					<div className="px-4 md:px-6 h-full w-full pt-6">{children}</div>
 				</main>
 			</SidebarProvider>
 		</AdminGuard>

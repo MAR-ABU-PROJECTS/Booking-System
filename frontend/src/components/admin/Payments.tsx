@@ -12,6 +12,8 @@ import { ReceiptModal } from "./ReceiptModal";
 import { formatCurrency } from "@lib/utils";
 import dayjs from "dayjs";
 import advancedFormat from "dayjs/plugin/advancedFormat";
+import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
+import { QueryStateHandler } from "@components/QueryStateHandler";
 dayjs.extend(advancedFormat);
 
 const Payments = () => {
@@ -46,8 +48,6 @@ const Payments = () => {
 		},
 		retry: true,
 	});
-
-	console.log(getPayments.data);
 
 	const [open, setOpen] = useState(false);
 
@@ -116,14 +116,36 @@ const Payments = () => {
 
 	return (
 		<div>
-			<div>
-				<DataTable
-					columns={columns}
-					data={getPayments.data?.data ?? []}
-					pagination={pagination}
-					setPagination={setPagination}
-				/>
-			</div>
+			<QueryStateHandler
+				query={getPayments}
+				emptyMessage="No payment found"
+				getItems={(res) => res.data}
+				loadingComponent={
+					<DataTableSkeleton
+						columnCount={6}
+						cellWidths={[
+							"20rem",
+							"10rem",
+							"10rem",
+							"10rem",
+							"10rem",
+							"10rem",
+						]}
+					/>
+				}
+				render={(res) => {
+					const data = res.data ?? [];
+
+					return (
+						<DataTable
+							columns={columns}
+							data={data}
+							pagination={pagination}
+							setPagination={setPagination}
+						/>
+					);
+				}}
+			/>
 		</div>
 	);
 };

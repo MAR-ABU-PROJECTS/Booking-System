@@ -71,7 +71,7 @@ export function DataTable<TData, TValue>({
 						<TableRow key={headerGroup.id}>
 							{headerGroup.headers.map((header) => {
 								return (
-									<TableHead key={header.id} className="h-[55px]">
+									<TableHead key={header.id} className="h-[40px]">
 										{header.isPlaceholder
 											? null
 											: flexRender(
@@ -95,7 +95,7 @@ export function DataTable<TData, TValue>({
 								{row.getVisibleCells().map((cell) => (
 									<TableCell
 										key={cell.id}
-										className="h-[55px]"
+										className="h-[40px]"
 									>
 										{flexRender(
 											cell.column.columnDef.cell,

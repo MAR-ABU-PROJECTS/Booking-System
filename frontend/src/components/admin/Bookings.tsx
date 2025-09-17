@@ -15,6 +15,7 @@ import { paymentStatusColors } from "@components/PaymentStatus";
 import { statusColors } from "@components/BookingStatus";
 import { QueryStateHandler } from "@components/QueryStateHandler";
 import { DataTable } from "./DataTable";
+import useDebounce from "@hooks/use-debounce";
 
 import {
 	Select,
@@ -26,6 +27,8 @@ import {
 	SelectValue,
 } from "@components/ui/select";
 import { Label } from "@components/ui/label";
+import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
+import { Input } from "@components/ui/input";
 
 dayjs.extend(advancedFormat);
 
@@ -42,14 +45,18 @@ const Bookings = () => {
 		bookingStatus: undefined,
 	});
 
+	const [propertyID, setPropertyId] = useState("");
+	const debounceValue = useDebounce(propertyID);
+
 	const getBookings = useQuery({
-		queryKey: ["admin-bookings", filter, pagination],
+		queryKey: ["admin-bookings", filter, pagination, debounceValue],
 		queryFn: async () => {
 			const { paymentStatus, bookingStatus } = filter;
 
 			const params: Record<string, any> = {
 				page: pagination.pageIndex + 1,
 				limit: pagination.pageSize,
+        propertyId: debounceValue
 			};
 
 			if (paymentStatus) params.paymentStatus = paymentStatus;
@@ -93,7 +100,7 @@ const Bookings = () => {
 
 		{
 			accessorKey: "guestName",
-			header: "Guest Details",
+			header: "Guest Info",
 			cell: ({ row }) => {
 				const booking = row.original;
 				return (
@@ -101,6 +108,34 @@ const Bookings = () => {
 						<p>{booking.guestName}</p>
 						<p className="text-gray-500">{booking.guestEmail}</p>
 						<p className="text-gray-500">{booking.guestPhone}</p>
+					</div>
+				);
+			},
+		},
+
+		{
+			accessorKey: "guestName",
+			header: "Guests",
+			cell: ({ row }) => {
+				const booking = row.original;
+				return (
+					<div>
+						<p className="text-gray-500">
+							{booking.adults}{" "}
+							{booking.adults > 1 ? "Adults" : "Adult"}
+						</p>
+						{booking.children > 0 && (
+							<p className="text-gray-500">
+								{booking.children}{" "}
+								{booking.children > 1 ? "Children" : "Child"}
+							</p>
+						)}
+						{booking.infants > 0 && (
+							<p className="text-gray-500">
+								{booking.infants}{" "}
+								{booking.infants > 1 ? "Infants" : "Infant"}
+							</p>
+						)}
 					</div>
 				);
 			},
@@ -179,7 +214,16 @@ const Bookings = () => {
 
 	return (
 		<div>
-			<div className="flex gap-5 mb-6">
+			<div className="flex gap-5 mb-6 flex-wrap">
+				<div className="flex flex-col gap-1">
+					<Label>Property ID</Label>
+					<Input
+						placeholder="Enter Property id"
+						className="h-[37px]"
+						value={propertyID}
+						onChange={(e) => setPropertyId(e.target.value)}
+					/>
+				</div>
 				<div className="flex flex-col gap-1">
 					<Label>Booking Status</Label>
 					<Select
@@ -246,7 +290,21 @@ const Bookings = () => {
 				query={getBookings}
 				emptyMessage="No bookings found"
 				getItems={(res) => res.data?.bookings}
-				loadingComponent="Loading..."
+				loadingComponent={
+					<DataTableSkeleton
+						columnCount={8}
+						cellWidths={[
+							"20rem",
+							"10rem",
+							"4rem",
+							"10rem",
+							"10rem",
+							"10rem",
+							"10rem",
+							"10rem",
+						]}
+					/>
+				}
 				render={(res) => {
 					const data = res.data?.bookings ?? [];
 					const pages = res.data?.pagination?.pages ?? 0;
