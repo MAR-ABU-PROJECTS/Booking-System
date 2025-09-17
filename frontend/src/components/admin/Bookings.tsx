@@ -56,7 +56,7 @@ const Bookings = () => {
 			const params: Record<string, any> = {
 				page: pagination.pageIndex + 1,
 				limit: pagination.pageSize,
-        propertyId: debounceValue
+				propertyId: debounceValue,
 			};
 
 			if (paymentStatus) params.paymentStatus = paymentStatus;
@@ -67,7 +67,6 @@ const Bookings = () => {
 			});
 			return response;
 		},
-		// placeholderData: keepPreviousData,
 	});
 
 	useEffect(() => {
@@ -114,7 +113,7 @@ const Bookings = () => {
 		},
 
 		{
-			accessorKey: "guestName",
+			id: "guestDets",
 			header: "Guests",
 			cell: ({ row }) => {
 				const booking = row.original;

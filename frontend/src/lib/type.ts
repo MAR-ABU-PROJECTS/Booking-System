@@ -337,7 +337,7 @@ export type PaymentType = {
 	amount: number;
 	currency: string;
 	method: PaymentMethod;
-	status: string;
+	status: PaymentStatus;
 	reference: string;
 	transactionId: string;
 	receiptUploaded: boolean;

@@ -14,6 +14,7 @@ import dayjs from "dayjs";
 import advancedFormat from "dayjs/plugin/advancedFormat";
 import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
 import { QueryStateHandler } from "@components/QueryStateHandler";
+import { paymentStatusColors } from "@components/PaymentStatus";
 dayjs.extend(advancedFormat);
 
 const Payments = () => {
@@ -77,7 +78,21 @@ const Payments = () => {
 		{
 			accessorKey: "status",
 			header: "Status",
+			cell: ({ row }) => {
+				const status = row.original.status;
+				return (
+					<span
+						className={`px-3 py-1 rounded-full text-sm font-medium ${
+							paymentStatusColors[status] ??
+							"bg-gray-100 text-gray-800"
+						}`}
+					>
+						{status.replace("_", " ")}
+					</span>
+				);
+			},
 		},
+		
 		{
 			accessorKey: "paidAt",
 			header: "Paid At",
