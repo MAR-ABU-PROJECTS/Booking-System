@@ -1,18 +1,32 @@
 "use client";
-import { QueryStateHandler } from "@components/QueryStateHandler";
-import { apiService } from "@lib/apiService";
+
 import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { toast } from "react-toastify";
-import { keepPreviousData } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import advancedFormat from "dayjs/plugin/advancedFormat";
-import { useState } from "react";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
+import { toast } from "react-toastify";
+import { keepPreviousData } from "@tanstack/react-query";
+
+import { apiService } from "@lib/apiService";
 import { Booking, BookingStatus, PaymentStatus } from "@lib/type";
-import { DataTable } from "./DataTable";
 import { paymentStatusColors } from "@components/PaymentStatus";
 import { statusColors } from "@components/BookingStatus";
+import { QueryStateHandler } from "@components/QueryStateHandler";
+import { DataTable } from "./DataTable";
+
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@components/ui/select";
+import { Label } from "@components/ui/label";
+
 dayjs.extend(advancedFormat);
 
 const Bookings = () => {
@@ -20,72 +34,87 @@ const Bookings = () => {
 		pageIndex: 0,
 		pageSize: 10,
 	});
-	const getBookings = useQuery({
-		queryKey: ["admin-bookings", { pagination }],
-		queryFn: async () => {
-			try {
-				const response = await apiService.get(
-					`/admin/bookings?page=${pagination.pageIndex + 1}&limit=${pagination.pageSize}`
-				);
-				return response;
-			} catch (error) {
-				let errorMessage = "An unexpected error occurred";
-				if (isAxiosError(error)) {
-					errorMessage = error.response
-						? error.response.data.message
-						: error.message;
-				} else if (error instanceof Error) {
-					errorMessage = error.message;
-				}
-				toast.error(errorMessage, {
-					closeOnClick: true,
-					progress: undefined,
-				});
+	const [filter, setFilter] = useState<{
+		paymentStatus?: PaymentStatus;
+		bookingStatus?: BookingStatus;
+	}>({
+		paymentStatus: undefined,
+		bookingStatus: undefined,
+	});
 
-				throw new Error(errorMessage);
-			}
+	const getBookings = useQuery({
+		queryKey: ["admin-bookings", filter, pagination],
+		queryFn: async () => {
+			const { paymentStatus, bookingStatus } = filter;
+
+			const params: Record<string, any> = {
+				page: pagination.pageIndex + 1,
+				limit: pagination.pageSize,
+			};
+
+			if (paymentStatus) params.paymentStatus = paymentStatus;
+			if (bookingStatus) params.status = bookingStatus;
+
+			const response = await apiService.get(`/admin/bookings`, {
+				params,
+			});
+			return response;
 		},
 		// placeholderData: keepPreviousData,
 	});
 
+	useEffect(() => {
+		if (getBookings.error) {
+			const err = getBookings.error;
+			if (isAxiosError(err)) {
+				toast.error(err.response?.data?.message || "An error occurred");
+			} else {
+				toast.error("Unexpected error");
+			}
+		}
+	}, [getBookings.error]);
+
 	const columns: ColumnDef<Booking>[] = [
 		{
-			accessorKey: "bookingCode",
-			header: "Booking Code",
+			accessorKey: "property",
+			header: "Property",
+			cell: ({ row }) => {
+				const booking = row.original;
+				return (
+					<div>
+						<p>{booking.property.name}</p>
+						<p className="text-gray-500">
+							{booking.property.type}, {booking.property.city}
+						</p>
+					</div>
+				);
+			},
 		},
+
 		{
 			accessorKey: "guestName",
 			header: "Guest Details",
 			cell: ({ row }) => {
 				const booking = row.original;
-				const guestName = booking.guestName;
-				const guestEmail = booking.guestEmail;
-				const guestPhone = booking.guestPhone;
 				return (
 					<div>
-						<p>{guestName}</p>
-						<p className="text-gray-500">{guestEmail}</p>
-						<p className="text-gray-500">{guestPhone}</p>
+						<p>{booking.guestName}</p>
+						<p className="text-gray-500">{booking.guestEmail}</p>
+						<p className="text-gray-500">{booking.guestPhone}</p>
 					</div>
 				);
 			},
 		},
-		// {
-		// 	accessorKey: "amount",
-		// 	header: "Amount",
-		// 	cell: ({ row }) => {
-		// 		const payment = row.original;
-		// 		const amount = payment.amount;
-		// 		return <div>{formatCurrency(amount)}</div>;
-		// 	},
-		// },
+		{
+			accessorKey: "bookingCode",
+			header: "Booking Code",
+		},
 
 		{
 			accessorKey: "status",
 			header: "Booking Status",
 			cell: ({ row }) => {
-				const payment = row.original;
-				const status = payment.status;
+				const status = row.original.status;
 				return (
 					<span
 						className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -97,46 +126,27 @@ const Bookings = () => {
 				);
 			},
 		},
-
-		// {
-		// 	accessorKey: "paidAt",
-		// 	header: "Paid At",
-		// 	cell: ({ row }) => {
-		// 		const payment = row.original;
-		// 		const date = payment.paidAt;
-		// 		const formattedDate = dayjs(date).format("Do MMM YYYY");
-
-		// 		return <div>{formattedDate}</div>;
-		// 	},
-		// },
 		{
 			accessorKey: "checkInDate",
 			header: "CheckIn Date",
 			cell: ({ row }) => {
-				const payment = row.original;
-				const date = payment.checkInDate;
-				const formattedDate = dayjs(date).format("Do MMM YYYY");
-
-				return <div>{formattedDate}</div>;
+				const date = row.original.checkInDate;
+				return <div>{dayjs(date).format("Do MMM YYYY")}</div>;
 			},
 		},
 		{
 			accessorKey: "checkOutDate",
 			header: "CheckOut Date",
 			cell: ({ row }) => {
-				const payment = row.original;
-				const date = payment.checkOutDate;
-				const formattedDate = dayjs(date).format("Do MMM YYYY");
-
-				return <div>{formattedDate}</div>;
+				const date = row.original.checkOutDate;
+				return <div>{dayjs(date).format("Do MMM YYYY")}</div>;
 			},
 		},
 		{
 			accessorKey: "paymentStatus",
 			header: "Payment Status",
 			cell: ({ row }) => {
-				const payment = row.original;
-				const status = payment.paymentStatus;
+				const status = row.original.paymentStatus;
 				return (
 					<span
 						className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -149,32 +159,9 @@ const Bookings = () => {
 				);
 			},
 		},
-		// {
-		// 	id: "actions",
-		// 	header: "View Reciept",
-		// 	cell: ({ row }) => {
-		// 		const payment = row.original;
-
-		// 		if (!payment.receiptUrl) return <span>No Receipt</span>;
-
-		// 		return (
-		// 			<div>
-		// 				<Button onClick={() => setOpen(true)}>
-		// 					View Receipt
-		// 				</Button>
-		// 				<ReceiptModal
-		// 					open={open}
-		// 					onClose={() => setOpen(false)}
-		// 					receiptUrl={payment.receiptUrl}
-		// 					paymentId={payment.id}
-		// 				/>
-		// 			</div>
-		// 		);
-		// 	},
-		// },
 	];
 
-  const bookingStatusOptions = Object.values(BookingStatus).map((status) => ({
+	const bookingStatusOptions = Object.values(BookingStatus).map((status) => ({
 		label: status
 			.replace(/_/g, " ")
 			.toLowerCase()
@@ -189,27 +176,89 @@ const Bookings = () => {
 			.replace(/\b\w/g, (c) => c.toUpperCase()),
 		value: status,
 	}));
+
 	return (
 		<div>
+			<div className="flex gap-5 mb-6">
+				<div className="flex flex-col gap-1">
+					<Label>Booking Status</Label>
+					<Select
+						value={filter.bookingStatus ?? ""}
+						onValueChange={(value) =>
+							setFilter((prev) => ({
+								...prev,
+								bookingStatus: value as BookingStatus,
+							}))
+						}
+						disabled={getBookings.isPending}
+					>
+						<SelectTrigger className="w-[200px] border-2 border-[#f7d5b0]">
+							<SelectValue placeholder="Filter Booking Status" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectLabel>Booking Status</SelectLabel>
+								{bookingStatusOptions.map((option) => (
+									<SelectItem
+										key={option.value}
+										value={option.value}
+									>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				</div>
+				<div className="flex flex-col gap-1">
+					<Label>Payment Status</Label>
+					<Select
+						value={filter.paymentStatus ?? ""}
+						onValueChange={(value) =>
+							setFilter((prev) => ({
+								...prev,
+								paymentStatus: value as PaymentStatus,
+							}))
+						}
+						disabled={getBookings.isPending}
+					>
+						<SelectTrigger className="w-[200px] border-2 border-[#f7d5b0]">
+							<SelectValue placeholder="Filter Payment Status" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectLabel>Payment Status</SelectLabel>
+								{paymentStatusOptions.map((option) => (
+									<SelectItem
+										key={option.value}
+										value={option.value}
+									>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
+				</div>
+			</div>
+
 			<QueryStateHandler
 				query={getBookings}
-				emptyMessage="No profile found"
+				emptyMessage="No bookings found"
 				getItems={(res) => res.data?.bookings}
-				loadingComponent={"Loading..."}
+				loadingComponent="Loading..."
 				render={(res) => {
-					const data = res.data?.bookings as Booking[];
-					const pages = res.data?.pagination?.pages as number;
+					const data = res.data?.bookings ?? [];
+					const pages = res.data?.pagination?.pages ?? 0;
 
 					return (
-						<div>
-							<DataTable
-								columns={columns}
-								data={data ?? []}
-								pagination={pagination}
-								setPagination={setPagination}
-								pageCount={pages}
-							/>
-						</div>
+						<DataTable
+							columns={columns}
+							data={data}
+							pagination={pagination}
+							setPagination={setPagination}
+							pageCount={pages}
+						/>
 					);
 				}}
 			/>
