@@ -7,8 +7,6 @@ import dayjs from "dayjs";
 import advancedFormat from "dayjs/plugin/advancedFormat";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { toast } from "react-toastify";
-import { keepPreviousData } from "@tanstack/react-query";
-
 import { apiService } from "@lib/apiService";
 import { Booking, BookingStatus, PaymentStatus } from "@lib/type";
 import { paymentStatusColors } from "@components/PaymentStatus";
@@ -52,7 +50,7 @@ const Bookings = () => {
 		queryKey: ["admin-bookings", filter, pagination, debounceValue],
 		queryFn: async () => {
 			const { paymentStatus, bookingStatus } = filter;
-
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const params: Record<string, any> = {
 				page: pagination.pageIndex + 1,
 				limit: pagination.pageSize,
@@ -73,7 +71,7 @@ const Bookings = () => {
 		if (getBookings.error) {
 			const err = getBookings.error;
 			if (isAxiosError(err)) {
-				toast.error(err.response?.data?.message || "An error occurred");
+				toast.error(err.response?.data?.message || "An error occurred",);
 			} else {
 				toast.error("Unexpected error");
 			}

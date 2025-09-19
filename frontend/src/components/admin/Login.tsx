@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LogInSchema } from "@lib/schemas";
 import { Button } from "@components/ui/button";
 import { Checkbox } from "@components/ui/checkbox";
-import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useMutation } from "@tanstack/react-query";

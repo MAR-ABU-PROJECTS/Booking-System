@@ -1,6 +1,6 @@
 export const Routes: Paths = {
 	dashboard: {
-		dashboard: { name: "Manual Payments", href: "/dashboard", desc: "" },
+		dashboard: { name: "Dashoard", href: "/dashboard", desc: "" },
 	},
 	"manual-payments": {
 		"manual-payments": {
@@ -14,6 +14,13 @@ export const Routes: Paths = {
 			name: "Bookings",
 			href: "/bookings",
 			desc: "Booking List",
+		},
+	},
+	"user-management": {
+		"user-management": {
+			name: "User Management",
+			href: "/user-management",
+			desc: "Manage users account",
 		},
 	},
 };

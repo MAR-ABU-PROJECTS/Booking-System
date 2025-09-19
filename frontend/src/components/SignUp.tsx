@@ -62,6 +62,7 @@ const SignUp = () => {
 					name: `${res.data.user.firstName} ${res.data.user.lastName}`,
 					token: res.data.accessToken,
 					refreshToken: res.data.refreshToken,
+					role:res.data.user.role
 				});
 				dispatch(
 					setUser({

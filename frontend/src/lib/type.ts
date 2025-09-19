@@ -365,3 +365,12 @@ export type PaymentType = {
 		payment_url: string | null;
 	};
 };
+
+export type User = {
+	id: string;
+	email: string;
+	firstName: string;
+	lastName: string;
+	role: string;
+	status: 'ACTIVE' | 'PENDING_VERIFICATION';
+};

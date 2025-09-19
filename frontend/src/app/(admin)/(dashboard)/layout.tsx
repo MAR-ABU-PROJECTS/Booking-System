@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarTrigger } from "@components/ui/sidebar";
+import { SidebarProvider } from "@components/ui/sidebar";
 import { AppSidebar } from "@components/admin/app-sidebar";
 import AdminGuard from "@components/admin/AdminGuard";
 import Navbar from "@components/admin/Navbar";
