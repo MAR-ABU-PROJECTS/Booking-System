@@ -7,6 +7,7 @@ import {
 import Link from "next/link";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
+import { cn } from "@lib/utils";
 
 const SideBarLinks = () => {
 	const pathName = usePathname();
@@ -27,17 +28,25 @@ const SideBarLinks = () => {
 		];
 	}, [pathName]);
 
-
 	return (
 		<SidebarMenu className="px-2">
 			{links.map((item) => (
 				<SidebarMenuItem key={item.title}>
-					<SidebarMenuButton tooltip={item.title}>
-						<Link href={item.href} className="w-full">
+					<SidebarMenuButton
+						tooltip={item.title}
+						className={cn(
+							"h-[40px] hover:bg-amber-400 ",
+							item.isActive
+								? "bg-amber-400 text-black"
+								: "text-gray-700"
+						)}
+					>
+						<Link
+							href={item.href}
+							className="w-full font-medium text-base"
+						>
 							{item.title}
 						</Link>
-						{/* {item.icon && <item.icon />} */}
-						{/* <span>{item.title}</span> */}
 					</SidebarMenuButton>
 				</SidebarMenuItem>
 			))}
