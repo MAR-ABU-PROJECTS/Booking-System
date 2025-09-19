@@ -303,7 +303,7 @@ router.post("/:id/upload-receipt", (0, authservice_1.requireAuth)(), upload.sing
             mimetype: req.file.mimetype,
             uploadsDir,
         });
-        // Read file data and store as base64 (production backup for ephemeral storage)
+        // Store file data as base64 (primary storage method for cloud compatibility)
         let fileData = null;
         let fileMetadata = null;
         try {
@@ -317,11 +317,14 @@ router.post("/:id/upload-receipt", (0, authservice_1.requireAuth)(), upload.sing
                 environment: process.env.NODE_ENV,
                 storagePath: req.file.path,
             };
-            console.log("DEBUG: File stored as base64 backup for production compatibility");
+            console.log("DEBUG: File stored as base64 for database-first storage strategy");
         }
         catch (e) {
-            console.error("ERROR: Could not read file for backup:", e);
-            // Continue anyway - file might still be accessible via disk in dev
+            console.error("ERROR: Could not read file data:", e);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to process uploaded file",
+            });
         }
         console.log("DEBUG: About to update payment in database");
         // Update payment with receipt information and mark booking paymentStatus as PROCESSING
@@ -335,13 +338,14 @@ router.post("/:id/upload-receipt", (0, authservice_1.requireAuth)(), upload.sing
                     // For BANK_TRANSFER, use paidAt to record receipt upload time
                     paidAt: new Date(),
                     updatedAt: new Date(),
-                    // Store file data as base64 backup for production (ephemeral storage)
+                    // Store file data in database (primary storage for cloud compatibility)
                     gatewayResponse: {
                         ...(payment.gatewayResponse || {}),
-                        receiptBackup: fileData,
+                        receiptBackup: fileData, // Primary storage, not just backup
                         receiptMetadata: fileMetadata,
-                        uploadMethod: "file_with_backup",
-                        backupCreated: !!fileData,
+                        uploadMethod: "database_first",
+                        databaseStored: !!fileData,
+                        diskPath: req.file.path, // Secondary reference for local development
                     },
                 },
             }),
@@ -1179,27 +1183,10 @@ router.get("/receipt/:filename", (0, authservice_1.requireAuth)(), async (req, r
                 message: "Access denied",
             });
         }
-        // Try multiple possible file paths (for different environments and deployments)
-        const possiblePaths = [
-            path_1.default.join(uploadsDir, filename),
-            path_1.default.join(process.cwd(), "uploads", "receipts", filename),
-            path_1.default.join(__dirname, "..", "..", "uploads", "receipts", filename),
-            path_1.default.join("/tmp", "receipts", filename),
-            path_1.default.join("/tmp", "uploads", "receipts", filename),
-        ];
-        console.log("Checking file paths:", possiblePaths);
-        let filePath = null;
-        for (const testPath of possiblePaths) {
-            if (fs_1.default.existsSync(testPath)) {
-                filePath = testPath;
-                console.log("Found file at:", filePath);
-                break;
-            }
-        }
-        // If file not found on disk, try database backup (production fallback)
+        // PRIORITY 1: Try database storage first (cloud-compatible)
         const gatewayResponse = payment?.gatewayResponse;
-        if (!filePath && gatewayResponse?.receiptBackup) {
-            console.log("File not found on disk, serving from database backup");
+        if (gatewayResponse?.receiptBackup) {
+            console.log("Serving from database storage (primary method)");
             try {
                 const buffer = Buffer.from(gatewayResponse.receiptBackup, "base64");
                 const metadata = gatewayResponse.receiptMetadata || {};
@@ -1212,11 +1199,29 @@ router.get("/receipt/:filename", (0, authservice_1.requireAuth)(), async (req, r
                 return res.send(buffer);
             }
             catch (e) {
-                console.error("Error serving from database backup:", e);
+                console.error("Error serving from database storage:", e);
+                // Continue to file fallback
+            }
+        }
+        // PRIORITY 2: Try multiple possible file paths (development fallback)
+        const possiblePaths = [
+            path_1.default.join(uploadsDir, filename),
+            path_1.default.join(process.cwd(), "uploads", "receipts", filename),
+            path_1.default.join(__dirname, "..", "..", "uploads", "receipts", filename),
+            path_1.default.join("/tmp", "receipts", filename),
+            path_1.default.join("/tmp", "uploads", "receipts", filename),
+        ];
+        console.log("Database storage not available, checking file paths:", possiblePaths);
+        let filePath = null;
+        for (const testPath of possiblePaths) {
+            if (fs_1.default.existsSync(testPath)) {
+                filePath = testPath;
+                console.log("Found file at:", filePath);
+                break;
             }
         }
         if (!filePath) {
-            console.log("File not found anywhere. Debug info:");
+            console.log("Receipt not found in database or file system. Debug info:");
             try {
                 if (fs_1.default.existsSync(uploadsDir)) {
                     const files = fs_1.default.readdirSync(uploadsDir);
@@ -1245,7 +1250,7 @@ router.get("/receipt/:filename", (0, authservice_1.requireAuth)(), async (req, r
                         checkedPaths: possiblePaths,
                         uploadsDir,
                         directoryExists: fs_1.default.existsSync(uploadsDir),
-                        hasBackup: !!payment?.gatewayResponse?.receiptBackup,
+                        hasDbBackup: !!payment?.gatewayResponse?.receiptBackup,
                     }
                     : undefined,
             });
