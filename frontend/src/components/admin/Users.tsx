@@ -140,7 +140,9 @@ const Users = () => {
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="p-0.5">
 								<DropdownMenuItem className="hover:outline-0 hover:bg-zinc-100 p-1">
-									<Link href={`/users/${user.id}`}>View</Link>
+									<Link href={`/user-management/${user.id}`}>
+										<Eye className="size-5 text-gray-500"  />
+									</Link>
 								</DropdownMenuItem>
 
 								<DropdownMenuSeparator />
