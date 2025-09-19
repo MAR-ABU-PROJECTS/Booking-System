@@ -16,6 +16,16 @@ const SideBarLinks = () => {
 	const links = useMemo(() => {
 		return [
 			{
+				title: "Dashboard",
+				href: "/dashboard",
+				isActive: splittedPath[1] === "dashboard",
+			},
+			{
+				title: "Bookings",
+				href: "/bookings",
+				isActive: splittedPath[1] === "bookings",
+			},
+			{
 				title: "User Management",
 				href: "/user-management",
 				isActive: splittedPath[1] === "user-management",

@@ -14,7 +14,6 @@ import { statusColors } from "@components/BookingStatus";
 import { QueryStateHandler } from "@components/QueryStateHandler";
 import { DataTable } from "./DataTable";
 import useDebounce from "@hooks/use-debounce";
-
 import {
 	Select,
 	SelectContent,

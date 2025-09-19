@@ -21,6 +21,7 @@ export const Routes: Paths = {
 			name: "User Management",
 			href: "/user-management",
 			desc: "Manage users account",
+			dynamic:true
 		},
 	},
 };

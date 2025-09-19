@@ -3,11 +3,10 @@ import { Button } from "@components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuLabel,
 	DropdownMenuSeparator,
 } from "@components/ui/dropdown-menu";
 import { apiService } from "@lib/apiService";
-import { User } from "@lib/type";
+import { Users } from "@lib/type";
 import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
@@ -86,7 +85,7 @@ const Users = () => {
 		ACTIVE: "bg-green-200 text-green-900",
 	};
 
-	const columns: ColumnDef<User>[] = [
+	const columns: ColumnDef<Users>[] = [
 		{
 			id: "firstName",
 			header: "Name",

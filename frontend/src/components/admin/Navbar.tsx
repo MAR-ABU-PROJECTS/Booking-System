@@ -1,5 +1,4 @@
 "use client";
-
 import { SidebarTrigger } from "@components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import { Routes } from "./routes";
@@ -7,11 +6,19 @@ import { Routes } from "./routes";
 const Navbar = () => {
 	const pathName = usePathname();
 	const pathParts = pathName.split("/").filter(Boolean);
-
 	const firstSegment = pathParts[0] || "dashboard";
 	const secondSegment = pathParts[1] || firstSegment;
 
-	const routeConfig = Routes[firstSegment]?.[secondSegment];
+	let routeConfig = Routes[firstSegment]?.[secondSegment];
+
+	if (!routeConfig) {
+		const fallbackKey = Object.keys(Routes[firstSegment] || {}).find(
+			(key) => Routes[firstSegment]?.[key]?.dynamic
+		);
+		if (fallbackKey) {
+			routeConfig = Routes[firstSegment]?.[fallbackKey];
+		}
+	}
 
 	const name = routeConfig?.name || "Page";
 	const desc = routeConfig?.desc || "";

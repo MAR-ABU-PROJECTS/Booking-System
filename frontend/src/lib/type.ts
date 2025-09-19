@@ -366,11 +366,49 @@ export type PaymentType = {
 	};
 };
 
-export type User = {
+export type Users = {
 	id: string;
 	email: string;
 	firstName: string;
 	lastName: string;
 	role: string;
 	status: 'ACTIVE' | 'PENDING_VERIFICATION';
+};
+
+
+export type User = {
+  address: string;
+  avatar: string;
+  bio: string | null;
+  bookings: Booking[];
+  city: string | null;
+  country: string;
+  createdAt: string;
+  dateOfBirth: string | null;
+  deletedAt: string | null;
+  email: string;
+  emailVerified: string;
+  firstName: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  hostedProperties: any[];
+  id: string;
+  idNumber: string | null;
+  idType: string | null;
+  identityVerified: boolean | null;
+  lastLoginAt: string;
+  lastName: string;
+  notificationPreferences: any | null;
+  password: string;
+  phone: string;
+  phoneVerified: boolean | null;
+  resetToken: string | null;
+  resetTokenExpiry: string | null;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  reviews: any[];
+  role: string;
+  state: string | null;
+  status: string;
+  updatedAt: string;
+  verificationToken: string | null;
+  verificationTokenExpiry: string | null;
 };
