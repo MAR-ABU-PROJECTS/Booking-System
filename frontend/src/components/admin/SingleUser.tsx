@@ -163,20 +163,8 @@ const SingleUser = ({ id }: Props) => {
 				emptyMessage="No User found"
 				getItems={(res) => res.data}
 				loadingComponent={
-					""
-					// <DataTableSkeleton
-					// 	columnCount={8}
-					// 	cellWidths={[
-					// 		"20rem",
-					// 		"10rem",
-					// 		"4rem",
-					// 		"10rem",
-					// 		"10rem",
-					// 		"10rem",
-					// 		"10rem",
-					// 		"10rem",
-					// 	]}
-					// />
+					"Loading.."
+					
 				}
 				render={(res) => {
 					const data = res.data as User;
