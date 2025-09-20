@@ -1,9 +1,9 @@
-import Users from "@components/admin/Users";
+import UsersManagement from "@components/admin/Users";
 
 const page = () => {
 	return (
 		<div>
-			<Users />
+			<UsersManagement />
 		</div>
 	);
 };

@@ -36,7 +36,7 @@ const SideBarLinks = () => {
 				isActive: splittedPath[1] === "manual-payments",
 			},
 		];
-	}, [pathName]);
+	}, [splittedPath]);
 
 	return (
 		<SidebarMenu className="px-2">

@@ -29,7 +29,7 @@ import {
 } from "@components/ui/alert-dialog";
 import Link from "next/link";
 
-const Users = () => {
+const UsersManagement = () => {
 	const [open, setOpen] = useState(false);
 	const queryClient = useQueryClient();
 	const getUsers = useQuery({
@@ -248,4 +248,4 @@ const Users = () => {
 	);
 };
 
-export default Users;
+export default UsersManagement;

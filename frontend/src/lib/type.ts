@@ -397,6 +397,7 @@ export type User = {
   identityVerified: boolean | null;
   lastLoginAt: string;
   lastName: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
   notificationPreferences: any | null;
   password: string;
   phone: string;

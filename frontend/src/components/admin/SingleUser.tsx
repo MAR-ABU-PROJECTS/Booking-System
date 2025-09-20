@@ -1,6 +1,4 @@
 "use client";
-import { Button } from "@components/ui/button";
-import { Card } from "@components/ui/card";
 import { apiService } from "@lib/apiService";
 import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";

@@ -159,9 +159,11 @@ export const ReceiptModal = ({
 						<div className="flex gap-4 mt-6">
 							<Button
 								onClick={() => {
-									verify
-										? verifyReceipt.mutate()
-										: rejectReceipt.mutate();
+									if (verify) {
+										verifyReceipt.mutate();
+									} else {
+										rejectReceipt.mutate();
+									}
 								}}
 								className="flex-1 h-[45px] text-[15px]"
 								type="button"
