@@ -14,8 +14,10 @@ import {
 import { Button } from "@components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
-import { useEffect,useState } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import ReceiptViewer from "./ReceiptViewer";
+import { toast } from "react-toastify";
 
 interface ReceiptModalProps {
 	open: boolean;
@@ -34,34 +36,6 @@ export const ReceiptModal = ({
 	const [confirm, setConfirm] = useState(false);
 	const [verify, setVerify] = useState(false);
 
-	// const getReceipt = useQuery({
-	// 	queryKey: ["receipt-image", receiptUrl],
-	// 	enabled: !!receiptUrl, // Don't run if receiptUrl is null
-	// 	queryFn: async () => {
-	// 		const response = await apiService.get(
-	// 			`/payment/receipt/${receiptUrl}`,
-	// 			{
-	// 				responseType: "blob",
-	// 			}
-	// 		);
-
-	// 		const contentType = response.headers?.["content-type"];
-	// 		const blob = new Blob([response.data], { type: contentType });
-	// 		const url = URL.createObjectURL(blob);
-
-	// 		return { url, contentType };
-	// 	},
-	// });
-
-	// 🧼 Cleanup blob URL on unmount or refetch
-	// useEffect(() => {
-	// 	return () => {
-	// 		if (getReceipt.data?.url) {
-	// 			URL.revokeObjectURL(getReceipt.data.url);
-	// 		}
-	// 	};
-	// }, [getReceipt.data]);
-
 	const verifyReceipt = useMutation({
 		mutationFn: async () => {
 			return await apiService.post(
@@ -73,11 +47,16 @@ export const ReceiptModal = ({
 				}
 			);
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({
 				queryKey: ["pending-verifications"],
 			});
 			onClose();
+			setConfirm(false);
+			toast.success(data.message as string, {
+				closeOnClick: true,
+				progress: undefined,
+			});
 		},
 	});
 
@@ -90,27 +69,37 @@ export const ReceiptModal = ({
 				}
 			);
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
 			queryClient.invalidateQueries({
 				queryKey: ["pending-verifications"],
 			});
 			onClose();
+			setConfirm(false);
+			toast.success(data.message as string, {
+				closeOnClick: true,
+				progress: undefined,
+			});
 		},
 	});
 
-	const get = useQuery({
+	const getReceipt = useQuery({
 		queryKey: ["receipt-image", receiptUrl],
-		enabled: !!receiptUrl, // Don't run if receiptUrl is null
+		enabled: !!receiptUrl,
+
 		queryFn: async () => {
 			const response = await apiService.get(
-				`/payment/receipt/${receiptUrl}`
+				`/payment/receipt/${receiptUrl}`,
+				{
+					responseType: "blob",
+				}
 			);
 
 			return response;
 		},
 	});
 
-	console.log(get.data);
+	const { data: receiptBlob } = getReceipt;
+
 	return (
 		<>
 			<Dialog open={open} onOpenChange={onClose}>
@@ -120,37 +109,14 @@ export const ReceiptModal = ({
 					</DialogHeader>
 
 					<div className="space-y-4">
-						{/* {getReceipt.isLoading ? (
-							<div className="text-center py-10 text-muted-foreground">
-								Loading receipt...
-							</div>
-						) : getReceipt.isError ? (
-							<div className="text-center py-10 text-destructive">
-								Failed to load receipt.
-							</div>
-						) : getReceipt.data?.contentType ===
-						  "application/pdf" ? (
-							<iframe
-								src={getReceipt.data.url}
-								title="Receipt PDF"
-								className="w-full h-[500px] rounded border"
-							/>
-						) : getReceipt.data?.contentType?.startsWith(
-								"image/"
-						  ) ? (
-							<img
-								src={getReceipt.data.url}
-								alt="Receipt"
-								className="w-full h-auto rounded border"
-							/>
+						{getReceipt.isPending ? (
+							"Loading..."
+						) : getReceipt.error ? (
+							getReceipt.error.message
 						) : (
-							<div className="text-center py-10 text-muted-foreground">
-								Unsupported file type:{" "}
-								{getReceipt.data?.contentType}
-							</div>
-						)} */}
+							<ReceiptViewer blob={receiptBlob} />
+						)}
 
-						{/* ✅ Action Buttons */}
 						<div className="flex gap-4">
 							<Button
 								onClick={() => {
@@ -179,8 +145,6 @@ export const ReceiptModal = ({
 				</DialogContent>
 			</Dialog>
 
-			{/* 🔐 Confirmation Modal (optional) */}
-			
 			<AlertDialog open={confirm} onOpenChange={setConfirm}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
@@ -188,23 +152,27 @@ export const ReceiptModal = ({
 							Confirm receipt {verify ? "approval" : "rejection"}
 						</AlertDialogTitle>
 						<AlertDialogDescription className="text-[15px]">
-							Are you sure you want to {verify ? "approve" : "reject"} this
-							receipt?
+							Are you sure you want to{" "}
+							{verify ? "approve" : "reject"} this receipt?
 						</AlertDialogDescription>
 
 						<div className="flex gap-4 mt-6">
 							<Button
 								onClick={() => {
-									verify ? verifyReceipt.mutate() : rejectReceipt.mutate();
+									verify
+										? verifyReceipt.mutate()
+										: rejectReceipt.mutate();
 								}}
 								className="flex-1 h-[45px] text-[15px]"
 								type="button"
 								disabled={
-									verifyReceipt.isPending || rejectReceipt.isPending
+									verifyReceipt.isPending ||
+									rejectReceipt.isPending
 								}
 								variant="default"
 							>
-								{(verifyReceipt.isPending || rejectReceipt.isPending) && (
+								{(verifyReceipt.isPending ||
+									rejectReceipt.isPending) && (
 									<Loader2 className="animate-spin text-white mr-1.5" />
 								)}
 								Continue
@@ -218,7 +186,8 @@ export const ReceiptModal = ({
 								}}
 								variant="destructive"
 								disabled={
-									verifyReceipt.isPending || rejectReceipt.isPending
+									verifyReceipt.isPending ||
+									rejectReceipt.isPending
 								}
 							>
 								Cancel
@@ -227,7 +196,6 @@ export const ReceiptModal = ({
 					</AlertDialogHeader>
 				</AlertDialogContent>
 			</AlertDialog>
-			
 		</>
 	);
 };

@@ -52,6 +52,10 @@ const Payments = () => {
 
 	const [open, setOpen] = useState(false);
 
+	const [selectedReceipt, setSelectedReceipt] = useState({
+		receiptUrl: "",
+		paymentId: "",
+	});
 	const columns: ColumnDef<PaymentType>[] = [
 		{
 			accessorKey: "bookingId",
@@ -92,7 +96,7 @@ const Payments = () => {
 				);
 			},
 		},
-		
+
 		{
 			accessorKey: "paidAt",
 			header: "Paid At",
@@ -114,15 +118,18 @@ const Payments = () => {
 
 				return (
 					<div>
-						<Button onClick={() => setOpen(true)}>
+						<Button
+							onClick={() => {
+								setSelectedReceipt({
+									receiptUrl: payment.receiptUrl as string,
+									paymentId: payment.id,
+								});
+								setOpen(true);
+							}}
+						>
 							View Receipt
 						</Button>
-						<ReceiptModal
-							open={open}
-							onClose={() => setOpen(false)}
-							receiptUrl={payment.receiptUrl}
-							paymentId={payment.id}
-						/>
+					
 					</div>
 				);
 			},
@@ -160,6 +167,13 @@ const Payments = () => {
 						/>
 					);
 				}}
+			/>
+
+			<ReceiptModal
+				open={open}
+				onClose={() => setOpen(false)}
+				receiptUrl={selectedReceipt.receiptUrl}
+				paymentId={selectedReceipt.paymentId}
 			/>
 		</div>
 	);
