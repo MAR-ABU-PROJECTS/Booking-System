@@ -8,6 +8,7 @@ export interface SessionData {
 		token: string;
 		isLoggedIn: boolean;
 		refreshToken: string;
+		role:string;
 	};
 }
 
@@ -19,6 +20,7 @@ export const defaultSession: SessionData = {
 		token: "",
 		isLoggedIn: false,
 		refreshToken: "",
+		role:""
 	},
 };
 

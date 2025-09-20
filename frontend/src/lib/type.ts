@@ -116,6 +116,11 @@ export interface Booking {
 	propertyId: string;
 	// customer?: User
 	// property?: Property
+	property: {
+		name: string;
+		type: string;
+		city: string;
+	};
 }
 
 export type SummaryData = {
@@ -324,3 +329,87 @@ export type ErrorComponentType = (
 	refetch: () => void,
 	isFetching: boolean
 ) => React.ReactNode;
+
+export type PaymentType = {
+	id: string;
+	userId: string;
+	bookingId: string;
+	amount: number;
+	currency: string;
+	method: PaymentMethod;
+	status: PaymentStatus;
+	reference: string;
+	transactionId: string;
+	receiptUploaded: boolean;
+	receiptUrl: string | null;
+	receiptVerified: boolean;
+	refundAmount: number | null;
+	refundStatus: "NONE" | "REQUESTED" | "COMPLETED" | "FAILED";
+	refundRequestedAt: string | null;
+	refundCompletedAt: string | null;
+	refundFailedReason: string | null;
+	paidAt: string | null;
+	failedAt: string | null;
+	verifiedAt: string | null;
+	verifiedBy: string | null;
+	createdAt: string;
+	updatedAt: string;
+	adminNotes: string | null;
+	gatewayResponse: {
+		bank_details: {
+			bank_name: string;
+			account_name: string;
+			account_number: string;
+		};
+		instructions: string[];
+		payment_url: string | null;
+	};
+};
+
+export type Users = {
+	id: string;
+	email: string;
+	firstName: string;
+	lastName: string;
+	role: string;
+	status: 'ACTIVE' | 'PENDING_VERIFICATION';
+};
+
+
+export type User = {
+  address: string;
+  avatar: string;
+  bio: string | null;
+  bookings: Booking[];
+  city: string | null;
+  country: string;
+  createdAt: string;
+  dateOfBirth: string | null;
+  deletedAt: string | null;
+  email: string;
+  emailVerified: string;
+  firstName: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  hostedProperties: any[];
+  id: string;
+  idNumber: string | null;
+  idType: string | null;
+  identityVerified: boolean | null;
+  lastLoginAt: string;
+  lastName: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  notificationPreferences: any | null;
+  password: string;
+  phone: string;
+  phoneVerified: boolean | null;
+  resetToken: string | null;
+  resetTokenExpiry: string | null;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  reviews: any[];
+  role: string;
+  state: string | null;
+  status: string;
+  updatedAt: string;
+  verificationToken: string | null;
+  verificationTokenExpiry: string | null;
+};
