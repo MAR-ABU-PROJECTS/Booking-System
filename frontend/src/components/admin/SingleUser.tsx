@@ -15,6 +15,9 @@ import advancedFormat from "dayjs/plugin/advancedFormat";
 import { paymentStatusColors } from "@components/PaymentStatus";
 import { QueryStateHandler } from "@components/QueryStateHandler";
 import UserDetails from "./UserDetails";
+import { formatCurrency } from "@lib/utils";
+import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
+import ProfileSkeleton from "@components/ProfileSkeleton";
 dayjs.extend(advancedFormat);
 
 type Props = {
@@ -109,21 +112,42 @@ const SingleUser = ({ id }: Props) => {
 			},
 		},
 		{
-			accessorKey: "checkInDate",
-			header: "CheckIn Date",
+			id: "checkDate",
+			header: "Check In - Out Date",
 			cell: ({ row }) => {
-				const date = row.original.checkInDate;
-				return <div>{dayjs(date).format("Do MMM YYYY")}</div>;
+				const checkIn = row.original.checkInDate;
+				const checkOut = row.original.checkOutDate;
+				return (
+					<div>
+						<div>
+							{dayjs(checkIn).format("Do MMM YYYY")} -{" "}
+							{dayjs(checkOut).format("Do MMM YYYY")}{" "}
+						</div>
+						<p className="text-gray-400">
+							{row.original.nights}{" "}
+							{row.original.nights > 1 ? "nights" : "night"}
+						</p>
+					</div>
+				);
 			},
 		},
+
 		{
-			accessorKey: "checkOutDate",
-			header: "CheckOut Date",
+			id: "Total",
+			header: "Total Fee",
 			cell: ({ row }) => {
-				const date = row.original.checkOutDate;
-				return <div>{dayjs(date).format("Do MMM YYYY")}</div>;
+				const data = row.original;
+				const ratePerNight = data.baseAmount;
+				const nights = data.nights;
+				const subtotal = ratePerNight * nights;
+				const cleaningFee = data.cleaningFee;
+				const serviceFee = data.serviceFee;
+				const taxes = data.taxes;
+				const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
+				return <div>{formatCurrency(totalAmount)}</div>;
 			},
 		},
+
 		{
 			accessorKey: "paymentStatus",
 			header: "Payment Status",
@@ -163,8 +187,22 @@ const SingleUser = ({ id }: Props) => {
 				emptyMessage="No User found"
 				getItems={(res) => res.data}
 				loadingComponent={
-					"Loading.."
-					
+					<div>
+						<ProfileSkeleton />
+						<div className="my-5"/>
+						<DataTableSkeleton
+							columnCount={7}
+							cellWidths={[
+								"20rem",
+								"10rem",
+								"4rem",
+								"10rem",
+								"10rem",
+								"10rem",
+								"10rem",
+							]}
+						/>
+					</div>
 				}
 				render={(res) => {
 					const data = res.data as User;

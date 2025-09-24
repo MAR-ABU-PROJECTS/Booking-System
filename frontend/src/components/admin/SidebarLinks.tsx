@@ -45,7 +45,7 @@ const SideBarLinks = () => {
 					<SidebarMenuButton
 						tooltip={item.title}
 						className={cn(
-							"h-[40px] hover:bg-amber-300 ",
+							"h-[40px] hover:bg-amber-400",
 							item.isActive
 								? "bg-amber-400 text-black hover:bg-amber-400"
 								: "text-gray-700"

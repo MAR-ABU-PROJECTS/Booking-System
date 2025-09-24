@@ -1,6 +1,6 @@
 export const Routes: Paths = {
 	dashboard: {
-		dashboard: { name: "Dashoard", href: "/dashboard", desc: "" },
+		dashboard: { name: "Dashoard Overview", href: "/dashboard", desc: "Monitor property management performance" },
 	},
 	"manual-payments": {
 		"manual-payments": {

@@ -413,3 +413,35 @@ export type User = {
   verificationToken: string | null;
   verificationTokenExpiry: string | null;
 };
+
+
+export type DashboardData = {
+  bookings: {
+    approved: number
+    cancelled: number
+    completed: number
+    pending: number
+    revenue: number
+    total: number
+  }
+  pendingReviews: number
+  properties: {
+    byStatus: {
+      active: number
+    }
+    total: number
+  }
+  recentBookings: Booking[]
+  revenue: {
+    count: number
+    serviceFees: number
+    total: number
+  }
+  users: {
+    byRole: {
+      admin: number
+      customer: number
+    }
+    total: number
+  }
+}

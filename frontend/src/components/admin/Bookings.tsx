@@ -26,6 +26,7 @@ import {
 import { Label } from "@components/ui/label";
 import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
 import { Input } from "@components/ui/input";
+import { formatCurrency } from "@lib/utils";
 
 dayjs.extend(advancedFormat);
 
@@ -49,7 +50,7 @@ const Bookings = () => {
 		queryKey: ["admin-bookings", filter, pagination, debounceValue],
 		queryFn: async () => {
 			const { paymentStatus, bookingStatus } = filter;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const params: Record<string, any> = {
 				page: pagination.pageIndex + 1,
 				limit: pagination.pageSize,
@@ -70,7 +71,7 @@ const Bookings = () => {
 		if (getBookings.error) {
 			const err = getBookings.error;
 			if (isAxiosError(err)) {
-				toast.error(err.response?.data?.message || "An error occurred",);
+				toast.error(err.response?.data?.message || "An error occurred");
 			} else {
 				toast.error("Unexpected error");
 			}
@@ -158,19 +159,39 @@ const Bookings = () => {
 			},
 		},
 		{
-			accessorKey: "checkInDate",
-			header: "CheckIn Date",
+			id: "checkDate",
+			header: "Check In - Out Date",
 			cell: ({ row }) => {
-				const date = row.original.checkInDate;
-				return <div>{dayjs(date).format("Do MMM YYYY")}</div>;
+				const checkIn = row.original.checkInDate;
+				const checkOut = row.original.checkOutDate;
+				return (
+					<div>
+						<div>
+							{dayjs(checkIn).format("Do MMM YYYY")} -{" "}
+							{dayjs(checkOut).format("Do MMM YYYY")}{" "}
+						</div>
+						<p className="text-gray-400">
+							{row.original.nights}{" "}
+							{row.original.nights > 1 ? "nights" : "night"}
+						</p>
+					</div>
+				);
 			},
 		},
+		
 		{
-			accessorKey: "checkOutDate",
-			header: "CheckOut Date",
+			id: "Total",
+			header: "Total Fee",
 			cell: ({ row }) => {
-				const date = row.original.checkOutDate;
-				return <div>{dayjs(date).format("Do MMM YYYY")}</div>;
+				const data = row.original;
+				const ratePerNight = data.baseAmount;
+				const nights = data.nights;
+				const subtotal = ratePerNight * nights;
+				const cleaningFee = data.cleaningFee;
+				const serviceFee = data.serviceFee;
+				const taxes = data.taxes;
+				const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
+				return <div>{formatCurrency(totalAmount)}</div>;
 			},
 		},
 		{

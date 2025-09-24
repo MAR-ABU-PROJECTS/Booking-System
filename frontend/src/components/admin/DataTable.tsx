@@ -41,6 +41,7 @@ interface DataTableProps<TData, TValue> {
 	setPagination?: Dispatch<SetStateAction<PaginationState>>;
 	loading?: boolean;
 	pageCount?: number;
+	showPagination?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -49,6 +50,7 @@ export function DataTable<TData, TValue>({
 	pagination,
 	setPagination,
 	pageCount,
+	showPagination = true,
 }: DataTableProps<TData, TValue>) {
 	const table = useReactTable({
 		data,
@@ -71,7 +73,10 @@ export function DataTable<TData, TValue>({
 						<TableRow key={headerGroup.id}>
 							{headerGroup.headers.map((header) => {
 								return (
-									<TableHead key={header.id} className="h-[40px] text-[16px]">
+									<TableHead
+										key={header.id}
+										className="h-[40px] text-[16px]"
+									>
 										{header.isPlaceholder
 											? null
 											: flexRender(
@@ -117,103 +122,105 @@ export function DataTable<TData, TValue>({
 					)}
 				</TableBody>
 			</Table>
-			<div className="flex items-center justify-end gap-3 mt-4 p-4">
-				<div className="flex items-center space-x-2">
-					<p className="whitespace-nowrap text-sm font-medium">
-						Rows per page
-					</p>
+			{showPagination && (
+				<div className="flex items-center justify-end gap-3 mt-4 p-4">
+					<div className="flex items-center space-x-2">
+						<p className="whitespace-nowrap text-sm font-medium">
+							Rows per page
+						</p>
 
-					<Select
-						value={`${table.getState().pagination.pageSize}`}
-						onValueChange={(value) => {
-							table.setPageSize(Number(value));
-						}}
-					>
-						<SelectTrigger className="h-8 w-[4.5rem]">
-							<SelectValue
-								placeholder={
-									table.getState().pagination.pageSize
-								}
-							/>
-						</SelectTrigger>
-
-						<SelectContent side="top">
-							{[10, 20, 30, 40, 50].map((pageSize) => (
-								<SelectItem
-									key={pageSize}
-									value={`${pageSize}`}
-								>
-									{pageSize}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
-
-				<div className="flex items-center justify-center text-sm font-medium">
-					Page {table.getState().pagination.pageIndex + 1} of{" "}
-					{table.getPageCount()}
-				</div>
-				<div className="flex items-center justify-center gap-3">
-					<Button
-						variant={"outline"}
-						size={"icon"}
-						className="size-8"
-						onClick={() => table.firstPage()}
-						disabled={!table.getCanPreviousPage()}
-					>
-						<ChevronsLeft className="size-4" />
-					</Button>
-					<Button
-						variant={"outline"}
-						size={"icon"}
-						className="size-8"
-						onClick={() => table.previousPage()}
-						disabled={!table.getCanPreviousPage()}
-					>
-						<ChevronLeft className="size-4" />
-					</Button>
-					<Button
-						className="size-8"
-						variant={"outline"}
-						size={"icon"}
-						onClick={() => table.nextPage()}
-						disabled={!table.getCanNextPage()}
-					>
-						<ChevronRight className="size-4" />
-					</Button>
-					<Button
-						className="size-8"
-						variant={"outline"}
-						size={"icon"}
-						onClick={() => table.lastPage()}
-						disabled={!table.getCanNextPage()}
-					>
-						<ChevronsRight className="size-4" />
-					</Button>
-
-					<span className="flex items-center gap-1 text-sm font-medium">
-						Go to page:
-						<input
-							type="number"
-							min="1"
-							max={table.getPageCount()}
-							defaultValue={
-								table.getState().pagination.pageIndex + 1
-							}
-							onChange={(e) => {
-								const page = e.target.value
-									? Number(e.target.value) - 1
-									: 0;
-								table.setPageIndex(page);
+						<Select
+							value={`${table.getState().pagination.pageSize}`}
+							onValueChange={(value) => {
+								table.setPageSize(Number(value));
 							}}
-							className="border p-1 rounded w-16"
-						/>
-					</span>
+						>
+							<SelectTrigger className="h-8 w-[4.5rem]">
+								<SelectValue
+									placeholder={
+										table.getState().pagination.pageSize
+									}
+								/>
+							</SelectTrigger>
 
-					{/* {dataQuery.isFetching ? 'Loading...' : null} */}
+							<SelectContent side="top">
+								{[10, 20, 30, 40, 50].map((pageSize) => (
+									<SelectItem
+										key={pageSize}
+										value={`${pageSize}`}
+									>
+										{pageSize}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div className="flex items-center justify-center text-sm font-medium">
+						Page {table.getState().pagination.pageIndex + 1} of{" "}
+						{table.getPageCount()}
+					</div>
+					<div className="flex items-center justify-center gap-3">
+						<Button
+							variant={"outline"}
+							size={"icon"}
+							className="size-8"
+							onClick={() => table.firstPage()}
+							disabled={!table.getCanPreviousPage()}
+						>
+							<ChevronsLeft className="size-4" />
+						</Button>
+						<Button
+							variant={"outline"}
+							size={"icon"}
+							className="size-8"
+							onClick={() => table.previousPage()}
+							disabled={!table.getCanPreviousPage()}
+						>
+							<ChevronLeft className="size-4" />
+						</Button>
+						<Button
+							className="size-8"
+							variant={"outline"}
+							size={"icon"}
+							onClick={() => table.nextPage()}
+							disabled={!table.getCanNextPage()}
+						>
+							<ChevronRight className="size-4" />
+						</Button>
+						<Button
+							className="size-8"
+							variant={"outline"}
+							size={"icon"}
+							onClick={() => table.lastPage()}
+							disabled={!table.getCanNextPage()}
+						>
+							<ChevronsRight className="size-4" />
+						</Button>
+
+						<span className="flex items-center gap-1 text-sm font-medium">
+							Go to page:
+							<input
+								type="number"
+								min="1"
+								max={table.getPageCount()}
+								defaultValue={
+									table.getState().pagination.pageIndex + 1
+								}
+								onChange={(e) => {
+									const page = e.target.value
+										? Number(e.target.value) - 1
+										: 0;
+									table.setPageIndex(page);
+								}}
+								className="border p-1 rounded w-16"
+							/>
+						</span>
+
+						{/* {dataQuery.isFetching ? 'Loading...' : null} */}
+					</div>
 				</div>
-			</div>
+			)}
 		</div>
 	);
 }
