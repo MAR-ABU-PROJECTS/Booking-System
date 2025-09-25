@@ -35,6 +35,11 @@ const SideBarLinks = () => {
 				href: "/manual-payments",
 				isActive: splittedPath[1] === "manual-payments",
 			},
+			{
+				title: "Properties",
+				href: "/admin-properties",
+				isActive: splittedPath[1] === "admin-properties",
+			},
 		];
 	}, [splittedPath]);
 

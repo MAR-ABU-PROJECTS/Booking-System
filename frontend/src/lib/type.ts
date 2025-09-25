@@ -445,3 +445,58 @@ export type DashboardData = {
     total: number
   }
 }
+
+
+export type AdminProperty = {
+  id: string;
+  name: string;
+  address: string;
+  adminNotes: string | null;
+  amenities: any[];
+  baseRate: number;
+  bathrooms: number;
+  bedrooms: number;
+  buildingName: string | null;
+  cancellationPolicy: string | null;
+  checkInTime: string;
+  checkOutTime: string;
+  city: string;
+  cleaningFee: number;
+  country: string;
+  createdAt: string;
+  currency: string;
+  deletedAt: string | null;
+  description: string;
+  featuredImage: string | null;
+  features: any[];
+  floor: string | null;
+  host: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  hostId: string;
+  houseRules: string | null;
+  images: any[];
+  isActive: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  maxGuests: number;
+  maxStay: number;
+  minStay: number;
+  monthlyDiscount: number;
+  rules: any[];
+  securityDeposit: number;
+  serviceFee: number;
+  size: number;
+  state: string;
+  status: string;
+  type: string;
+  updatedAt: string;
+  weekendPremium: number;
+  zipCode: string | null;
+  _count: {
+    bookings: number;
+    reviews: number;
+  };
+};

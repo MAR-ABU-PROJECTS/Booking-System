@@ -13,18 +13,17 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { DataTable } from "./DataTable";
 import advancedFormat from "dayjs/plugin/advancedFormat";
-import {
-	Card,
-	CardAction,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/card";
+import { Badge } from "@components/ui/badge";
 import { formatCurrency } from "@lib/utils";
 import Link from "next/link";
-import { Building2, Calendar, DollarSign, Users } from "lucide-react";
+import {
+	AlertCircle,
+	Building2,
+	Calendar,
+	DollarSign,
+	Users,
+} from "lucide-react";
 dayjs.extend(advancedFormat);
 
 const Dashboard = () => {
@@ -208,7 +207,7 @@ const Dashboard = () => {
 
 					return (
 						<div>
-							<div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 mb-6">
+							<div className="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 mb-6">
 								<Card className="bg-card border-border">
 									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 										<CardTitle className="text-base font-medium text-muted-foreground">
@@ -218,7 +217,9 @@ const Dashboard = () => {
 									</CardHeader>
 									<CardContent>
 										<div className="text-2xl font-bold text-foreground">
-											{formatCurrency(data?.revenue?.total || 0)}
+											{formatCurrency(
+												data?.revenue?.total || 0
+											)}
 										</div>
 										<p className="text-sm text-muted-foreground">
 											{/* +12.5% from last month */}
@@ -280,17 +281,101 @@ const Dashboard = () => {
 										</p>
 									</CardContent>
 								</Card>
+							</div>
 
-								
+							<div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+								<Card className="bg-card border-border">
+									<CardHeader>
+										<CardTitle className="flex items-center gap-2 text-foreground text-base">
+											<AlertCircle className="h-5 w-5 text-yellow-400" />
+											Pending Actions
+										</CardTitle>
+									</CardHeader>
+									<CardContent>
+										<div className="space-y-3">
+											<div className="flex items-center justify-between">
+												<span className="text-sm text-muted-foreground">
+													Bookings awaiting approval
+												</span>
+												<Badge variant="secondary">
+													{data.bookings.pending}
+												</Badge>
+											</div>
+											<div className="flex items-center justify-between">
+												<span className="text-sm text-muted-foreground">
+													Reviews pending response
+												</span>
+												<Badge variant="secondary">
+													{data.pendingReviews}
+												</Badge>
+											</div>
+											<div className="flex items-center justify-between">
+												<span className="text-sm text-muted-foreground">
+													Properties needing
+													maintenance
+												</span>
+												<Badge variant="secondary">
+													3
+												</Badge>
+											</div>
+										</div>
+									</CardContent>
+								</Card>
 
-								
-
-								
-
-								
-
-								
-								
+								<Card className="bg-card border-border">
+									<CardHeader>
+										<CardTitle className="text-foreground text-base">
+											Quick Stats
+										</CardTitle>
+									</CardHeader>
+									<CardContent>
+										<div className="space-y-3">
+											<div className="flex items-center justify-between">
+												<span className="text-sm text-muted-foreground">
+													Approved Bookings
+												</span>
+												<span className="font-medium text-foreground">
+													{data?.bookings?.approved}
+												</span>
+											</div>
+											<div className="flex items-center justify-between">
+												<span className="text-sm text-muted-foreground">
+													Cancelled Bookings
+												</span>
+												<span className="font-medium text-foreground">
+													{data?.bookings?.cancelled}
+												</span>
+											</div>
+											<div className="flex items-center justify-between">
+												<span className="text-sm text-muted-foreground">
+													Completed Bookings
+												</span>
+												<span className="font-medium text-foreground">
+													{data?.bookings?.completed}
+												</span>
+											</div>
+											<div className="flex items-center justify-between">
+												<span className="text-sm text-muted-foreground">
+													Occupancy Rate
+												</span>
+												<span className="font-medium text-foreground">
+													78%
+												</span>
+											</div>
+										
+											<div className="flex items-center justify-between">
+												<span className="text-sm text-muted-foreground">
+													Service Fee Revenue
+												</span>
+												<span className="font-medium text-foreground">
+													{formatCurrency(
+														data.revenue.serviceFees
+													)}
+												</span>
+											</div>
+										</div>
+									</CardContent>
+								</Card>
 							</div>
 
 							<div>
