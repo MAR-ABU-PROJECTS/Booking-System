@@ -24,6 +24,7 @@ import {
 } from "@components/ui/card";
 import { formatCurrency } from "@lib/utils";
 import Link from "next/link";
+import { Building2, Calendar, DollarSign, Users } from "lucide-react";
 dayjs.extend(advancedFormat);
 
 const Dashboard = () => {
@@ -208,82 +209,88 @@ const Dashboard = () => {
 					return (
 						<div>
 							<div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 mb-6">
-								<Card>
-									<CardHeader>
-										<CardTitle>Approved Bookings</CardTitle>
-									</CardHeader>
-
-									<CardFooter>
-										<p className="font-medium">
-											{data?.bookings?.approved}
-										</p>
-									</CardFooter>
-								</Card>
-
-								<Card>
-									<CardHeader>
-										<CardTitle>Pending Bookings</CardTitle>
-									</CardHeader>
-
-									<CardFooter>
-										<p className="font-medium">
-											{data?.bookings?.pending}
-										</p>
-									</CardFooter>
-								</Card>
-
-								<Card>
-									<CardHeader>
-										<CardTitle>
-											Completed Bookings
+								<Card className="bg-card border-border">
+									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+										<CardTitle className="text-base font-medium text-muted-foreground">
+											Total Revenue
 										</CardTitle>
+										<DollarSign className="h-4 w-4 text-primary" />
 									</CardHeader>
-
-									<CardFooter>
-										<p className="font-medium">
-											{data?.bookings?.completed}
+									<CardContent>
+										<div className="text-2xl font-bold text-foreground">
+											{formatCurrency(data?.revenue?.total || 0)}
+										</div>
+										<p className="text-sm text-muted-foreground">
+											{/* +12.5% from last month */}
 										</p>
-									</CardFooter>
+									</CardContent>
 								</Card>
 
-								<Card>
-									<CardHeader>
-										<CardTitle>
-											Cancelled Bookings
+								<Card className="bg-card border-border">
+									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+										<CardTitle className="text-base font-medium text-muted-foreground">
+											Total Bookings
 										</CardTitle>
+										<Calendar className="h-4 w-4 text-chart-2" />
 									</CardHeader>
-
-									<CardFooter>
-										<p className="font-medium">
-											{data?.bookings?.cancelled}
-										</p>
-									</CardFooter>
-								</Card>
-
-								<Card>
-									<CardHeader>
-										<CardTitle>Total Bookings</CardTitle>
-									</CardHeader>
-
-									<CardFooter>
-										<p className="font-medium">
+									<CardContent>
+										<div className="text-2xl font-bold text-foreground">
 											{data?.bookings?.total}
+										</div>
+										<p className="text-sm text-muted-foreground">
+											{data?.bookings?.pending} pending
+											approval
 										</p>
-									</CardFooter>
+									</CardContent>
 								</Card>
-								<Card>
-									<CardHeader>
-										<CardTitle>Revenue</CardTitle>
-									</CardHeader>
 
-									<CardFooter>
-										<p className="font-medium">
-											{formatCurrency(
-												data?.booking?.revenue || 0
-											)}
+								<Card className="bg-card border-border">
+									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+										<CardTitle className="text-base font-medium text-muted-foreground">
+											Active Properties
+										</CardTitle>
+										<Building2 className="h-4 w-4 text-chart-3" />
+									</CardHeader>
+									<CardContent>
+										<div className="text-2xl font-bold text-foreground">
+											{data?.properties?.byStatus?.active}
+										</div>
+										<p className="text-sm text-muted-foreground">
+											of {data?.properties?.total} total
+											properties
 										</p>
-									</CardFooter>
+									</CardContent>
 								</Card>
+
+								<Card className="bg-card border-border">
+									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+										<CardTitle className="text-base font-medium text-muted-foreground">
+											Total Users
+										</CardTitle>
+										<Users className="h-4 w-4 text-chart-4" />
+									</CardHeader>
+									<CardContent>
+										<div className="text-2xl font-bold text-foreground">
+											{data?.users?.total}
+										</div>
+										<p className="text-sm text-muted-foreground">
+											{data?.users?.byRole?.admin} admins,{" "}
+											{data?.users?.byRole?.customer}{" "}
+											customers
+										</p>
+									</CardContent>
+								</Card>
+
+								
+
+								
+
+								
+
+								
+
+								
+								
 							</div>
 
 							<div>
