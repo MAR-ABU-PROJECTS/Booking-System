@@ -452,7 +452,8 @@ export type AdminProperty = {
   name: string;
   address: string;
   adminNotes: string | null;
-  amenities: any[];
+		 
+  amenities: string[];
   baseRate: number;
   bathrooms: number;
   bedrooms: number;
@@ -468,6 +469,7 @@ export type AdminProperty = {
   deletedAt: string | null;
   description: string;
   featuredImage: string | null;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
   features: any[];
   floor: string | null;
   host: {
@@ -477,7 +479,8 @@ export type AdminProperty = {
   };
   hostId: string;
   houseRules: string | null;
-  images: any[];
+		 
+  images: string[];
   isActive: boolean;
   latitude: number | null;
   longitude: number | null;
@@ -485,6 +488,7 @@ export type AdminProperty = {
   maxStay: number;
   minStay: number;
   monthlyDiscount: number;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
   rules: any[];
   securityDeposit: number;
   serviceFee: number;

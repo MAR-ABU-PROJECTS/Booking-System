@@ -2,10 +2,10 @@
 import { QueryStateHandler } from "@components/QueryStateHandler";
 import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
 import { apiService } from "@lib/apiService";
-import { AdminProperty, Propert } from "@lib/type";
+import { AdminProperty, } from "@lib/type";
 import { useQuery } from "@tanstack/react-query";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
-import { use, useState } from "react";
+import { useState } from "react";
 import { DataTable } from "./DataTable";
 import { Button } from "@components/ui/button";
 import Link from "next/link";

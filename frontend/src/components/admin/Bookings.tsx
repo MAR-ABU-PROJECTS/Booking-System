@@ -1,5 +1,4 @@
 "use client";
-
 import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useEffect, useState } from "react";
@@ -8,12 +7,16 @@ import advancedFormat from "dayjs/plugin/advancedFormat";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import { toast } from "react-toastify";
 import { apiService } from "@lib/apiService";
-import { Booking, BookingStatus, PaymentStatus } from "@lib/type";
+import {
+	AdminProperty,
+	Booking,
+	BookingStatus,
+	PaymentStatus,
+} from "@lib/type";
 import { paymentStatusColors } from "@components/PaymentStatus";
 import { statusColors } from "@components/BookingStatus";
 import { QueryStateHandler } from "@components/QueryStateHandler";
 import { DataTable } from "./DataTable";
-import useDebounce from "@hooks/use-debounce";
 import {
 	Select,
 	SelectContent,
@@ -25,7 +28,6 @@ import {
 } from "@components/ui/select";
 import { Label } from "@components/ui/label";
 import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
-import { Input } from "@components/ui/input";
 import { formatCurrency } from "@lib/utils";
 
 dayjs.extend(advancedFormat);
@@ -38,27 +40,27 @@ const Bookings = () => {
 	const [filter, setFilter] = useState<{
 		paymentStatus?: PaymentStatus;
 		bookingStatus?: BookingStatus;
+		propertyID?: string
 	}>({
 		paymentStatus: undefined,
 		bookingStatus: undefined,
+		propertyID: undefined
 	});
 
-	const [propertyID, setPropertyId] = useState("");
-	const debounceValue = useDebounce(propertyID);
 
 	const getBookings = useQuery({
-		queryKey: ["admin-bookings", filter, pagination, debounceValue],
+		queryKey: ["admin-bookings", filter, pagination],
 		queryFn: async () => {
-			const { paymentStatus, bookingStatus } = filter;
+			const { paymentStatus, bookingStatus, propertyID } = filter;
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const params: Record<string, any> = {
 				page: pagination.pageIndex + 1,
 				limit: pagination.pageSize,
-				propertyId: debounceValue,
 			};
 
 			if (paymentStatus) params.paymentStatus = paymentStatus;
 			if (bookingStatus) params.status = bookingStatus;
+			if (propertyID) params.propertyId = propertyID;
 
 			const response = await apiService.get(`/admin/bookings`, {
 				params,
@@ -178,7 +180,7 @@ const Bookings = () => {
 				);
 			},
 		},
-		
+
 		{
 			id: "Total",
 			header: "Total Fee",
@@ -229,18 +231,48 @@ const Bookings = () => {
 		value: status,
 	}));
 
+	const getProperties = useQuery({
+		queryKey: ["admin-properties"],
+		queryFn: async () => {
+			const response = await apiService.get(`/admin/properties`);
+			return response;
+		},
+	});
+
 	return (
 		<div>
 			<div className="flex gap-5 mb-6 flex-wrap">
 				<div className="flex flex-col gap-1">
-					<Label>Property ID</Label>
-					<Input
-						placeholder="Enter Property id"
-						className="h-[37px]"
-						value={propertyID}
-						onChange={(e) => setPropertyId(e.target.value)}
-					/>
+					<Label>Property</Label>
+					<Select
+						
+						onValueChange={(value) =>
+							setFilter((prev) => ({
+								...prev,
+								propertyID: value,
+							}))
+						}
+						disabled={getProperties.isPending}
+					>
+						<SelectTrigger className="w-[200px] border-2 border-[#f7d5b0]">
+							<SelectValue placeholder="Filter Property" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectGroup>
+								<SelectLabel>Property</SelectLabel>
+								{(
+									getProperties.data?.data
+										?.properties as AdminProperty[]
+								)?.map((p) => (
+									<SelectItem key={p.id} value={p.id}>
+										{p.name}
+									</SelectItem>
+								))}
+							</SelectGroup>
+						</SelectContent>
+					</Select>
 				</div>
+				
 				<div className="flex flex-col gap-1">
 					<Label>Booking Status</Label>
 					<Select
