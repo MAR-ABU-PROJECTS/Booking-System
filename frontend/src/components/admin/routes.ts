@@ -1,6 +1,10 @@
 export const Routes: Paths = {
 	dashboard: {
-		dashboard: { name: "Dashoard", href: "/dashboard", desc: "" },
+		dashboard: {
+			name: "Dashoard Overview",
+			href: "/dashboard",
+			desc: "Monitor property management performance",
+		},
 	},
 	"manual-payments": {
 		"manual-payments": {
@@ -21,7 +25,15 @@ export const Routes: Paths = {
 			name: "User Management",
 			href: "/user-management",
 			desc: "Manage users account",
-			dynamic:true
+			dynamic: true,
+		},
+	},
+	"admin-properties": {
+		"admin-properties": {
+			name: "Property Management",
+			href: "/admin-properties",
+			desc: "Manage Properties",
+			dynamic: true,
 		},
 	},
 };

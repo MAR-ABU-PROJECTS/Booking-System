@@ -139,14 +139,14 @@ const UsersManagement = () => {
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="p-0.5">
 								<DropdownMenuItem className="hover:outline-0 hover:bg-zinc-100 p-1">
-									<Link href={`/user-management/${user.id}`}>
-										<Eye className="size-5 text-gray-500"  />
+									<Link href={`/user-management/${user.id}`} className="flex items-center text-sm">
+										<Eye className="size-5 text-gray-500 mr-1.5"  /> View Details
 									</Link>
 								</DropdownMenuItem>
 
 								<DropdownMenuSeparator />
 								<DropdownMenuItem
-									className="hover:outline-0 hover:bg-zinc-100 p-1 !cursor-pointer"
+									className="hover:outline-0 hover:bg-zinc-100 p-1 !cursor-pointer flex mr-1.5 text-sm"
 									onClick={() =>
 										handldeTrashMenuClick(
 											user.id,
@@ -154,7 +154,7 @@ const UsersManagement = () => {
 										)
 									}
 								>
-									<Trash2 className="text-red-500 size-5" />
+									<Trash2 className="text-red-500 size-5 mr-1.5" /> Delete
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>

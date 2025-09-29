@@ -1,9 +1,9 @@
-import Dashboard from "@components/admin/Dashboard";
+import Properties from "@components/admin/properties";
 
 const page = () => {
 	return (
 		<div>
-			<Dashboard />
+			<Properties />
 		</div>
 	);
 };

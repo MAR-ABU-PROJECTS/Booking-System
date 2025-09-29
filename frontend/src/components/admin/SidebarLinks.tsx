@@ -35,6 +35,11 @@ const SideBarLinks = () => {
 				href: "/manual-payments",
 				isActive: splittedPath[1] === "manual-payments",
 			},
+			{
+				title: "Properties",
+				href: "/admin-properties",
+				isActive: splittedPath[1] === "admin-properties",
+			},
 		];
 	}, [splittedPath]);
 
@@ -45,7 +50,7 @@ const SideBarLinks = () => {
 					<SidebarMenuButton
 						tooltip={item.title}
 						className={cn(
-							"h-[40px] hover:bg-amber-300 ",
+							"h-[40px] hover:bg-amber-400",
 							item.isActive
 								? "bg-amber-400 text-black hover:bg-amber-400"
 								: "text-gray-700"

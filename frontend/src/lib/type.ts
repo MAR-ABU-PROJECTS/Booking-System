@@ -413,3 +413,94 @@ export type User = {
   verificationToken: string | null;
   verificationTokenExpiry: string | null;
 };
+
+
+export type DashboardData = {
+  bookings: {
+    approved: number
+    cancelled: number
+    completed: number
+    pending: number
+    revenue: number
+    total: number
+  }
+  pendingReviews: number
+  properties: {
+    byStatus: {
+      active: number
+    }
+    total: number
+  }
+  recentBookings: Booking[]
+  revenue: {
+    count: number
+    serviceFees: number
+    total: number
+  }
+  users: {
+    byRole: {
+      admin: number
+      customer: number
+    }
+    total: number
+  }
+}
+
+
+export type AdminProperty = {
+  id: string;
+  name: string;
+  address: string;
+  adminNotes: string | null;
+		 
+  amenities: string[];
+  baseRate: number;
+  bathrooms: number;
+  bedrooms: number;
+  buildingName: string | null;
+  cancellationPolicy: string | null;
+  checkInTime: string;
+  checkOutTime: string;
+  city: string;
+  cleaningFee: number;
+  country: string;
+  createdAt: string;
+  currency: string;
+  deletedAt: string | null;
+  description: string;
+  featuredImage: string | null;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  features: any[];
+  floor: string | null;
+  host: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  hostId: string;
+  houseRules: string | null;
+		 
+  images: string[];
+  isActive: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  maxGuests: number;
+  maxStay: number;
+  minStay: number;
+  monthlyDiscount: number;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rules: any[];
+  securityDeposit: number;
+  serviceFee: number;
+  size: number;
+  state: string;
+  status: string;
+  type: string;
+  updatedAt: string;
+  weekendPremium: number;
+  zipCode: string | null;
+  _count: {
+    bookings: number;
+    reviews: number;
+  };
+};
