@@ -11,14 +11,19 @@ import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
 import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { resetBooking } from "@lib/features/bookingSlice";
 
 const BookingPayment = ({
 	summaryData,
 	paymentId,
+	instructions,
 }: {
 	summaryData: SummaryData;
 	paymentId: string;
+	instructions: string[] | undefined;
 }) => {
+	const dispatch = useDispatch();
 	const [receipt, setReceipt] = useState<File | null>(null);
 	const router = useRouter();
 
@@ -40,7 +45,7 @@ const BookingPayment = ({
 					closeOnClick: false,
 					progress: undefined,
 				});
-
+				dispatch(resetBooking());
 				setReceipt(null);
 				return;
 			}
@@ -93,6 +98,7 @@ const BookingPayment = ({
 		},
 
 		onSuccess: async (res) => {
+			console.log(res);
 			if (res?.success) {
 				const message = res?.message as string;
 				toast.success(message, {
@@ -100,6 +106,7 @@ const BookingPayment = ({
 					progress: undefined,
 				});
 				setReceipt(null);
+
 				setTimeout(() => router.push("/"), 3000);
 			} else {
 				const message = res?.message as string;
@@ -171,6 +178,14 @@ const BookingPayment = ({
 					You can only continue after you have made the payment of{" "}
 					{formatCurrency(totalAmount)}.
 				</p>
+				<h1 className="text-[17px] mb-1 font-medium mt-5">Note:</h1>
+				<div className="bg-red-500 text-left font-semibold text-[18px] rounded-xl p-2">
+					{instructions?.map((i) => (
+						<ul className="list-none">
+							<li className="text-[16px]">{i}</li>
+						</ul>
+					))}
+				</div>
 			</div>
 
 			<div className="w-full grid items-center gap-1">

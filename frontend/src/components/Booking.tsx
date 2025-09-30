@@ -15,8 +15,6 @@ import { isAxiosError } from "axios";
 import { apiService } from "@lib/apiService";
 import dayjs from "dayjs";
 import type { SummaryData } from "@lib/type";
-import { useDispatch } from "react-redux";
-import { resetBooking } from "@lib/features/bookingSlice";
 import BookingStep from "@components/bookingComponents/BookingStep";
 import { ChevronLeft } from "lucide-react";
 import BookingPayment from "./BookingPayment";
@@ -24,7 +22,7 @@ import BookingPayment from "./BookingPayment";
 const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const user = useSelector((state: RootState) => state.auth);
-	const dispatch = useDispatch();
+
 	const [paymentId, setPaymentId] = useState("");
 
 	const [summaryData, setSummaryData] = useState<SummaryData>({
@@ -129,23 +127,17 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			});
 			return response;
 		},
-		retry: (failureCount, error) => {
-			if (isAxiosError(error)) {
-				const status = error.response?.status;
-				if (!status || status >= 500) return failureCount < 3;
-			}
-			return false;
-		},
-		retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+
 		onSuccess: async (res) => {
+			console.log(res);
 			if (res?.success) {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
+
 				setSummaryData(res.data);
-				dispatch(resetBooking());
 				handleNext();
 			} else {
 				const message = res?.message as string;
@@ -238,6 +230,8 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		});
 	}, []);
 
+	const [instructions, setInstructions] = useState<string[]>();
+
 	return (
 		<>
 			<Navbar />
@@ -274,6 +268,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 								summaryData={summaryData}
 								handleNext={handleNext}
 								setPaymentId={setPaymentId}
+								setInstructions={setInstructions}
 							/>
 						)}
 
@@ -281,6 +276,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 							<BookingPayment
 								summaryData={summaryData}
 								paymentId={paymentId}
+								instructions={instructions}
 							/>
 						)}
 					</form>

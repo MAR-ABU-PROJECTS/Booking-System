@@ -2,7 +2,7 @@ import type { Property } from "@lib/type";
 
 export const properties: Property[] = [
 	{
-		id: "cmey9ncc00003g44ti3p1lepe",
+		id: "cmg11dcum001pgt4tdpmk0y50",
 		status: "Premium",
 		desc: `Nestled within the prestigious Abike Residence, the Abike Penthouse is a stunning 2-bedroom luxury suite that reflects the very essence of Mar Abu${"'"}s commitment to excellence. Built by us, owned by us.Designed for those who appreciate refined living, this fully furnished penthouse offers a seamless blend of modern comfort, sophisticated aesthetics, and unmatched build quality.`,
 		name: "ABIKE PENTHOUSE",
@@ -51,7 +51,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmey9nct6001fg44t022an0b6",
+		id: "cmg11dcu8001bgt4tu80g11kn",
 		name: "WHITE-STONE",
 		type: "Short Let",
 		location: "Whitestone by Schlepp, Perchstone & Graeys Close, Lekki",
@@ -91,7 +91,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmey9ncj9000lg44tak039o90",
+		id: "cmg11dctf0003gt4t8nccwy41",
 		name: "OBUDU VILLA",
 		type: "Short Let",
 		location: "lakowe lakes golf & country estate, ibeju-lekki",
@@ -105,7 +105,7 @@ export const properties: Property[] = [
 			"Resort-Style Amenities",
 			"High-Speed Internet",
 		],
-		price: 320000,
+		price: 380000,
 		rating: 4.8,
 		reviews: 156,
 		images: [
@@ -136,7 +136,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmey9ncoa000zg44t64k1s8zj",
+		id: "cmg11dctx000pgt4tvq8rvlne",
 		name: "ZIRCON",
 		type: "Short Let",
 		location: "sapphire garden estate, awoyaya, ibeju lekki",

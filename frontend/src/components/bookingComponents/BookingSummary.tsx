@@ -27,13 +27,14 @@ const BookingSummary = ({
 	summaryData,
 	propertyId,
 	handleNext,
-	setPaymentId
+	setPaymentId,
+	setInstructions
 }: {
 	summaryData: SummaryData;
 	propertyId: string;
 	handleNext: () => void;
-	setPaymentId: Dispatch<SetStateAction<string>>
-
+	setPaymentId: Dispatch<SetStateAction<string>>;
+	setInstructions: Dispatch<SetStateAction<string[] | undefined>>
 }) => {
 	const booking = useSelector((state: RootState) => state.booking);
 	const nights = summaryData.nights;
@@ -52,6 +53,10 @@ const BookingSummary = ({
 	const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
 	const location = booking.location;
 	const images = getPropertyImages(propertyId);
+
+
+
+
 
 	const getProperty = useQuery({
 		queryKey: ["property", propertyId],
@@ -101,8 +106,9 @@ const BookingSummary = ({
 			});
 
 			if (paymentMethod === PaymentMethod.BANK_TRANSFER) {
-				const Id = res?.data?.payment.id
-				setPaymentId(Id)
+				const Id = res?.data?.payment.id;
+				setInstructions(res?.data?.paymentData?.instructions)
+				setPaymentId(Id);
 				handleNext();
 			}
 
