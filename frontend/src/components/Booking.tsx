@@ -129,7 +129,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		},
 
 		onSuccess: async (res) => {
-			console.log(res);
+			
 			if (res?.success) {
 				const message = res?.message as string;
 				toast.success(message, {

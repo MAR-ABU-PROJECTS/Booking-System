@@ -104,7 +104,6 @@ const Payments = () => {
 				const payment = row.original;
 				const date = payment.paidAt;
 				const formattedDate = dayjs(date).format("Do MMM YYYY");
-
 				return <div>{formattedDate}</div>;
 			},
 		},
