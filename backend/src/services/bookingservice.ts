@@ -7,7 +7,7 @@ import {
   ReceiptStatus,
   PaymentMethod,
   RefundStatus,
-  NotificationType
+  NotificationType,
 } from "@prisma/client";
 import { z } from "zod";
 import { emailService } from "./emailservice";
@@ -262,50 +262,55 @@ export class BookingService {
       throw new Error("Property is not available for selected dates");
     }
 
-    // Calculate daily rates
+    // Calculate daily rates (normalized, additive weekend premium)
     const breakdown: BookingPricing["breakdown"] = [];
-    let baseAmount = 0;
-
     for (
-      let date = new Date(checkInDate);
-      date < checkOutDate;
-      date.setDate(date.getDate() + 1)
+      let cursor = new Date(checkInDate);
+      cursor < checkOutDate;
+      cursor.setDate(cursor.getDate() + 1)
     ) {
+      // Normalize to midnight to avoid TZ drift
+      const date = new Date(
+        cursor.getFullYear(),
+        cursor.getMonth(),
+        cursor.getDate()
+      );
       const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-      const weekendPremium = property.weekendPremium || 0;
 
-      // Check for special pricing
+      // Check for special pricing override
       const specialPricing = await prisma.propertyAvailability.findUnique({
         where: {
           propertyId_date: {
             propertyId,
-            date: new Date(date),
+            date,
           },
         },
         select: { price: true },
       });
 
-      let dailyRate = specialPricing?.price || property.baseRate;
-
-      if (isWeekend && !specialPricing?.price) {
-        dailyRate = dailyRate * (1 + weekendPremium / 100);
-      }
+      // Use special pricing if available, otherwise use base rate (no weekend premium)
+      const dailyRate = specialPricing?.price ?? property.baseRate;
 
       breakdown.push({
         date: date.toISOString().split("T")[0],
         rate: dailyRate,
         isWeekend,
       });
-
-      baseAmount += dailyRate;
     }
 
-    // Calculate fees
+    // BASE AMOUNT = Property's base rate per night (from database)
+    const baseAmount = property.baseRate;
+
+    // Total nightly amount (sum of all nights with weekend premiums)
+    const totalNightlyAmount = breakdown.reduce((sum, d) => sum + d.rate, 0);
+
+    // Calculate standalone fees
     const cleaningFee = property.cleaningFee || 0;
     const serviceFeeRate = property.serviceFee || 0.05;
-    const serviceFee = Math.round((baseAmount + cleaningFee) * serviceFeeRate);
+    const serviceFee = Math.round(totalNightlyAmount * serviceFeeRate);
     const taxes = 0; // Add tax calculation if needed
 
+    // Calculate discounts
     let discounts = 0;
     if (promoCode) {
       const promo = await prisma.promoCode.findUnique({
@@ -317,14 +322,13 @@ export class BookingService {
         (!promo.startDate || promo.startDate <= new Date()) &&
         (!promo.endDate || promo.endDate >= new Date())
       ) {
-        discounts = Math.round(
-          (baseAmount + cleaningFee) * (promo.discount / 100)
-        );
+        discounts = Math.round(totalNightlyAmount * (promo.discount / 100));
       }
     }
 
+    // TOTAL = (Total Nightly Amount) + Cleaning Fee + Service Fee + Taxes - Discounts
     const totalAmount =
-      baseAmount + cleaningFee + serviceFee + taxes - discounts;
+      totalNightlyAmount + cleaningFee + serviceFee + taxes - discounts;
 
     return {
       baseAmount: Math.round(baseAmount),
