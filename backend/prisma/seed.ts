@@ -82,7 +82,7 @@ async function main() {
       maxGuests: 4,
       size: 200.0,
       baseRate: 320000,
-      weekendPremium: 10,
+      weekendPremium: 0,
       cleaningFee: 20000,
       securityDeposit: 75000,
       amenities: [
@@ -112,7 +112,7 @@ async function main() {
       maxGuests: 8,
       size: 185.5,
       baseRate: 160000,
-      weekendPremium: 12,
+      weekendPremium: 0,
       cleaningFee: 18000,
       securityDeposit: 60000,
       amenities: [
@@ -142,7 +142,7 @@ async function main() {
       maxGuests: 4,
       size: 250.0,
       baseRate: 350000,
-      weekendPremium: 20,
+      weekendPremium: 0,
       cleaningFee: 35000,
       securityDeposit: 150000,
       amenities: [
@@ -168,7 +168,7 @@ async function main() {
       maxGuests: 4,
       size: 180.0,
       baseRate: 200000,
-      weekendPremium: 15,
+      weekendPremium: 0,
       cleaningFee: 25000,
       securityDeposit: 100000,
       amenities: [
