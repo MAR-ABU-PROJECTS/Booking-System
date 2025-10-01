@@ -104,10 +104,10 @@ const SingleProperty = ({ property }: { property: Property }) => {
 					<PropertyImagesGallery images={property.images} />
 					<FormProvider {...form}>
 						<form
-							className="md:pt-9 lg:pt-12 md:flex md:justify-between"
+							className="flex flex-col md:pt-9 lg:pt-12 md:flex-row md:justify-between gap-7"
 							onSubmit={form.handleSubmit(onSubmit)}
 						>
-							<div className="md:basis-[52%] lg:basis-[58%] mb-6">
+							<div className="md:basis-[52%] lg:basis-[58%] h-auto">
 								<div className="mt-3 py-4 md:py-5 border-b-[1px] border-black/20 w-full flex justify-between gap-4 items-center">
 									<div className="flex items-center gap-6">
 										<div className="flex items-center gap-2">
@@ -214,7 +214,7 @@ const SingleProperty = ({ property }: { property: Property }) => {
 								/>
 							</div>
 
-							<div className="border-[1px] rounded-[13px] md:basis-[35%] lg:basis-[30%] md:sticky md:top-[95px] lg:top-[105px] h-full shadow-lg">
+							<div className="relative border-[1px] rounded-[13px] md:basis-[35%] lg:basis-[30%] md:sticky md:top-[95px] lg:top-[105px] h-full shadow-lg">
 								<AvailabilityCalendar />
 							</div>
 						</form>
