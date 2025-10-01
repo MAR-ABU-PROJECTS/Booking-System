@@ -94,6 +94,21 @@ const SingleUser = ({ id }: Props) => {
 				);
 			},
 		},
+		{
+			accessorKey: "createdAt",
+			header: "Created At",
+			cell: ({ row }) => {
+				const date = row.original.createdAt;
+				const formattedDate = dayjs(date).format("Do MMM YYYY");
+				return (
+					<span
+						className={`py-1 rounded-full text-sm font-medium`}
+					>
+						{formattedDate}
+					</span>
+				);
+			},
+		},
 
 		{
 			accessorKey: "status",

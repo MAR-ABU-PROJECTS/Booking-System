@@ -28,6 +28,9 @@ import {
 	AlertDialogTitle,
 } from "@components/ui/alert-dialog";
 import Link from "next/link";
+import dayjs from "dayjs";
+import advancedFormat from "dayjs/plugin/advancedFormat";
+dayjs.extend(advancedFormat);
 
 const UsersManagement = () => {
 	const [open, setOpen] = useState(false);
@@ -83,6 +86,8 @@ const UsersManagement = () => {
 	const statusColors: Record<string, string> = {
 		PENDING_VERIFICATION: "bg-yellow-100 text-yellow-800",
 		ACTIVE: "bg-green-200 text-green-900",
+		ADMIN: "bg-blue-100 text-blue-800",
+		CUSTOMER: "bg-purple-100 text-purple-800",
 	};
 
 	const columns: ColumnDef<Users>[] = [
@@ -104,6 +109,37 @@ const UsersManagement = () => {
 		{
 			accessorKey: "email",
 			header: "Email",
+		},
+
+		{
+			accessorKey: "role",
+			header: "Role",
+			cell: ({ row }) => {
+				const status = row.original.role;
+				return (
+					<span
+						className={`px-3 py-1 rounded-full text-sm font-medium ${
+							statusColors[status] ?? "bg-gray-100 text-gray-800"
+						}`}
+					>
+						{status.replace("_", " ")}
+					</span>
+				);
+			},
+		},
+
+		{
+			accessorKey: "createdAt",
+			header: "Date Joined",
+			cell: ({ row }) => {
+				const date = row.original.createdAt;
+				const formattedDate = dayjs(date).format("Do MMM YYYY");
+				return (
+					<span className={`rounded-full text-sm font-medium`}>
+						{formattedDate}
+					</span>
+				);
+			},
 		},
 
 		{
@@ -139,8 +175,12 @@ const UsersManagement = () => {
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="p-0.5">
 								<DropdownMenuItem className="hover:outline-0 hover:bg-zinc-100 p-1">
-									<Link href={`/user-management/${user.id}`} className="flex items-center text-sm">
-										<Eye className="size-5 text-gray-500 mr-1.5"  /> View Details
+									<Link
+										href={`/user-management/${user.id}`}
+										className="flex items-center text-sm"
+									>
+										<Eye className="size-5 text-gray-500 mr-1.5" />{" "}
+										View Details
 									</Link>
 								</DropdownMenuItem>
 
@@ -154,7 +194,8 @@ const UsersManagement = () => {
 										)
 									}
 								>
-									<Trash2 className="text-red-500 size-5 mr-1.5" /> Delete
+									<Trash2 className="text-red-500 size-5 mr-1.5" />{" "}
+									Delete
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>

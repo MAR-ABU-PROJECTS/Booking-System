@@ -29,7 +29,6 @@ import {
 import { Label } from "@components/ui/label";
 import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
 import { formatCurrency } from "@lib/utils";
-
 dayjs.extend(advancedFormat);
 
 const Bookings = () => {
@@ -40,13 +39,12 @@ const Bookings = () => {
 	const [filter, setFilter] = useState<{
 		paymentStatus?: PaymentStatus;
 		bookingStatus?: BookingStatus;
-		propertyID?: string
+		propertyID?: string;
 	}>({
 		paymentStatus: undefined,
 		bookingStatus: undefined,
-		propertyID: undefined
+		propertyID: undefined,
 	});
-
 
 	const getBookings = useQuery({
 		queryKey: ["admin-bookings", filter, pagination],
@@ -145,6 +143,21 @@ const Bookings = () => {
 		},
 
 		{
+			accessorKey: "createdAt",
+			header: "Created At",
+			cell: ({ row }) => {
+				const date = row.original.createdAt;
+				const formattedDate = dayjs(date).format("Do MMM YYYY");
+				return (
+					<span
+						className={`py-1 rounded-full text-sm font-medium`}
+					>
+						{formattedDate}
+					</span>
+				);
+			},
+		},
+		{
 			accessorKey: "status",
 			header: "Booking Status",
 			cell: ({ row }) => {
@@ -241,38 +254,50 @@ const Bookings = () => {
 
 	return (
 		<div>
-			<div className="flex gap-5 mb-6 flex-wrap">
+			<div className="flex gap-5 mb-6 flex-wrap items-center">
+				<h1>Filter:</h1>
 				<div className="flex flex-col gap-1">
 					<Label>Property</Label>
 					<Select
-						
 						onValueChange={(value) =>
 							setFilter((prev) => ({
 								...prev,
 								propertyID: value,
 							}))
 						}
-						disabled={getProperties.isPending}
+						disabled={
+							getProperties.isPending || !getProperties.data
+						}
 					>
 						<SelectTrigger className="w-[200px] border-2 border-[#f7d5b0]">
 							<SelectValue placeholder="Filter Property" />
 						</SelectTrigger>
+
 						<SelectContent>
 							<SelectGroup>
 								<SelectLabel>Property</SelectLabel>
-								{(
-									getProperties.data?.data
-										?.properties as AdminProperty[]
-								)?.map((p) => (
-									<SelectItem key={p.id} value={p.id}>
-										{p.name}
+
+								{getProperties.isPending ? (
+									<SelectItem disabled value="loading">
+										<span className="text-gray-500">
+											Loading...
+										</span>
 									</SelectItem>
-								))}
+								) : (
+									(
+										getProperties.data?.data
+											?.properties as AdminProperty[]
+									)?.map((p) => (
+										<SelectItem key={p.id} value={p.id}>
+											{p.name}
+										</SelectItem>
+									))
+								)}
 							</SelectGroup>
 						</SelectContent>
 					</Select>
 				</div>
-				
+
 				<div className="flex flex-col gap-1">
 					<Label>Booking Status</Label>
 					<Select

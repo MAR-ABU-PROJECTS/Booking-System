@@ -27,8 +27,17 @@ const UserDetails = ({ data }: Props) => {
 			return await apiService.delete(`/admin/users/${data.id}`);
 		},
 		onSuccess: (data) => {
+			if (data?.success) {
+				setOpen(false);
+				toast.success(`${data.message}`, { progress: undefined });
+			} else {
+				setOpen(false);
+				toast.error(`${data.message}`, { progress: undefined });
+			}
+		},
+		onError: (error) => {
 			setOpen(false);
-			toast.success(`${data.message}`, { progress: undefined });
+			toast.error(`${error?.message}`, { progress: undefined });
 		},
 	});
 

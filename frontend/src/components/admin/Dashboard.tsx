@@ -121,6 +121,22 @@ const Dashboard = () => {
 		},
 
 		{
+			accessorKey: "createdAt",
+			header: "Created At",
+			cell: ({ row }) => {
+				const date = row.original.createdAt;
+				const formattedDate = dayjs(date).format("Do MMM YYYY");
+				return (
+					<span
+						className={`py-1 rounded-full text-sm font-medium`}
+					>
+						{formattedDate}
+					</span>
+				);
+			},
+		},
+
+		{
 			accessorKey: "status",
 			header: "Booking Status",
 			cell: ({ row }) => {
@@ -354,14 +370,7 @@ const Dashboard = () => {
 													{data?.bookings?.completed}
 												</span>
 											</div>
-											<div className="flex items-center justify-between">
-												<span className="text-sm text-muted-foreground">
-													Occupancy Rate
-												</span>
-												<span className="font-medium text-foreground">
-													78%
-												</span>
-											</div>
+											
 										
 											<div className="flex items-center justify-between">
 												<span className="text-sm text-muted-foreground">
