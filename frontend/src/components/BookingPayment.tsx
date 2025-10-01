@@ -180,11 +180,11 @@ const BookingPayment = ({
 				</p>
 				<h1 className="text-[17px] mb-1 font-medium mt-5">Note:</h1>
 				<div className="bg-red-500 text-left font-semibold text-[18px] rounded-xl p-2">
-					{instructions?.map((i) => (
-						<ul className="list-none">
-							<li className="text-[16px]">{i}</li>
-						</ul>
-					))}
+					<ul className="list-none">
+						{instructions?.map((ins, index) => (
+							<li className="text-[16px]" key={index}>{ins}</li>
+						))}
+					</ul>
 				</div>
 			</div>
 
