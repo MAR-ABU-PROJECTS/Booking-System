@@ -11,7 +11,7 @@ const FeaturedProperties = () => {
           </h2>
           <p className="text-lg text-gray-600 font-light max-w-2xl mx-auto leading-relaxed">
             Discover our carefully curated collection of premium accommodations
-            across Nigeria's most prestigious locations
+            across Nigeria&apos;s most prestigious locations
           </p>
         </div>
         

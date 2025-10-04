@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, X, Maximize2 } from "lucide-react";
+import Image from 'next/image';
 
 interface PropertyImage {
   id: number;
@@ -83,45 +84,45 @@ const PropertyImageShowcase = () => {
   const getImagePath = (category: string, index: number) => {
     const categoryImages = {
       "all": [
-        "/banner/all-spaces.jpg", // All spaces overview
-        "/banner/living-area.jpg", // Living area
-        "/banner/kitchen.jpg", // Kitchen
-        "/banner/bedroom.jpg"  // Bedroom
+        "/banner/all-spaces.JPG", // All spaces overview
+        "/banner/living-area.JPG", // Living area
+        "/banner/kitchen.JPG", // Kitchen
+        "/banner/bedroom.JPG"  // Bedroom
       ],
       "living": [
-        "/banner/living-area.jpg", // Main living area
-        "/banner/Living-Room.jpg", // Living room
+        "/banner/living-area.JPG", // Main living area
+        "/banner/Living-Room.JPG", // Living room
         "/banner/indoor.jpg", // Indoor space
-        "/banner/all-spaces.jpg"  // All spaces view
+        "/banner/all-spaces.JPG"  // All spaces view
       ],
       "bedroom": [
-        "/banner/bedroom.jpg", // Main bedroom
+        "/banner/bedroom.JPG", // Main bedroom
         "/banner/indoor.jpg", // Indoor bedroom space
-        "/banner/living-area.jpg", // Bedroom living area
-        "/banner/all-spaces.jpg"  // Bedroom in all spaces
+        "/banner/living-area.JPG", // Bedroom living area
+        "/banner/all-spaces.JPG"  // Bedroom in all spaces
       ],
       "bathroom": [
         "/banner/indoor.jpg", // Indoor bathroom space
-        "/banner/all-spaces.jpg", // Bathroom in all spaces
-        "/banner/living-area.jpg", // Bathroom area
-        "/banner/amenities.jpg"  // Bathroom amenities
+        "/banner/all-spaces.JPG", // Bathroom in all spaces
+        "/banner/living-area.JPG", // Bathroom area
+        "/banner/amenities.JPG"  // Bathroom amenities
       ],
       "kitchen": [
-        "/banner/kitchen.jpg", // Main kitchen
-        "/banner/kitchen-cabinet.jpg", // Kitchen cabinets
+        "/banner/kitchen.JPG", // Main kitchen
+        "/banner/kitchen-cabinet.JPG", // Kitchen cabinets
         "/banner/indoor.jpg", // Indoor kitchen space
-        "/banner/all-spaces.jpg"  // Kitchen in all spaces
+        "/banner/all-spaces.JPG"  // Kitchen in all spaces
       ],
       "outdoor": [
-        "/banner/outdoor.jpg", // Main outdoor space
-        "/banner/all-spaces.jpg", // Outdoor in all spaces
-        "/banner/amenities.jpg", // Outdoor amenities
-        "/banner/living-area.jpg"  // Outdoor living area
+        "/banner/outdoor.JPG", // Main outdoor space
+        "/banner/all-spaces.JPG", // Outdoor in all spaces
+        "/banner/amenities.JPG", // Outdoor amenities
+        "/banner/living-area.JPG"  // Outdoor living area
       ],
       "amenities": [
-        "/banner/amenities.jpg", // Main amenities
-        "/banner/outdoor.jpg", // Outdoor amenities
-        "/banner/kitchen.jpg", // Kitchen amenities
+        "/banner/amenities.JPG", // Main amenities
+        "/banner/outdoor.JPG", // Outdoor amenities
+        "/banner/kitchen.JPG", // Kitchen amenities
         "/banner/indoor.jpg"  // Indoor amenities
       ]
     };
@@ -130,14 +131,14 @@ const PropertyImageShowcase = () => {
   };
 
   // Placeholder gradient backgrounds for demo
-  const gradients = [
-    "bg-gradient-to-br from-amber-100 to-amber-300",
-    "bg-gradient-to-br from-blue-100 to-blue-300",
-    "bg-gradient-to-br from-green-100 to-green-300",
-    "bg-gradient-to-br from-purple-100 to-purple-300",
-    "bg-gradient-to-br from-red-100 to-red-300",
-    "bg-gradient-to-br from-gray-100 to-gray-300"
-  ];
+  // const gradients = [
+  //   "bg-gradient-to-br from-amber-100 to-amber-300",
+  //   "bg-gradient-to-br from-blue-100 to-blue-300",
+  //   "bg-gradient-to-br from-green-100 to-green-300",
+  //   "bg-gradient-to-br from-purple-100 to-purple-300",
+  //   "bg-gradient-to-br from-red-100 to-red-300",
+  //   "bg-gradient-to-br from-gray-100 to-gray-300"
+  // ];
 
   return (
     <section className="py-12 px-4 mx-auto max-w-7xl">
@@ -216,8 +217,10 @@ const PropertyImageShowcase = () => {
             {/* Using specific MAR ABU HOMES images based on category */}
             <div
               className="w-full h-full bg-center bg-cover"
-              style={{ backgroundImage: `url('${getImagePath(image.category, index)}')` }}
+              // style={{ backgroundImage: `url('${getImagePath(image.category, index)}')` }}
             >
+
+              <Image src={getImagePath(image.category, index)} alt={image.alt}  fill/>
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <span className="text-white text-sm font-medium">{image.alt}</span>

@@ -4,19 +4,7 @@ node_modules
 
 /generated/prisma
 
-# Environment
-.env
-.env.local
-
-# Uploads
-uploads/
-
-# Logs
-logs/
-*.log
-
-# Database
-*.db
-*.sqlite
-
-codes.txt
+deploy-production.md
+DEPLOYMENT-CHECKLIST.md
+production.ts
+production.js

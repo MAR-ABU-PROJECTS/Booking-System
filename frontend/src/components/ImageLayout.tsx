@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import Image from "next/image";
 
 type Props = {
 	images: string[];
@@ -14,14 +15,28 @@ const renderImage = (
 	onClick: () => void
 ) => {
 	return (
-		<motion.img
-			key={index}
-			src={src}
-			alt={`Image ${index + 1}`}
-			onClick={onClick}
-			className={`w-full h-full object-cover object-center cursor-pointer ${className}`}
+		// <motion.img
+		// 	key={index}
+		// 	src={src}
+		// 	alt={`Image ${index + 1}`}
+		// 	onClick={onClick}
+		// 	className={`w-full h-full object-cover object-center cursor-pointer ${className}`}
+		// 	layoutId={`image-${index}`}
+		// />
+		<motion.div
+			// className="w-full h-full relative"
+			className={`w-full h-full object-cover object-center cursor-pointer ${className} relative`}
 			layoutId={`image-${index}`}
-		/>
+			onClick={onClick}
+			key={index}
+		>
+			<Image
+				src={src}
+				alt={`Image ${index + 1}`}
+				quality={70}
+				fill
+			/>
+		</motion.div>
 	);
 };
 
@@ -34,7 +49,7 @@ const ImageLayout = ({ images }: Props) => {
 	const ShowAll = () => {
 		return (
 			<button
-				className="!cursor-pointer text-sm font-[500] px-2.5 py-1.5 border border-2 rounded-[9px] bg-white absolute right-7 bottom-5"
+				className="!cursor-pointer text-sm font-[500] px-2.5 py-1.5 border-2 rounded-[9px] bg-white absolute right-7 bottom-5"
 				onClick={() => openModal(0)}
 			>
 				Show All Photos
@@ -66,7 +81,6 @@ const ImageLayout = ({ images }: Props) => {
 					{renderImage(images[0], "object-cover", 0, () =>
 						openModal(0)
 					)}
-				
 				</div>
 			);
 
@@ -76,7 +90,6 @@ const ImageLayout = ({ images }: Props) => {
 					{images.map((img, i) =>
 						renderImage(img, "", i, () => openModal(i))
 					)}
-				
 				</div>
 			);
 
@@ -98,7 +111,6 @@ const ImageLayout = ({ images }: Props) => {
 						2,
 						() => openModal(2)
 					)}
-				
 				</div>
 			);
 
@@ -126,7 +138,6 @@ const ImageLayout = ({ images }: Props) => {
 						3,
 						() => openModal(3)
 					)}
-				
 				</div>
 			);
 
@@ -181,6 +192,7 @@ const ImageLayout = ({ images }: Props) => {
 							className="max-w-5xl max-h-[80vh] rounded-lg object-contain"
 							onClick={(e) => e.stopPropagation()}
 							layoutId={`image-${selectedIndex}`}
+							loading="eager"
 						/>
 
 						{/* Arrows */}

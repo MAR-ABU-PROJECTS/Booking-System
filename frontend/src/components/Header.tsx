@@ -118,7 +118,7 @@ const Header = () => {
 					{/* Main heading */}
 					<div className="flex flex-col items-center pt-5">
 						<motion.h1
-							className="text-white text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-tight mb-6 gilda-display"
+							className="mt-12 lg:mt-0 text-white text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-tight mb-6 gilda-display"
 							initial={{ opacity: 0, y: 50 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 1, delay: 0.2 }}
@@ -147,7 +147,7 @@ const Header = () => {
 							transition={{ duration: 0.8, delay: 0.9 }}
 						>
 							Discover luxury apartments, executive short lets,
-							and premium buildings in Nigeria's most prestigious
+							and premium buildings in Nigeria&apos;s most prestigious
 							locations
 						</motion.p>
 

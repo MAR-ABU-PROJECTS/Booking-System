@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import PropertyCard from "./PropertyCard";
 import { MapPin, SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import {properties} from "../lib/mockData";
+import {properties} from "@lib/mockData";
 
 const PropertyListings = () => {
 	const [showMap, setShowMap] = useState(false);

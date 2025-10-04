@@ -1,13 +1,24 @@
 "use client";
+import { useState, ChangeEvent } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Label } from "@components/ui/label";
+import { Input } from "@components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SignUpSchema } from "../lib/schemas";
-import { Button } from "@/components/ui/button";
+import { SignUpSchema } from "@lib/schemas";
+import { Button } from "@components/ui/button";
 import Link from "next/link";
-// import apiService from "../lib/apiService";
+import { useMutation } from "@tanstack/react-query";
+import { apiService } from "@lib/apiService";
+import { isAxiosError } from "axios";
+import { Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
+import { checkPasswordStrength } from "@lib/utils";
+import PasswordStrengthChecker from "@components/PasswordStrengthChecker";
+import { setSession } from "@lib/action";
+import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { setUser } from "@lib/features/authSlice";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -18,50 +29,137 @@ const SignUp = () => {
 			firstName: "",
 			lastName: "",
 			phone: "",
-			role: "customer",
+			role: "CUSTOMER",
 		},
 		mode: "onChange",
 	});
+	const [passwordStrength, setPasswordStrength] = useState(0);
+	const router = useRouter();
+	const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+		const strength = checkPasswordStrength(e.target.value);
+		setPasswordStrength((strength / 5) * 100);
+	};
 
-	const onSubmit = (data: z.infer<typeof SignUpSchema>) => {
-		console.log({ data });
-		window.location.href = "/";
+	const dispatch = useDispatch();
+
+	const mutation = useMutation({
+		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
+			const response = await apiService.post("/auth/register", {
+				...formData,
+			});
+			return response;
+		},
+		onSuccess: async (res) => {
+			if (res?.success) {
+				const message = res?.message as string;
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+				await setSession({
+					email: res.data.user.email,
+					id: res.data.user.id,
+					name: `${res.data.user.firstName} ${res.data.user.lastName}`,
+					token: res.data.accessToken,
+					refreshToken: res.data.refreshToken,
+					role:res.data.user.role
+				});
+				dispatch(
+					setUser({
+						email: res.data.user.email,
+						id: res.data.user.id,
+						isLoggedIn: true,
+						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
+					})
+				);
+				router.push("/verify-email");
+			} else {
+				const message = res?.message as string;
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			}
+		},
+
+		onError: (error) => {
+			if (isAxiosError(error)) {
+				const errorList = error.response?.data?.errors;
+				if (Array.isArray(errorList)) {
+					errorList.forEach((err) => {
+						if (err.path && err.msg) {
+							form.setError(err.path, {
+								type: "server",
+								message: err.msg,
+							});
+						}
+					});
+				} else {
+					const message =
+						(error.response?.data?.message as string) ||
+						"Something went wrong";
+
+					toast.error(`${message}`, {
+						closeOnClick: false,
+						progress: undefined,
+					});
+				}
+			} else {
+				toast.error("Unexpected error, please try again", {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			}
+		},
+	});
+
+	const onSubmit = (values: z.infer<typeof SignUpSchema>) => {
+		if (passwordStrength < 90) {
+			form.setError("password", {
+				type: "manual",
+				message: "password is not strong enough",
+			});
+			return;
+		}
+		mutation.mutate(values);
 	};
 	return (
-		<div className="w-full max-w-xl mx-auto">
-			<div className="mb-6">
+		<div className="w-full max-w-xl mx-auto pt-8 pb-6">
+			<div className="h-[60px] relative">
 				<img
 					src="/logo/black-logo.png"
 					alt="MAR ABU HOMES"
-					className="h-8 md:h-10 mx-auto mb-5"
+					className="object-contain object-left w-[260px] h-[63px]"
 				/>
-				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
-					Welcome to MAR ABU!
+			</div>
+			<div className="mt-18 mb-16">
+				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl text-center">
+					Welcome to MAR ABU Homes!
 				</h1>
 				<p className="text-center text-gray-500">
 					Sign Up to get started
 				</p>
 			</div>
 			<div>
-				<form onSubmit={form.handleSubmit(onSubmit)}>
+				<form onSubmit={form.handleSubmit(onSubmit)} className="mb-2">
 					<Controller
 						control={form.control}
 						name="firstName"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<Label className="text-base">
 									First Name
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="text"
 									placeholder="Enter first name"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px]  text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -73,20 +171,20 @@ const SignUp = () => {
 						control={form.control}
 						name="lastName"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<Label className="text-base">
 									Last Name
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="text"
 									placeholder="Enter last name"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -98,20 +196,20 @@ const SignUp = () => {
 						control={form.control}
 						name="email"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<Label className="text-base">
 									Email
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="email"
 									placeholder="Enter email"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -123,20 +221,20 @@ const SignUp = () => {
 						control={form.control}
 						name="phone"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<Label className="text-base">
 									Phone
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="tel"
 									placeholder="Enter phone number"
-									className="border-2 border-[#f7d5b0] h-[50px]"
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -148,8 +246,8 @@ const SignUp = () => {
 						control={form.control}
 						name="password"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5">
-								<Label>
+							<div className="grid w-full items-center gap-1.5 ">
+								<Label className="text-base">
 									Password
 									<span className="text-red-600">*</span>
 								</Label>
@@ -157,12 +255,15 @@ const SignUp = () => {
 									type="password"
 									id="password"
 									placeholder="Enter password"
-									className="border-2 border-[#f7d5b0] h-[50px]"
-									{...field}
+									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
+									onChange={(e) => {
+										handlePasswordChange(e);
+										field.onChange(e);
+									}}
 								/>
 
 								{fieldState.error && (
-									<p className="text-sm text-red-600">
+									<p className="text-[15px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -170,16 +271,29 @@ const SignUp = () => {
 						)}
 					/>
 
+					<div className=" mt-3 w-full max-w-[300px]">
+						<PasswordStrengthChecker
+							strength={passwordStrength}
+							password={form.getValues("password")}
+						/>
+					</div>
 					<Button
-						className="!cursor-pointer w-full mt-8 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
+						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform"
+						disabled={mutation.isPending}
 						type="submit"
 					>
+						{mutation.isPending ? (
+							<Loader2
+								className="animate-spin size-5"
+								strokeWidth={3}
+							/>
+						) : null}
 						Submit
 					</Button>
 				</form>
 
-				<p className="text-center text-sm mt-5 font-medium">
-					Already have an account yet?{" "}
+				<p className="text-center text-[16px] font-medium mt-3 !mb-5">
+					Already have an account?{" "}
 					<span className="text-amber-500 text:bg-[#F4A857]">
 						<Link href="/log-in">Log In</Link>
 					</span>

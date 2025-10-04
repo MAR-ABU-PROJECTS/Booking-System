@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AuthBanner from "@/components/AuthBanner";
+import AuthBanner from "@components/AuthBanner";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Pre",
@@ -17,7 +17,7 @@ export default function RootLayout({
 	return (
 		<div className="w-full h-svh flex">
 			<AuthBanner />
-			<div className=" w-full h-full p-4 flex justify-center items-center bg-white">{children}</div>
+			<div className=" w-full h-full p-4 flex justify-center items-start bg-white overflow-x-hidden overflow-y-scroll">{children}</div>
 		</div>
 	);
 }

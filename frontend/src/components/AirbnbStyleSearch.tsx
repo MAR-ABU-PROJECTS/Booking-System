@@ -2,23 +2,30 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X } from "lucide-react";
-import GuestCounter from "@/components/GuestCounter";
-import { Calendar } from "@/components/ui/calendar";
+import GuestCounter from "@components/GuestCounter";
+import { Calendar } from "@components/ui/calendar";
 import { useDispatch} from "react-redux";
-import { updateBooking } from "../lib/features/bookingSlice";
+import { updateBooking } from "@lib/features/bookingSlice";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { homePageBookingSchema } from "../lib/schemas";
+import { homePageBookingSchema } from "@lib/schemas";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import {z} from "zod"
+import { z } from "zod";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import { useQuery } from "@tanstack/react-query";
+import { apiService } from "@lib/apiService";
+import { isAxiosError } from "axios";
+import { toast } from "react-toastify";
+import { Button } from "@components/ui/button";
+import type { Propert } from "@lib/type";
+import { QueryStateHandler } from "@components/QueryStateHandler";
 
 const AirbnbStyleSearch = () => {
+	dayjs.extend(isSameOrBefore);
 	const [activeTab, setActiveTab] = useState<string | null>(null);
 	const router = useRouter();
-
-
-	const dispatch = useDispatch()
+	const dispatch = useDispatch();
 
 	const handleTabClick = (tab: string) => {
 		setActiveTab(activeTab === tab ? null : tab);
@@ -28,38 +35,12 @@ const AirbnbStyleSearch = () => {
 		setActiveTab(null);
 	};
 
-	// MAR ABU HOMES current apartments
-	const marAbuApartments = [
-		{
-			name: "WHITE-STONE",
-			location: "Victoria Island, Lagos",
-			type: "Luxury Apartment",
-			price: 85000,
-		},
-		{
-			name: "ABIKE PENTHOUSE",
-			location: "Ikoyi, Lagos",
-			type: "Premium Penthouse",
-			price: 120000,
-		},
-		{
-			name: "OBUDU VILLA",
-			location: "Lekki Phase 1, Lagos",
-			type: "Executive Villa",
-			price: 95000,
-		},
-		{
-			name: "ZIRCON",
-			location: "Banana Island, Lagos",
-			type: "Luxury Suite",
-			price: 110000,
-		},
-	];
+	const [page, setPage] = useState(1);
 
 	const form = useForm({
 		resolver: zodResolver(homePageBookingSchema),
 		defaultValues: {
-			stepOne: { location: "", name:"" },
+			stepOne: { location: "", name: "", id: "" },
 			stepTwo: { checkin: undefined },
 			stepThree: { checkout: undefined },
 			stepFour: {
@@ -71,6 +52,10 @@ const AirbnbStyleSearch = () => {
 			},
 		},
 	});
+
+	
+
+	// const allErrorMessages = flattenErrors(form.formState.errors);
 
 	const location = form.watch("stepOne.location");
 
@@ -84,19 +69,67 @@ const AirbnbStyleSearch = () => {
 
 	const onSubmit = (data: z.infer<typeof homePageBookingSchema>) => {
 		handleClose();
-		dispatch(updateBooking({ key: "location", value: data.stepOne.location }));
+		dispatch(updateBooking({ key: "id", value: data.stepOne.id }));
+		dispatch(
+			updateBooking({ key: "location", value: data.stepOne.location })
+		);
 		dispatch(updateBooking({ key: "name", value: data.stepOne.name }));
-		dispatch(updateBooking({ key: "price", value: data.stepOne.price }));
-		dispatch(updateBooking({ key: "checkIn", value: data.stepTwo.checkin }));
-		dispatch(updateBooking({ key: "checkOut", value: data.stepThree.checkout }));
-		dispatch(updateBooking({ key: "adults", value: data.stepFour.Guests.adults }));
-		dispatch(updateBooking({ key: "children", value: data.stepFour.Guests.children }));
-		dispatch(updateBooking({ key: "infants", value: data.stepFour.Guests.infants }));
-		router.push("/booking");
+
+		dispatch(
+			updateBooking({ key: "checkIn", value: data.stepTwo.checkin.toISOString() })
+		);
+		dispatch(
+			updateBooking({ key: "checkOut", value: data.stepThree.checkout.toISOString() })
+		);
+		dispatch(
+			updateBooking({ key: "adults", value: data.stepFour.Guests.adults })
+		);
+		dispatch(
+			updateBooking({
+				key: "children",
+				value: data.stepFour.Guests.children,
+			})
+		);
+		dispatch(
+			updateBooking({
+				key: "infants",
+				value: data.stepFour.Guests.infants,
+			})
+		);
+		router.push(`/booking?id=${data.stepOne.id}`);
 	};
 
+	const getProperties = useQuery({
+		queryKey: ["properties", page],
+		queryFn: async () => {
+			try {
+				const response = await apiService.get(
+					`/properties?page=${page}&limit=4`
+				);
+				return response;
+			} catch (error) {
+				let errorMessage = "An unexpected error occurred";
+				if (isAxiosError(error)) {
+					errorMessage = error.response
+						? error.response.data.message
+						: error.message;
+				} else if (error instanceof Error) {
+					errorMessage = error.message;
+				}
+				toast.error(errorMessage, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+
+				throw new Error(errorMessage);
+			}
+		},
+		retry: true,
+	});
+
+
 	return (
-		<div className="relative z-20 px-4 mx-auto max-w-7xl -mt-24">
+		<div className="relative z-20 px-4 mx-auto max-w-7xl -mt-24 airbnb-search">
 			<motion.div
 				className="bg-white !rounded-[20px] md:rounded-full shadow-xl border border-gray-100 overflow-hidden"
 				initial={{ opacity: 0, y: 20 }}
@@ -190,11 +223,11 @@ const AirbnbStyleSearch = () => {
 					<AnimatePresence>
 						{activeTab && (
 							<motion.div
-								className="absolute left-0 right-0 bg-white shadow-2xl rounded-3xl mt-2 border border-gray-200 overflow-hidden"
+								className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[min(480px,86vw)] bg-white shadow-2xl rounded-3xl border border-gray-200 overflow-hidden z-30"
 								initial={{ opacity: 0, height: 0 }}
 								animate={{ opacity: 1, height: "auto" }}
 								exit={{ opacity: 0, height: 0 }}
-								transition={{ duration: 0.3 }}
+								transition={{ duration: 0.28 }}
 							>
 								{/* Close Button */}
 								<button
@@ -206,90 +239,158 @@ const AirbnbStyleSearch = () => {
 
 								{/* Where Panel */}
 								{activeTab === "where" && (
-									<div className="p-4">
+									<div className="p-4 ">
 										<h3 className="text-base font-semibold mb-3">
 											Choose Your Apartment
 										</h3>
 
-										<div className="grid grid-cols-2 gap-2">
-											{marAbuApartments.map(
-												(apartment, index) => (
-													<button
-														key={index}
-														type="button"
-														className="flex items-center gap-2 p-2 border border-gray-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 text-left transition-all duration-200"
-														onClick={async () => {
-															form.setValue(
-																"stepOne.location",
-																apartment.location
-															);
-															form.setValue(
-																"stepOne.name",
-																apartment.name
-															);
-															form.setValue(
-																"stepOne.price",
-																apartment.price
-															);
-															const isValid =
-																await form.trigger(
-																	"stepOne"
-																);
-															if (isValid) {
-																setActiveTab(
-																	"checkin"
-																);
-															}
-														}}
-													>
-														<div className="w-6 h-6 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
-															<span className="text-amber-600 font-medium text-xs">
-																{apartment.name.charAt(
-																	0
-																)}
-															</span>
+										<QueryStateHandler
+											query={getProperties}
+											emptyMessage="No properties found. Try adjusting filters."
+											getItems={(res)=> res.data.properties}
+											render={(res) => {
+												const {
+													properties,
+													pagination,
+												} = res.data;
+												return (
+													<>
+														<div className="grid grid-cols-2 gap-2">
+															{properties.map(
+																(
+																	property: Propert
+																) => (
+																	<button
+																		key={
+																			property.id
+																		}
+																		type="button"
+																		className="flex items-center gap-2 p-2 border border-gray-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 text-left transition-all duration-200"
+																		onClick={async () => {
+																			form.setValue(
+																				"stepOne.location",
+																				property.address
+																			);
+																			form.setValue(
+																				"stepOne.name",
+																				property.name
+																			);
+
+																			form.setValue(
+																				"stepOne.id",
+																				property.id
+																			);
+																			const isValid =
+																				await form.trigger(
+																					"stepOne"
+																				);
+																			if (
+																				isValid
+																			) {
+																				setActiveTab(
+																					"checkin"
+																				);
+																			}
+																		}}
+																	>
+																		<div className="w-6 h-6 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
+																			<span className="text-amber-600 font-medium text-xs">
+																				{property.address.charAt(
+																					0
+																				)}
+																			</span>
+																		</div>
+																		<div className="min-w-0 flex-1">
+																			<div className="font-medium text-gray-900 text-xs truncate">
+																				{
+																					property.name
+																				}
+																			</div>
+																			<div className="text-xs text-gray-500 truncate">
+																				{/* {
+																		property.address.split(
+																			","
+																		)[0]
+																	} */}
+
+																				{
+																					property.address
+																				}
+																			</div>
+																		</div>
+																	</button>
+																)
+															)}
 														</div>
-														<div className="min-w-0 flex-1">
-															<div className="font-medium text-gray-900 text-xs truncate">
-																{apartment.name}
-															</div>
-															<div className="text-xs text-gray-500 truncate">
-																{
-																	apartment.location.split(
-																		","
-																	)[0]
+
+														<div className="flex items-center justify-center gap-4 mt-6">
+															<Button
+																disabled={
+																	!pagination.hasPrev
 																}
-															</div>
+																onClick={() =>
+																	setPage(
+																		(p) =>
+																			Math.max(
+																				p -
+																					1,
+																				1
+																			)
+																	)
+																}
+															>
+																Prev
+															</Button>
+															<span className="text-[12px]">
+																Page{" "}
+																{
+																	pagination.page
+																}{" "}
+																of{" "}
+																{
+																	pagination.pages
+																}
+															</span>
+															<Button
+																disabled={
+																	!pagination.hasNext
+																}
+																onClick={() =>
+																	setPage(
+																		(p) =>
+																			p +
+																			1
+																	)
+																}
+															>
+																Next
+															</Button>
 														</div>
-													</button>
-												)
-											)}
-										</div>
+													</>
+												);
+											}}
+										/>
 									</div>
 								)}
 
 								{/* Check-in Panel */}
 								{activeTab === "checkin" && (
-									<div className="p-6">
+									<div className="px-4 py-2 flex flex-col items-center">
 										<h3 className="text-lg font-bold mb-4">
-											When's your trip?
+											Select your check-in date
 										</h3>
-										<div className="bg-gray-100 p-4 rounded-lg text-center mb-4">
-											<p className="text-sm text-gray-600">
-												Calendar placeholder
-											</p>
-											<p className="text-xs text-gray-500 mt-2">
-												Select check-in date
-											</p>
-										</div>
 
-										<div className="flex justify-center">
+										{/* <div className=" text-center  w-full">
+											<p className="text-xs  ">Select your check-in date</p>
+										</div> */}
+
+										<div className="flex justify-center w-full">
 											<Controller
 												control={form.control}
 												name="stepTwo.checkin"
 												render={({ field }) => (
 													<Calendar
-														className="w-full max-w-[400px]"
+														className=" md:w-[80%] md:h-[50%] max-w-[520px] rounded-2xl border border-gray-200 shadow-md p-3"
 														mode="single"
 														disabled={(date) => {
 															const today =
@@ -318,40 +419,34 @@ const AirbnbStyleSearch = () => {
 
 								{/* Check-out Panel */}
 								{activeTab === "checkout" && (
-									<div className="p-6">
-										<h3 className="text-lg font-bold mb-4">
-											When will you leave?
+									<div className="p-4 flex flex-col items-center">
+										<h3 className="text-lg font-bold mb-2 ">
+											Select your check-out date
 										</h3>
-										<div className="bg-gray-100 p-4 rounded-lg text-center mb-4">
-											<p className="text-sm text-gray-600">
-												Calendar placeholder
-											</p>
-											<p className="text-xs text-gray-500 mt-2">
-												Select check-out date
-											</p>
-										</div>
 
-										<div className="flex justify-center">
+										{/* <div className="bg-gray-50 p-4 rounded-xl border text-center mb-4 w-full max-w-[520px]">
+											<p className="text-sm text-gray-700">Almost there</p>
+											<p className="text-xs text-gray-500 mt-1">
+												Select your check-out date
+											</p>
+										</div> */}
+
+										<div className="flex justify-center w-full">
 											<Controller
 												control={form.control}
 												name="stepThree.checkout"
 												render={({ field }) => (
 													<Calendar
-														className="w-full max-w-[400px]"
+														className=" md:w-[80%] md:h-[50%]  rounded-2xl border border-gray-200 shadow-md p-3"
 														mode="single"
-														disabled={(date) => {
-															const checkinDay =
-																dayjs(
-																	checkIn
-																).startOf(
-																	"day"
-																);
-															return dayjs(
+														disabled={(date) =>
+															dayjs(
 																date
-															).isBefore(
-																checkinDay
-															);
-														}}
+															).isSameOrBefore(
+																checkIn,
+																"day"
+															)
+														}
 														onSelect={(date) => {
 															field.onChange(
 																date
@@ -370,7 +465,7 @@ const AirbnbStyleSearch = () => {
 								{activeTab === "who" && (
 									<div className="p-6">
 										<h3 className="text-lg font-bold mb-4">
-											Who's coming?
+											Who&apos;s coming?
 										</h3>
 
 										<div className="space-y-4">
@@ -443,8 +538,26 @@ const AirbnbStyleSearch = () => {
 												Save
 											</button>
 										</div>
+
+										<div>
+											<p className="text-sm text-red-600">
+												{/* {fieldState.error.message} */}
+											</p>
+										</div>
 									</div>
 								)}
+
+								{/* <div className="flex justify-end">
+									{allErrorMessages.length > 0 && (
+										<ul className="space-y-1 text-right pr-6 pb-6">
+											{allErrorMessages.map((msg, idx) => (
+												<li key={idx} className="text-[15px] text-red-600">
+													{msg}
+												</li>
+											))}
+										</ul>
+									)}
+								</div> */}
 							</motion.div>
 						)}
 					</AnimatePresence>

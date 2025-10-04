@@ -1,6 +1,8 @@
 import React from "react";
 import type { Metadata } from "next";
-import LogIn from "@/components/Login";
+import LogIn from "@components/Login";
+import { getSessionUser } from "@lib/action";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Log In",
@@ -10,7 +12,16 @@ export const metadata: Metadata = {
 		"luxury accommodations, premium properties, short lets, Nigeria, Lagos, Abuja, Port Harcourt",
 };
 
-const page = () => {
+const page = async () => {
+	
+	const session = await getSessionUser();
+
+
+	if (session?.user?.isLoggedIn) {
+		redirect("/");
+	}
+
+
 	return (
 		<>
 			<LogIn />

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Star, MapPin, Calendar, Users, Check, Award, Shield, Clock } from "lucide-react";
+import { Star, MapPin, Calendar, Check, Award, Shield, Clock } from "lucide-react";
 
 const SingleMerchantProperties = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -155,7 +155,7 @@ const SingleMerchantProperties = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <p className="text-gray-600 mb-4">
-                  MAR ABU Homes specializes in providing premium accommodations across Nigeria's most prestigious locations. 
+                  MAR ABU Homes specializes in providing premium accommodations across Nigeria&apos;s most prestigious locations. 
                   With properties in Lagos, Abuja, and Port Harcourt, we cater to discerning guests who seek luxury, comfort, 
                   and exceptional service.
                 </p>
@@ -165,7 +165,7 @@ const SingleMerchantProperties = () => {
                   and is supported by our dedicated hospitality team.
                 </p>
                 <p className="text-gray-600">
-                  Whether you're traveling for business or leisure, MAR ABU Homes offers an unparalleled hospitality experience 
+                  Whether you&apos;re traveling for business or leisure, MAR ABU Homes offers an unparalleled hospitality experience 
                   that combines the privacy and comfort of a home with the services and amenities of a luxury hotel.
                 </p>
               </div>
@@ -270,7 +270,7 @@ const SingleMerchantProperties = () => {
           <div>
             <h3 className="text-2xl font-bold mb-2">Ready to experience luxury?</h3>
             <p className="text-white/90 max-w-xl">
-              Book your stay with MAR ABU Homes today and enjoy premium accommodations in Nigeria's most prestigious locations.
+              Book your stay with MAR ABU Homes today and enjoy premium accommodations in Nigeria&apos;s most prestigious locations.
             </p>
           </div>
           <button className="px-6 py-3 bg-white text-amber-600 font-medium rounded-xl hover:bg-amber-50 transition-colors whitespace-nowrap">

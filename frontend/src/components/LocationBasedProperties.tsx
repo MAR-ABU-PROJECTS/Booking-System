@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Building, Home, Star, ArrowRight } from "lucide-react";
+import { MapPin, Building, Star, ArrowRight } from "lucide-react";
 
 const LocationBasedProperties = () => {
   const [activeLocation, setActiveLocation] = useState("lagos");
@@ -142,7 +142,7 @@ const LocationBasedProperties = () => {
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Browse by Location</h2>
         <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-          Discover MAR ABU HOMES premium properties across Nigeria's most prestigious locations
+          Discover MAR ABU HOMES premium properties across Nigeria&apos;s most prestigious locations
         </p>
       </div>
 

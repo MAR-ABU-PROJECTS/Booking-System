@@ -189,11 +189,11 @@ export class PropertyService {
           hostId,
           currency: "NGN",
           propertyAmenities: {
-            create: amenities.map(amenity => ({
+            create: amenities.map((amenity) => ({
               name: amenity.name,
               category: amenity.category,
               icon: amenity.icon,
-              description: amenity.description
+              description: amenity.description,
             })),
           },
         },
@@ -318,7 +318,7 @@ export class PropertyService {
         data: {
           ...propertyFields,
           ...(amenities && {
-            amenities: amenities.map(a => a.name),
+            amenities: amenities.map((a) => a.name),
           }),
         },
         include: {

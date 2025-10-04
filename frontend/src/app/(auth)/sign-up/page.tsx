@@ -1,6 +1,6 @@
 import React from "react";
 import type { Metadata } from "next";
-import SignUp from "@/components/SignUp";
+import SignUp from "@components/SignUp";
 
 export const metadata: Metadata = {
 	title: "MAR ABU Homes | Sign Up",

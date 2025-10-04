@@ -1,13 +1,13 @@
 import React from "react";
-import Header from "@/components/Header";
-import AirbnbStyleNavigation from "@/components/AirbnbStyleNavigation";
+import AuthGuard from "@components/AuthGuard";
+import WishList from "@components/WishList";
 
 const page = () => {
 	return (
 		<>
-			<AirbnbStyleNavigation />
-			{/* <Header /> */}
-			<h1>Wishlist</h1>
+			<AuthGuard>
+				<WishList />
+			</AuthGuard>
 		</>
 	);
 };

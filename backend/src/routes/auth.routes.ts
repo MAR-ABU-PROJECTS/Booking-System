@@ -1,11 +1,17 @@
-import { UserStatus } from '@prisma/client';
+import { UserStatus } from "@prisma/client";
 // MAR ABU PROJECTS SERVICES LLC - Authentication Routes
 import { Router } from "express";
 import { body, validationResult } from "express-validator";
-import { authService, requireAuth } from "../services/authservice";
+import {
+  authService,
+  requireAuth,
+  blacklistToken,
+} from "../services/authservice";
 import { asyncHandler } from "../middlewares/error.middleware";
 import { AppError } from "../middlewares/error.middleware";
 import { auditLog } from "../middlewares/logger.middleware";
+import { emailService } from "../services/emailservice";
+import jwt from "jsonwebtoken";
 
 const router = Router();
 
@@ -133,6 +139,12 @@ router.post(
   asyncHandler(async (req: any, res: any) => {
     const result = await authService.register(req.body);
 
+    // Send verification email
+    await emailService.sendEmailVerification(
+      result.user.email,
+      result.verificationToken
+    );
+
     auditLog(
       "USER_REGISTERED",
       result.user.id,
@@ -147,7 +159,7 @@ router.post(
       success: true,
       message:
         "Registration successful. Please check your email to verify your account.",
-      data: result,
+      data: { user: result.user },
     });
   })
 );
@@ -216,7 +228,6 @@ router.post(
  *       500:
  *         description: Server error
  */
-
 router.post(
   "/login",
   [
@@ -299,7 +310,6 @@ router.post(
  *       500:
  *         description: Server error
  */
-
 router.post(
   "/refresh",
   [body("refreshToken").notEmpty().withMessage("Refresh token required")],
@@ -307,45 +317,36 @@ router.post(
   asyncHandler(async (req: any, res: any) => {
     const { refreshToken } = req.body;
 
-    try {
-      const payload = authService.verifyToken(refreshToken);
-      const user = await authService.getUserById(payload.userId);
+    // Remove the try-catch wrapper and let authService.refreshToken handle the verification
+    const result = await authService.refreshToken(refreshToken);
 
-      if (!user) {
-        throw new AppError("User not found", 401);
-      }
-
-      if (user.status !== UserStatus.ACTIVE) {
-        throw new AppError("User account is not active", 403)
-      }
-
-      const result = await authService.refreshToken(refreshToken);
-
-      res.json({
-        success: true,
-        message: "Token refreshed successfully",
-        data: result,
-      });
-    } catch (error) {
-      throw new AppError("Invalid refresh token", 401);
-    }
+    res.json({
+      success: true,
+      message: "Token refreshed successfully",
+      data: result,
+    });
   })
 );
 
 /**
- * @route   POST /api/v1/auth/verify-email
- * @desc    Verify email address
- * @access  Protected
+ * @route   GET /api/v1/auth/verify-email/:token
+ * @desc    Verify email address using verification token
+ * @access  Public
  */
 /**
  * @swagger
- * /auth/verify-email:
- *   post:
- *     summary: Verify user email address
+ * /auth/verify-email/{token}:
+ *   get:
+ *     summary: Verify a user's email using the verification token
  *     tags:
  *       - Auth
- *     security:
- *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Email verification token sent to the user's email
  *     responses:
  *       200:
  *         description: Email verified successfully
@@ -359,32 +360,87 @@ router.post(
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Email verified successfully
- *       401:
- *         description: Unauthorized (missing or invalid token)
+ *                   example: Email verified successfully. You can now log in.
+ *       400:
+ *         description: Invalid or expired verification token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Invalid or expired verification token
  *       500:
- *         description: Server error
+ *         description: Internal server error
  */
+router.get(
+  "/verify-email/:token",
+  asyncHandler(async (req: any, res: any) => {
+    const { token } = req.params;
+    try {
+      const user = await authService.verifyEmailByToken(token);
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid or expired verification token",
+          errors: null,
+        });
+      }
+      await emailService.sendWelcomeEmail(user.email, user.firstName);
+      return res.json({
+        success: true,
+        message: "Email verified successfully. You can now log in.",
+      });
+    } catch (error: any) {
+      console.error("Email verification error:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Internal server error",
+        errors: null,
+      });
+    }
+  })
+);
 
+/**
+ * @route   POST /api/v1/auth/verify-email/resend
+ * @desc    Resend verification email (if not yet verified)
+ * @access  Protected
+ */
+/**
+ * @swagger
+ * /auth/verify-email/resend:
+ *   post:
+ *     summary: Resend verification email
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Verification email (re)sent
+ *       400:
+ *         description: Email already verified
+ *       401:
+ *         description: Unauthorized
+ */
 router.post(
-  "/verify-email",
+  "/verify-email/resend",
   requireAuth({ allowPending: true }),
   asyncHandler(async (req: any, res: any) => {
-    await authService.verifyEmail(req.user.id);
-
-    auditLog(
-      "EMAIL_VERIFIED",
-      req.user.id,
-      {
-        email: req.user.email,
-      },
-      req.ip
-    );
-
-    res.json({
-      success: true,
-      message: "Email verified successfully",
-    });
+    try {
+      await authService.resendVerification(req.user.id);
+      return res.json({ success: true, message: "Verification email sent" });
+    } catch (e: any) {
+      if (e.message === "Email already verified") {
+        return res.status(400).json({ success: false, message: e.message });
+      }
+      throw e;
+    }
   })
 );
 
@@ -541,6 +597,26 @@ router.post(
   })
 );
 
+router.get(
+  "/reset-password",
+  asyncHandler(async (req: any, res: any) => {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token is required",
+      });
+    }
+    // You can render a password reset page here, or just return a message
+    res.json({
+      success: true,
+      message:
+        "Please submit your new password using the POST /auth/reset-password endpoint.",
+      token,
+    });
+  })
+);
+
 /**
  * @route   POST /api/v1/auth/logout
  * @desc    Logout user
@@ -579,21 +655,21 @@ router.post(
   "/logout",
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
-    await authService.logout(req.user.id);
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token)
+      return res
+        .status(400)
+        .json({ success: false, message: "No token provided" });
 
-    auditLog(
-      "USER_LOGOUT",
-      req.user.id,
-      {
-        email: req.user.email,
-      },
-      req.ip
-    );
+    // Decode token to get expiry (or use JWT library)
+    const payload: any = jwt.decode(token);
+    const expiresAt = payload?.exp
+      ? new Date(payload.exp * 1000)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    res.json({
-      success: true,
-      message: "Logout successful",
-    });
+    await blacklistToken(token, expiresAt, req.user?.id);
+
+    res.json({ success: true, message: "Logged out and token blacklisted" });
   })
 );
 
@@ -853,6 +929,120 @@ router.put(
       success: true,
       message: "Password changed successfully",
     });
+  })
+);
+
+/**
+ * @route   POST /api/v1/auth/test-email
+ * @desc    Send test email
+ * @access  Public
+ */
+/**
+ * @swagger
+ * /auth/test-email:
+ *   post:
+ *     summary: Send a test email
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Test email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Test email sent successfully!
+ *       400:
+ *         description: Invalid email
+ *       500:
+ *         description: Server error
+ */
+
+router.post(
+  "/test-email",
+  asyncHandler(async (req: any, res: any) => {
+    const { email } = req.body;
+    if (!email) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
+    }
+    const success = await emailService.sendTestEmail(email, {
+      recipientName: "Test User",
+      systemName: "Booking System",
+    });
+    if (success) {
+      return res.json({
+        success: true,
+        message: "Test email sent successfully!",
+      });
+    } else {
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to send test email." });
+    }
+  })
+);
+
+router.post(
+  "/refresh-token",
+  asyncHandler(async (req: any, res: any) => {
+    const { refreshToken } = req.body;
+    if (!refreshToken)
+      return res
+        .status(400)
+        .json({ success: false, message: "Refresh token required" });
+
+    // Decode refresh token to get userId
+    const payload: any = jwt.decode(refreshToken);
+    const userId = payload?.userId;
+    if (!userId)
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid refresh token" });
+
+    const user = await authService.getUserById(userId);
+    if (!user)
+      return res
+        .status(401)
+        .json({ success: false, message: "User not found" });
+
+    try {
+      const newRefreshToken = await authService.rotateRefreshToken(
+        refreshToken,
+        user.id
+      );
+      const newAccessToken = authService.issueAccessToken(user);
+
+      res.json({
+        success: true,
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      });
+    } catch (err) {
+      res
+        .status(401)
+        .json({ success: false, message: "Invalid or expired refresh token" });
+    }
   })
 );
 

@@ -1,10 +1,13 @@
 "use client";
 import { configureStore } from "@reduxjs/toolkit";
 import bookingSlice from "./bookingSlice";
+import authSlice from "./authSlice";
 
 export const store = configureStore({
 	reducer: {
 		booking: bookingSlice,
+		auth: authSlice,
+
 	},
 });
 

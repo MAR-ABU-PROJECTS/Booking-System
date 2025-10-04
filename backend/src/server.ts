@@ -9,6 +9,7 @@ import rateLimit from "express-rate-limit";
 import { PrismaClient } from "@prisma/client";
 import path from "path";
 import { swaggerSpec, swaggerUi } from "./swagger";
+import cron from "node-cron";
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +24,10 @@ import reviewRoutes from "./routes/review.routes";
 import notificationRoutes from "./routes/notification.routes";
 import adminRoutes from "./routes/admin.routes";
 import analyticsRoutes from "./routes/analytics.routes";
+import uploadRoutes from "./routes/upload.routes";
+import searchRoutes from "./routes/search.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
+import paymentRoutes from "./routes/payment.routes";
 
 // Import middleware
 import { errorHandler } from "./middlewares/error.middleware";
@@ -64,16 +69,20 @@ app.use(
   })
 );
 
-// CORS configuration
+// CORS configuration (allow all origins)
 app.use(
   cors({
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      process.env.ADMIN_URL || "http://localhost:3001",
-    ],
+    // Reflect request origin (enables credentials with dynamic origins)
+    origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
   })
 );
 
@@ -120,9 +129,7 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 // ===============================
 // API ROUTES
 // ===============================
-// const API_PREFIX = process.env.API_PREFIX || '/api/v1'
-
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const API_PREFIX = process.env.API_PREFIX || "/api/v1";
 
 // Health check
 app.get("/health", (req, res) => {
@@ -135,15 +142,19 @@ app.get("/health", (req, res) => {
 });
 
 // API routes
-app.use(`/api/v1/auth`, authLimiter, authRoutes);
-app.use(`/api/v1/users`, userRoutes);
-app.use(`/api/v1/properties`, propertyRoutes);
-app.use(`/api/v1/bookings`, bookingRoutes);
-app.use(`/api/v1/receipts`, receiptRoutes);
-app.use(`/api/v1/reviews`, reviewRoutes);
-app.use(`/api/v1/notifications`, notificationRoutes);
-app.use(`/api/v1/admin`, adminRoutes);
-app.use(`/api/v1/analytics`, analyticsRoutes);
+app.use(`${API_PREFIX}/auth`, authLimiter, authRoutes);
+app.use(`${API_PREFIX}/users`, userRoutes);
+app.use(`${API_PREFIX}/properties`, propertyRoutes);
+app.use(`${API_PREFIX}/bookings`, bookingRoutes);
+app.use(`${API_PREFIX}/receipts`, receiptRoutes);
+app.use(`${API_PREFIX}/reviews`, reviewRoutes);
+app.use(`${API_PREFIX}/notifications`, notificationRoutes);
+app.use(`${API_PREFIX}/admin`, adminRoutes);
+app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
+app.use(`${API_PREFIX}/uploads`, uploadRoutes);
+app.use(`${API_PREFIX}/search`, searchRoutes);
+app.use(`${API_PREFIX}/dashboard`, dashboardRoutes);
+app.use(`${API_PREFIX}/payment`, paymentRoutes);
 
 // ===============================
 // ERROR HANDLING
@@ -154,7 +165,7 @@ app.use(errorHandler);
 // ===============================
 // SERVER STARTUP
 // ===============================
-const PORT = process.env.PORT || "5001";
+const PORT = process.env.PORT || "5050";
 
 const startServer = async () => {
   try {
@@ -186,6 +197,38 @@ process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully...");
   await prisma.$disconnect();
   process.exit(0);
+});
+
+// Periodic cleanup of expired blacklisted tokens (runs daily at 3 AM)
+cron.schedule("0 3 * * *", async () => {
+  try {
+    const result = await prisma.blacklistedToken.deleteMany({
+      where: {
+        expiresAt: { lt: new Date() },
+      },
+    });
+    if (result.count > 0) {
+      console.log(`Cleaned up ${result.count} expired blacklisted tokens`);
+    }
+  } catch (err) {
+    console.error("Error cleaning blacklisted tokens:", err);
+  }
+});
+
+// Periodic cleanup of expired refresh tokens (runs daily at 3 AM)
+cron.schedule("0 3 * * *", async () => {
+  try {
+    const result = await prisma.refreshToken.deleteMany({
+      where: {
+        OR: [{ expiresAt: { lt: new Date() } }, { revoked: true }],
+      },
+    });
+    if (result.count > 0) {
+      console.log(`Cleaned up ${result.count} expired/revoked refresh tokens`);
+    }
+  } catch (err) {
+    console.error("Error cleaning refresh tokens:", err);
+  }
 });
 
 // Start the server

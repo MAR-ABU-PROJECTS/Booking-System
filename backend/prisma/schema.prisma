@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
@@ -16,49 +16,56 @@ datasource db {
 // ===============================
 
 model User {
-  id                      String         @id @default(cuid())
-  email                   String         @unique
-  firstName               String
-  lastName                String
-  password                String
-  phone                   String?
-  avatar                  String?
-  bio                     String?        // NEW: Added bio field
-  dateOfBirth             DateTime?
-  address                 String?
-  city                    String?
-  state                   String?
-  country                 String?        @default("Nigeria")
-  role                    UserRole       @default(CUSTOMER)
-  status                  UserStatus     @default(PENDING_VERIFICATION)
-  emailVerified           DateTime?
-  phoneVerified           DateTime?
-  identityVerified        DateTime?
-  idType                  String?
-  idNumber                String?
-  
+  id               String     @id @default(cuid())
+  email            String     @unique
+  firstName        String
+  lastName         String
+  password         String
+  phone            String?
+  avatar           String?
+  bio              String? // NEW: Added bio field
+  dateOfBirth      DateTime?
+  address          String?
+  city             String?
+  state            String?
+  country          String?    @default("Nigeria")
+  role             UserRole   @default(CUSTOMER)
+  status           UserStatus @default(PENDING_VERIFICATION)
+  emailVerified    DateTime?
+  phoneVerified    DateTime?
+  identityVerified DateTime?
+  idType           String?
+  idNumber         String?
+
   // NEW: Added missing fields
   resetToken              String?
   resetTokenExpiry        DateTime?
-  notificationPreferences Json?          // NEW: Notification preferences as JSON
-  deletedAt               DateTime?      // NEW: Soft delete field
-  
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
-  lastLoginAt             DateTime?
-  
+  notificationPreferences Json? // NEW: Notification preferences as JSON
+  deletedAt               DateTime? // NEW: Soft delete field
+  verificationToken       String?
+  verificationTokenExpiry DateTime?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
+
   // Relations
-  auditLogs               AuditLog[]
-  bookings                Booking[]      @relation("CustomerBookings")
-  notifications           Notification[]
-  hostedProperties        Property[]     @relation("PropertyHost")
-  receipts                Receipt[]      // Fixed: renamed from receipts
-  reviews                 Review[]
-  payments                Payment[]      // NEW: Added payments relation
-  favorites               Favorite[]     // NEW: Added favorites relation
+  auditLogs         AuditLog[]
+  bookings          Booking[]          @relation("CustomerBookings")
+  notifications     Notification[]
+  hostedProperties  Property[]         @relation("PropertyHost")
+  receipts          Receipt[] // Fixed: renamed from receipts
+  reviews           Review[]
+  payments          Payment[] // NEW: Added payments relation
+  favorites         Favorite[] // NEW: Added favorites relation
+  media             Media[]            @relation("UserMedia") // <-- Added media relation
+  blacklistedTokens BlacklistedToken[] // <-- Added blacklistedTokens relation
+  refreshTokens     RefreshToken[] // <-- Added refreshTokens relation
+  savedSearches     SavedSearch[] // <-- Added savedSearches relation
 
   @@index([email])
   @@index([resetToken])
+  @@index([verificationToken])
   @@index([status])
   @@index([deletedAt])
   @@map("users")
@@ -69,69 +76,69 @@ model User {
 // ===============================
 
 model Property {
-  id                    String                  @id @default(cuid())
-  name                  String
-  description           String?
-  type                  PropertyType
-  status                PropertyStatus          @default(ACTIVE)
-  address               String
-  city                  String
-  state                 String
-  zipCode               String?
-  country               String                  @default("Nigeria")
-  latitude              Float?
-  longitude             Float?
-  adminNotes            String?
+  id          String         @id @default(cuid())
+  name        String         @unique
+  description String?
+  type        PropertyType
+  status      PropertyStatus @default(ACTIVE)
+  address     String
+  city        String
+  state       String
+  zipCode     String?
+  country     String         @default("Nigeria")
+  latitude    Float?
+  longitude   Float?
+  adminNotes  String?
 
   // Property details
-  bedrooms              Int
-  bathrooms             Int
-  maxGuests             Int
-  size                  Float?
-  floor                 Int?
-  buildingName          String?
-  
+  bedrooms     Int
+  bathrooms    Int
+  maxGuests    Int
+  size         Float?
+  floor        Int?
+  buildingName String?
+
   // Pricing
-  baseRate              Float
-  weekendPremium        Float?                  @default(0)
-  monthlyDiscount       Float?                  @default(0)
-  cleaningFee           Float?                  @default(0)
-  securityDeposit       Float?                  @default(0)
-  serviceFee            Float?                  @default(0.05)
-  currency              String                  @default("NGN")
-  
+  baseRate        Float
+  weekendPremium  Float? @default(0)
+  monthlyDiscount Float? @default(0)
+  cleaningFee     Float? @default(0)
+  securityDeposit Float? @default(0)
+  serviceFee      Float? @default(0.05)
+  currency        String @default("NGN")
+
   // Booking rules
-  minStay               Int                     @default(1)
-  maxStay               Int                     @default(90)
-  checkInTime           String                  @default("15:00")
-  checkOutTime          String                  @default("11:00")
-  cancellationPolicy    String?
-  houseRules            String?
-  
+  minStay            Int     @default(1)
+  maxStay            Int     @default(90)
+  checkInTime        String  @default("15:00")
+  checkOutTime       String  @default("11:00")
+  cancellationPolicy String?
+  houseRules         String?
+
   // NEW: Added fields for features and amenities
-  amenities             String[]
-  features              String[]
-  rules                 String[]
-  images                String[]
-  featuredImage         String?
-  
+  amenities     String[]
+  features      String[]
+  rules         String[]
+  images        String[]
+  featuredImage String?
+
   // NEW: Soft delete support
-  isActive              Boolean                 @default(true)
-  deletedAt             DateTime?
-  
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  hostId                String
-  host                  User                    @relation("PropertyHost", fields: [hostId], references: [id])
-  bookings              Booking[]
-  propertyAmenities     PropertyAmenity[]       @relation("PropertyAmenities")
-  propertyAvailability  PropertyAvailability[]  @relation("PropertyAvailability")
-  propertyDocuments     PropertyDocument[]      @relation("PropertyDocuments")
-  propertyImages        PropertyImage[]         @relation("PropertyImages")
-  reviews               Review[]
-  favorites             Favorite[]              // NEW: Added favorites relation
+  hostId               String
+  host                 User                   @relation("PropertyHost", fields: [hostId], references: [id])
+  bookings             Booking[]
+  propertyAmenities    PropertyAmenity[]      @relation("PropertyAmenities")
+  propertyAvailability PropertyAvailability[] @relation("PropertyAvailability")
+  propertyDocuments    PropertyDocument[]     @relation("PropertyDocuments")
+  propertyImages       PropertyImage[]        @relation("PropertyImages")
+  reviews              Review[]
+  favorites            Favorite[] // NEW: Added favorites relation
 
   @@index([hostId])
   @@index([status])
@@ -146,62 +153,65 @@ model Property {
 // ===============================
 
 model Booking {
-  id                 String        @id @default(cuid())
-  bookingCode        String        @unique // Changed from bookingNumber
-  checkInDate        DateTime      // Changed from checkIn
-  checkOutDate       DateTime      // Changed from checkOut
-  nights             Int
-  adults             Int           @default(1)
-  children           Int           @default(0)
-  infants            Int           @default(0) // NEW: Added infants
-  
-  status             BookingStatus @default(PENDING)
-  paymentStatus      PaymentStatus @default(PENDING)
-  
+  id           String   @id @default(uuid())
+  bookingCode  String   @unique // Changed from bookingNumber
+  checkInDate  DateTime // Changed from checkIn
+  checkOutDate DateTime // Changed from checkOut
+  nights       Int
+  adults       Int      @default(1)
+  children     Int      @default(0)
+  infants      Int      @default(0) // NEW: Added infants
+
+  status        BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+
   // Pricing breakdown
-  baseAmount         Float
-  cleaningFee        Float         @default(0)
-  serviceFee         Float         @default(0)
-  taxes              Float         @default(0) // Renamed from taxes
-  discount           Float         @default(0) // Renamed from discounts
-  total              Float         // Renamed from totalAmount
-  paidAmount         Float         @default(0)
-  currency           String        @default("NGN")
-  
+  baseAmount  Float
+  cleaningFee Float  @default(0)
+  serviceFee  Float  @default(0)
+  taxes       Float  @default(0) // Renamed from taxes
+  discount    Float  @default(0) // Renamed from discounts
+  total       Float // Renamed from totalAmount
+  paidAmount  Float  @default(0)
+  currency    String @default("NGN")
+
   // Guest details (kept for quick access)
-  guestName          String
-  guestEmail         String
-  guestPhone         String
-  guestAddress       String?
-  
+  guestName    String
+  guestEmail   String
+  guestPhone   String
+  guestAddress String?
+
   // Additional info
-  specialRequests    String?
-  arrivalTime        String?
-  source             String?       // NEW: Booking source
-  
+  specialRequests String?
+  arrivalTime     String?
+  source          String? // NEW: Booking source
+
   // Cancellation
   cancellationReason String?
-  cancelledAt        DateTime?     // Renamed from cancellationDate
-  cancelledBy        String?       // NEW: Who cancelled
+  cancelledAt        DateTime? // Renamed from cancellationDate
+  cancelledBy        String? // NEW: Who cancelled
   refundAmount       Float?
-  
+
   // Admin fields
-  adminNotes         String?
-  approvedBy         String?
-  approvedAt         DateTime?
-  completedAt        DateTime?     // NEW: When stay was completed
-  
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  
+  adminNotes  String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  completedAt DateTime? // NEW: When stay was completed
+
+  // If you want to track when the booking was paid, add:
+  paidAt DateTime? // Timestamp when booking was paid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  customerId         String
-  propertyId         String
-  customer           User          @relation("CustomerBookings", fields: [customerId], references: [id])
-  property           Property      @relation(fields: [propertyId], references: [id])
-  receipts           Receipt[]     // Fixed: renamed
-  payment            Payment?      // NEW: One payment per booking
-  review             Review?       // One review per booking
+  customerId String
+  propertyId String
+  customer   User      @relation("CustomerBookings", fields: [customerId], references: [id])
+  property   Property  @relation(fields: [propertyId], references: [id])
+  receipts   Receipt[] // Fixed: renamed
+  payment    Payment? // NEW: One payment per booking
+  review     Review? // One review per booking
 
   @@index([bookingCode])
   @@index([propertyId])
@@ -216,12 +226,12 @@ model Booking {
 // ===============================
 
 model Favorite {
-  id          String    @id @default(cuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  propertyId  String
-  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 
   @@unique([userId, propertyId])
   @@index([userId])
@@ -234,35 +244,42 @@ model Favorite {
 // ===============================
 
 model Payment {
-  id                String          @id @default(cuid())
-  bookingId         String          @unique
-  booking           Booking         @relation(fields: [bookingId], references: [id])
-  userId            String
-  user              User            @relation(fields: [userId], references: [id])
-  
-  amount            Float
-  currency          String          @default("NGN")
-  method            PaymentMethod
-  status            PaymentStatus   @default(PENDING)
-  
-  // Payment gateway info
-  transactionId     String?         @unique
-  reference         String          @unique
-  gatewayResponse   Json?
-  
-  // Receipt
-  receiptUrl        String?
-  receiptUploaded   Boolean         @default(false)
-  receiptVerified   Boolean         @default(false)
-  verifiedAt        DateTime?
-  verifiedBy        String?
-  
-  // Timestamps
-  paidAt            DateTime?
-  failedAt          DateTime?
-  refundedAt        DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id        String  @id @default(cuid())
+  bookingId String  @unique
+  booking   Booking @relation(fields: [bookingId], references: [id])
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+
+  amount   Float
+  currency String        @default("NGN")
+  method   PaymentMethod
+  status   PaymentStatus @default(PENDING)
+
+  transactionId   String? @unique
+  reference       String  @unique
+  gatewayResponse Json?
+
+  receiptUrl      String?
+  receiptUploaded Boolean   @default(false)
+  receiptVerified Boolean   @default(false)
+  verifiedAt      DateTime?
+  verifiedBy      String?
+
+  paidAt     DateTime?
+  failedAt   DateTime?
+  refundedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  refunds            Refund[]
+  refundAmount       Float?
+  refundStatus       RefundStatus @default(NONE)
+  refundRequestedAt  DateTime?
+  refundCompletedAt  DateTime?
+  refundFailedReason String?
+
+  // Manual payment verification fields
+  adminNotes String?
 
   @@index([userId])
   @@index([status])
@@ -295,12 +312,12 @@ model Receipt {
   confidenceScore   Float?
   uploadedAt        DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
-  
+
   // Relations
-  bookingId         String
-  uploadedBy        String
-  booking           Booking       @relation(fields: [bookingId], references: [id])
-  user              User          @relation(fields: [uploadedBy], references: [id])
+  bookingId  String
+  uploadedBy String
+  booking    Booking @relation(fields: [bookingId], references: [id])
+  user       User    @relation(fields: [uploadedBy], references: [id])
 
   @@map("receipts")
 }
@@ -310,42 +327,42 @@ model Receipt {
 // ===============================
 
 model Review {
-  id                  String    @id @default(cuid())
-  rating              Int       // 1-5 stars
-  title               String?
-  comment             String?
-  adminNotes          String?
-  
+  id         String  @id @default(cuid())
+  rating     Int // 1-5 stars
+  title      String?
+  comment    String?
+  adminNotes String?
+
   // Detailed ratings
-  cleanliness         Int?      // Renamed for consistency
-  accuracy            Int?      // NEW
-  checkIn             Int?      // Renamed
-  communication       Int?      // Renamed
-  location            Int?      // Renamed
-  value               Int?      // Renamed
-  
+  cleanliness   Int? // Renamed for consistency
+  accuracy      Int? // NEW
+  checkIn       Int? // Renamed
+  communication Int? // Renamed
+  location      Int? // Renamed
+  value         Int? // Renamed
+
   // Moderation
-  approved            Boolean   @default(true) // Changed default to true
-  approvedAt          DateTime?
-  approvedBy          String?
-  featured            Boolean   @default(false)
-  flagged             Boolean   @default(false) // NEW
-  flagReason          String?   // NEW
-  
+  approved   Boolean   @default(true) // Changed default to true
+  approvedAt DateTime?
+  approvedBy String?
+  featured   Boolean   @default(false)
+  flagged    Boolean   @default(false) // NEW
+  flagReason String? // NEW
+
   // Host response
-  hostResponse        String?
-  hostRespondedAt     DateTime? // Renamed
-  
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
+  hostResponse    String?
+  hostRespondedAt DateTime? // Renamed
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  bookingId           String    @unique
-  customerId          String
-  propertyId          String
-  booking             Booking   @relation(fields: [bookingId], references: [id])
-  customer            User      @relation(fields: [customerId], references: [id])
-  property            Property  @relation(fields: [propertyId], references: [id])
+  bookingId  String   @unique
+  customerId String
+  propertyId String
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  customer   User     @relation(fields: [customerId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id])
 
   @@index([propertyId])
   @@index([customerId])
@@ -452,15 +469,15 @@ model Notification {
 // ===============================
 
 model AuditLog {
-  id        String      @id @default(cuid())
-  action    String      // Changed from enum to string for flexibility
+  id        String   @id @default(cuid())
+  action    String // Changed from enum to string for flexibility
   entity    String
   entityId  String?
   changes   Json?
-  metadata  Json?       // NEW: renamed from ipAddress/userAgent
-  createdAt DateTime    @default(now())
+  metadata  Json? // NEW: renamed from ipAddress/userAgent
+  createdAt DateTime @default(now())
   userId    String?
-  user      User?       @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([entity])
@@ -476,15 +493,136 @@ model AuditLog {
 model SystemSetting {
   id          String   @id @default(cuid())
   key         String   @unique
-  value       Json     // Changed to Json for flexibility
+  value       Json // Changed to Json for flexibility
   category    String   @default("General")
   description String?
   dataType    String   @default("string")
-  updatedBy   String?  // NEW
+  isPublic    Boolean  @default(false) // Allows public/system vs internal settings
+  updatedBy   String? // NEW
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+// ===============================
+// MEDIA (NEW MODEL)
+// ===============================
+
+model Media {
+  id            String   @id @default(cuid())
+  fileName      String
+  originalName  String
+  mimeType      String
+  fileSize      Int
+  filePath      String
+  optimizedPath String?
+  thumbnailPath String?
+  uploadedBy    String
+  type          String
+  entityType    String?
+  entityId      String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  uploader User @relation("UserMedia", fields: [uploadedBy], references: [id])
+}
+
+// ===============================
+// BLACKLISTEDTOKEN (New model)
+// ===============================
+model BlacklistedToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userId    String? // Optional: link to User if needed
+  User      User?    @relation(fields: [userId], references: [id])
+}
+
+// ===============================
+// REFRESHEDTOKEN (NEW MODEL)
+// ===============================
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  User      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+}
+
+// ===============================
+// EMAIL QUEUE (NEW MODEL)
+// ===============================
+
+model EmailQueue {
+  id          String   @id @default(uuid())
+  to          String
+  subject     String
+  html        String
+  type        String
+  status      String   @default("pending") // pending, processing, sent, failed
+  attempts    Int      @default(0)
+  error       String?
+  scheduledAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, scheduledAt])
+}
+
+// ===============================
+// PROMO CODES (NEW MODEL)
+// ===============================
+
+model PromoCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  description String?
+  discount    Float // e.g. 10 for 10% off
+  active      Boolean   @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ===============================
+// REFUND (NEW MODEL)
+// ===============================
+
+model Refund {
+  id               String       @id @default(cuid())
+  paymentId        String
+  payment          Payment      @relation(fields: [paymentId], references: [id])
+  amount           Float
+  reason           String?
+  status           RefundStatus // <— use enum, not string
+  processedBy      String
+  processedAt      DateTime?
+  providerResponse Json?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([paymentId])
+}
+
+// ===============================
+// SAVED SEARCH (NEW MODEL)
+// ===============================
+model SavedSearch {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  query       Json
+  resultCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ===============================
@@ -501,7 +639,7 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
-  DELETED              // NEW: For soft deletes
+  DELETED // NEW: For soft deletes
 }
 
 enum PropertyType {
@@ -524,23 +662,23 @@ enum PropertyType {
 }
 
 enum PropertyStatus {
-  PENDING              // NEW: Awaiting approval
+  PENDING // NEW: Awaiting approval
   ACTIVE
   INACTIVE
-  SUSPENDED            // NEW: Admin suspended  
+  SUSPENDED // NEW: Admin suspended  
   MAINTENANCE
   COMING_SOON
-  DELETED              // NEW: Soft deleted
+  DELETED // NEW: Soft deleted
 }
 
 enum BookingStatus {
-  PENDING              // Simplified from PENDING_APPROVAL
+  PENDING // Simplified from PENDING_APPROVAL
   APPROVED
-  CONFIRMED            // Payment received
+  CONFIRMED // Payment received
   CANCELLED
   COMPLETED
-  EXPIRED              // NEW: Payment window expired
-  REJECTED             // NEW: Host rejected
+  EXPIRED // NEW: Payment window expired
+  REJECTED // NEW: Host rejected
   CHECKED_IN
   CHECKED_OUT
   REFUNDED
@@ -548,45 +686,54 @@ enum BookingStatus {
 
 enum PaymentStatus {
   PENDING
-  PROCESSING           // NEW
+  PROCESSING // NEW
   PAID
   FAILED
   REFUNDED
-  PARTIALLY_REFUNDED   // NEW
+  PARTIALLY_REFUNDED // NEW
   PARTIALLY_PAID
-  EXPIRED              // NEW
+  EXPIRED // NEW
 }
 
 enum PaymentMethod {
   CARD
   BANK_TRANSFER
   CASH
-  STRIPE               // NEW
-  PAYSTACK             // NEW
-  FLUTTERWAVE          // NEW
+  STRIPE // NEW
+  PAYSTACK // NEW
+  FLUTTERWAVE // NEW
 }
 
 enum NotificationType {
-  BOOKING_REQUEST      // NEW
+  BOOKING_REQUEST // NEW
   BOOKING_CONFIRMATION
   BOOKING_APPROVED
-  BOOKING_REJECTED     // NEW
+  BOOKING_REJECTED // NEW
   BOOKING_CANCELLED
   PAYMENT_RECEIVED
-  PAYMENT_FAILED       // NEW
+  PAYMENT_FAILED // NEW
   RECEIPT_VERIFIED
-  REVIEW_RECEIVED      // NEW
-  REVIEW_RESPONSE      // NEW
+  REVIEW_RECEIVED // NEW
+  REVIEW_RESPONSE // NEW
   REVIEW_REQUEST
   REVIEW_APPROVED
   REVIEW_REJECTED
-  PROPERTY_APPROVED    // NEW
+  PROPERTY_APPROVED // NEW
   PROPERTY_SUBMITTED
-  PROPERTY_REJECTED    // NEW
+  PROPERTY_REJECTED // NEW
   SYSTEM_UPDATE
-  PROMOTIONAL          // NEW
-  REMINDER             // NEW
-  ALERT                // NEW
+  PROMOTIONAL // NEW
+  REFUND_PROCESSED // NEW
+  REMINDER // NEW
+  ALERT // NEW
+}
+
+enum RefundStatus {
+  REFUNDED
+  NONE
+  PENDING
+  FAILED
+  PROCESSING
 }
 
 enum ReceiptStatus {

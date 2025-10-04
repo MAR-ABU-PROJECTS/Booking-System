@@ -1,7 +1,12 @@
 // MAR ABU PROJECTS SERVICES LLC - Booking Routes
 import { Router } from "express";
 import { body, param, query, validationResult } from "express-validator";
-import { BookingStatus, PaymentStatus, UserRole } from "@prisma/client";
+import {
+  BookingStatus,
+  PaymentStatus,
+  UserRole,
+  RefundStatus,
+} from "@prisma/client";
 import { requireAuth } from "../services/authservice";
 import { asyncHandler } from "../middlewares/error.middleware";
 import { AppError } from "../middlewares/error.middleware";
@@ -9,6 +14,7 @@ import { prisma } from "../server";
 import { auditLog } from "../middlewares/logger.middleware";
 import { emailService } from "../services/emailservice";
 import { z } from "zod";
+import { bookingService } from "../services/bookingservice";
 
 const router = Router();
 
@@ -39,6 +45,10 @@ const searchBookingsSchema = z.object({
   checkInTo: z.string().optional(),
 });
 
+const cancelBookingSchema = z.object({
+  reason: z.string().max(255).optional(),
+});
+
 // Validation middleware
 const validate = (req: any, res: any, next: any) => {
   const errors = validationResult(req);
@@ -50,29 +60,6 @@ const validate = (req: any, res: any, next: any) => {
     });
   }
   next();
-};
-
-// Helper function to calculate booking costs
-const calculateBookingCosts = (
-  property: any,
-  checkIn: Date,
-  checkOut: Date
-) => {
-  const nights = Math.ceil(
-    (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  const subtotal = property.baseRate * nights;
-  const cleaningFee = property.cleaningFee || 0;
-  const serviceFee = Math.round(subtotal * 0.1); // 10% service fee
-  const total = subtotal + cleaningFee + serviceFee;
-
-  return {
-    nights,
-    subtotal,
-    cleaningFee,
-    serviceFee,
-    total,
-  };
 };
 
 // ===============================
@@ -89,7 +76,7 @@ const calculateBookingCosts = (
  * /bookings:
  *   get:
  *     summary: Get bookings with filters
- *     description: Retrieve a list of bookings with optional filters based on user role. Customers see their own, hosts see bookings for their properties, and admins can see all.
+ *     description: Retrieve a list of bookings with optional filters based on user role. Customers see only their own bookings, and admins can see all bookings.
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
@@ -125,7 +112,7 @@ const calculateBookingCosts = (
  *         name: customerId
  *         schema:
  *           type: string
- *         description: Filter by customer ID (Admin only)
+ *         description: Filter by customer ID (Admin only - ignored for other roles)
  *       - in: query
  *         name: bookingCode
  *         schema:
@@ -183,7 +170,7 @@ const calculateBookingCosts = (
  */
 router.get(
   "/",
-  requireAuth({ role: UserRole.ADMIN }),
+  requireAuth(),
   asyncHandler(async (req: any, res: any) => {
     const parsed = searchBookingsSchema.parse(req.query);
     const {
@@ -201,12 +188,22 @@ router.get(
 
     const whereClause: any = {};
 
+    // Role-based filtering
+    if (req.user.role === UserRole.CUSTOMER) {
+      // Customers can only see their own bookings
+      whereClause.customerId = req.user.id;
+    }
+    // Admins can see all bookings (no additional filter)
+
     if (status) whereClause.status = status;
     if (paymentStatus) whereClause.paymentStatus = paymentStatus;
     if (propertyId) whereClause.propertyId = propertyId;
-    if (customerId) whereClause.customerId = customerId;
-    if (bookingCode) whereClause.bookingCode = bookingCode;
-    if (guestEmail) whereClause.guestEmail = guestEmail;
+    if (customerId && req.user.role === UserRole.ADMIN)
+      whereClause.customerId = customerId;
+    if (bookingCode)
+      whereClause.bookingCode = { contains: bookingCode, mode: "insensitive" };
+    if (guestEmail)
+      whereClause.guestEmail = { contains: guestEmail, mode: "insensitive" };
     if (checkInFrom || checkInTo) {
       whereClause.checkInDate = {};
       if (checkInFrom) whereClause.checkInDate.gte = new Date(checkInFrom);
@@ -216,8 +213,32 @@ router.get(
     const bookings = await prisma.booking.findMany({
       where: whereClause,
       include: {
-        customer: true,
-        property: true,
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          },
+        },
+        property: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            state: true,
+            type: true,
+            host: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -239,6 +260,83 @@ router.get(
         totalPages: Math.ceil(total / limit),
       },
     });
+  })
+);
+
+/**
+ * @route   GET /api/v1/bookings/pricing
+ * @desc    Get pricing information
+ * @access  Public
+ */
+/**
+ * @swagger
+ * /bookings/pricing:
+ *   get:
+ *     summary: Get pricing information
+ *     description: Retrieve pricing information for a specific property and dates.
+ *     tags:
+ *       - Bookings
+ *     parameters:
+ *       - in: query
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *       - in: query
+ *         name: checkIn
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Check-in date
+ *       - in: query
+ *         name: checkOut
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Check-out date
+ *       - in: query
+ *         name: adults
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Number of adults
+ *       - in: query
+ *         name: promoCode
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional promo code
+ *     responses:
+ *       200:
+ *         description: Pricing information retrieved successfully
+ *       400:
+ *         description: Invalid request
+ */
+router.get(
+  "/pricing",
+  asyncHandler(async (req: any, res: any) => {
+    const { propertyId, checkIn, checkOut, adults, promoCode } = req.query;
+    try {
+      const pricing = await bookingService.calculatePricing(
+        propertyId,
+        checkIn,
+        checkOut,
+        Number(adults),
+        promoCode
+      );
+      res.json({ success: true, data: pricing });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          typeof error === "object" && error !== null && "message" in error
+            ? (error as any).message
+            : "An error occurred",
+      });
+    }
   })
 );
 
@@ -280,7 +378,6 @@ router.get(
  *       404:
  *         description: Booking not found
  */
-
 router.get(
   "/:id",
   requireAuth(),
@@ -345,7 +442,7 @@ router.get(
  */
 /**
  * @swagger
- * /create-bookings:
+ * /bookings:
  *   post:
  *     summary: Create a new booking
  *     tags:
@@ -499,17 +596,23 @@ router.post(
         );
       }
 
-      // Calculate costs
-      const costs = calculateBookingCosts(
-        property,
-        data.checkIn,
-        data.checkOut
+      // Calculate pricing using booking service (consistent with pricing route)
+      const pricing = await bookingService.calculatePricing(
+        data.propertyId,
+        data.checkIn.toISOString(),
+        data.checkOut.toISOString(),
+        data.adults
+      );
+
+      const nights = Math.ceil(
+        (data.checkOut.getTime() - data.checkIn.getTime()) /
+          (1000 * 60 * 60 * 24)
       );
 
       // Generate booking number
       const bookingCode = `MAR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-      // Create booking
+      // Create booking with status APPROVED
       const booking = await prisma.booking.create({
         data: {
           bookingCode,
@@ -524,13 +627,17 @@ router.post(
           guestEmail: data.guestEmail,
           guestPhone: data.guestPhone,
           specialRequests: data.specialRequests,
-          nights: costs.nights,
-          baseAmount: costs.subtotal,
-          cleaningFee: costs.cleaningFee,
-          serviceFee: costs.serviceFee,
-          total: costs.total,
-          status: BookingStatus.PENDING,
+          nights: nights,
+          baseAmount: pricing.baseAmount,
+          cleaningFee: pricing.cleaningFee,
+          serviceFee: pricing.serviceFee,
+          taxes: pricing.taxes,
+          discount: pricing.discounts,
+          total: pricing.totalAmount,
+          status: BookingStatus.APPROVED, // <-- Auto-approve
           paymentStatus: PaymentStatus.PENDING,
+          approvedBy: req.user.id,
+          approvedAt: new Date(),
         },
         include: {
           property: {
@@ -545,28 +652,19 @@ router.post(
               },
             },
           },
-        },
-      });
-
-      // Create notification for property host
-      await prisma.notification.create({
-        data: {
-          userId: property.hostId,
-          type: "BOOKING_REQUEST",
-          title: "New Booking Request",
-          message: `${req.user.firstName} ${req.user.lastName} has requested to book ${property.name}`,
-          metadata: {
-            bookingId: booking.id,
-            bookingCode: booking.bookingCode,
+          customer: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
       });
 
-      // Send email notifications
-      await Promise.all([
-        emailService.sendBookingConfirmation(data.guestEmail, booking),
-        emailService.sendHostBookingNotification(property.host.email, booking),
-      ]);
+      // Send booking confirmation and approval emails to user
+      await emailService.sendBookingConfirmation(data.guestEmail, booking);
+      await emailService.sendBookingApprovedEmail(data.guestEmail, booking);
 
       auditLog(
         "BOOKING_CREATED",
@@ -581,7 +679,8 @@ router.post(
 
       res.status(201).json({
         success: true,
-        message: "Booking created successfully. Awaiting host approval.",
+        message:
+          "Booking created and auto-approved. Please check your email for confirmation and payment instructions.",
         data: booking,
       });
     } catch (error) {
@@ -833,95 +932,128 @@ router.patch(
 router.post(
   "/:id/cancel",
   requireAuth(),
-  [param("id").isString(), body("reason").optional().isString()],
-  validate,
   asyncHandler(async (req: any, res: any) => {
-    const { reason } = req.body;
+    const bookingId = req.params.id;
+    const { reason } = cancelBookingSchema.parse(req.body);
 
+    // Fetch booking with payment
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
-      include: {
-        property: {
-          select: {
-            name: true,
-            hostId: true,
-            host: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
+      where: { id: bookingId },
+      include: { payment: true, property: true, customer: true },
     });
 
     if (!booking) {
       throw new AppError("Booking not found", 404);
     }
 
-    // Only booking owner can cancel
-    if (booking.customerId !== req.user.id) {
-      throw new AppError("Not authorized to cancel this booking", 403);
+    // Only owner or admin can cancel
+    const isOwner = booking.customerId === req.user.id;
+    const isAdmin = req.user.role === UserRole.ADMIN;
+    if (!isOwner && !isAdmin) throw new AppError("Unauthorized", 403);
+
+    // Already cancelled or refunded
+    if (["CANCELLED", "REFUNDED", "COMPLETED"].includes(booking.status)) {
+      return res.status(409).json({
+        success: false,
+        message: "Booking already cancelled or completed",
+      });
     }
 
-    // Can only cancel pending or approved bookings
-    if (
-      !(
-        [BookingStatus.PENDING, BookingStatus.APPROVED] as BookingStatus[]
-      ).includes(booking.status)
-    ) {
-      throw new AppError("Cannot cancel booking in current status", 400);
+    // Must be paid to be refund-eligible
+    const payment = booking.payment;
+    if (!payment || payment.status !== PaymentStatus.PAID) {
+      // Just cancel, no refund
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancellationReason: reason,
+          cancelledAt: new Date(),
+          cancelledBy: req.user.id,
+        },
+      });
+      auditLog("BOOKING_CANCELLED", req.user.id, { bookingId }, req.ip);
+      return res.json({
+        success: true,
+        message: "Booking cancelled (no refund, not paid)",
+      });
     }
 
-    // Update booking status
-    const updated = await prisma.booking.update({
-      where: { id: req.params.id },
-      data: {
-        status: BookingStatus.CANCELLED,
-        cancellationReason: reason,
-        cancelledAt: new Date(),
-      },
-    });
+    // Check refund eligibility (>24h before check-in)
+    const now = new Date();
+    const cutoff = new Date(booking.checkInDate);
+    cutoff.setHours(cutoff.getHours() - 24);
+    if (now >= cutoff) {
+      return res.status(409).json({
+        success: false,
+        message: "Refund not allowed within 24 hours of check-in",
+      });
+    }
 
-    // Create notification for property host
-    await prisma.notification.create({
-      data: {
-        userId: booking.property.hostId,
-        type: "BOOKING_CANCELLED",
-        title: "Booking Cancelled",
-        message: `${req.user.firstName} ${req.user.lastName} cancelled their booking for ${booking.property.name}.${reason ? ` Reason: ${reason}` : ""}`,
-        metadata: {
-          bookingId: booking.id,
-          bookingCode: booking.bookingCode,
+    // Prevent double refund requests
+    const existingRefund = await prisma.refund.findFirst({
+      where: {
+        paymentId: payment.id,
+        status: {
+          in: [
+            RefundStatus.PENDING,
+            RefundStatus.PROCESSING,
+            RefundStatus.REFUNDED,
+          ],
         },
       },
     });
+    if (existingRefund) {
+      return res.status(409).json({
+        success: false,
+        message: "Refund already requested or processed for this booking",
+      });
+    }
 
-    // Send email notification to host
-    await emailService.sendBookingCancelledEmail(booking.property.host.email, {
-      hostName: `${booking.property.host.firstName} ${booking.property.host.lastName}`,
-      customerName: `${req.user.firstName} ${req.user.lastName}`,
-      propertyName: booking.property.name,
-      bookingCode: booking.bookingCode,
-      reason,
-    });
+    // Transaction: mark booking cancelled, create refund request, update payment
+    const [cancelledBooking, refund] = await prisma.$transaction([
+      prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          status: BookingStatus.CANCELLED,
+          cancellationReason: reason,
+          cancelledAt: now,
+          cancelledBy: req.user.id,
+          refundAmount: payment.amount,
+        },
+      }),
+      prisma.refund.create({
+        data: {
+          paymentId: payment.id,
+          amount: payment.amount,
+          reason: reason,
+          status: RefundStatus.PENDING,
+          processedBy: req.user.id,
+        },
+      }),
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          refundStatus: RefundStatus.PENDING,
+          refundRequestedAt: now,
+          refundAmount: payment.amount,
+        },
+      }),
+    ]);
 
     auditLog(
-      "BOOKING_CANCELLED",
+      "BOOKING_CANCELLED_REFUND_REQUESTED",
       req.user.id,
-      {
-        bookingId: req.params.id,
-        reason,
-      },
+      { bookingId, refundId: refund.id, paymentId: payment.id },
       req.ip
     );
 
     res.json({
       success: true,
-      message: "Booking cancelled successfully",
-      data: updated,
+      message:
+        "Booking cancelled and refund requested. Awaiting admin approval.",
+      booking: cancelledBooking,
+      refund,
     });
   })
 );
