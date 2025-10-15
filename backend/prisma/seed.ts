@@ -14,14 +14,14 @@ async function main() {
   const existingUsers = await prisma.user.count();
   console.log(`👥 Users in DB before seeding: ${existingUsers}`);
 
-  const hashedPassword = await bcrypt.hash("admin123", 12);
+  const hashedPassword = await bcrypt.hash("M@r@BuP#L3tMeIn$2024", 12);
 
   // Create Super Admin
   const superAdmin = await prisma.user.upsert({
-    where: { email: "admin@marabuprojects.com" },
+    where: { email: "marabuprojects@yahoo.com" },
     update: {},
     create: {
-      email: "admin@marabuprojects.com",
+      email: "marabuprojects@yahoo.com",
       firstName: "MAR",
       lastName: "ABU",
       phone: "(+234) 803 619 4871",
@@ -32,40 +32,6 @@ async function main() {
     },
   });
   console.log(`✅ Admin created: ${superAdmin.email}`);
-
-  // // Create Property Host
-  // const propertyHost = await prisma.user.upsert({
-  //   where: { email: 'host@marabuprojects.com' },
-  //   update: {},
-  //   create: {
-  //     email: 'host@marabuprojects.com',
-  //     firstName: 'Property',
-  //     lastName: 'Manager',
-  //     phone: '(+234) 803 619 4871',
-  //     role: UserRole.PROPERTY_HOST,
-  //     status: 'ACTIVE',
-  //     password: hashedPassword,
-  //     emailVerified: new Date(),
-  //   },
-  // })
-  // console.log(`✅ Property Host created: ${propertyHost.email}`)
-
-  // Create Customer
-  const customer = await prisma.user.upsert({
-    where: { email: "adejaretaye@gmail.com" },
-    update: {},
-    create: {
-      email: "adejaretaye@gmail.com",
-      firstName: "Adejare",
-      lastName: "Taiwo",
-      phone: "+234 816 276 1585",
-      role: UserRole.CUSTOMER,
-      status: "ACTIVE",
-      password: hashedPassword,
-      emailVerified: new Date(),
-    },
-  });
-  console.log(`✅ Customer created: ${customer.email}`);
 
   const properties = [
     {
