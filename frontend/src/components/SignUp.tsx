@@ -294,7 +294,7 @@ const SignUp = () => {
 
 				<p className="text-center text-[16px] font-medium mt-3 !mb-5">
 					Already have an account?{" "}
-					<span className="text-amber-500 text:bg-[#F4A857]">
+					<span className="text-amber-500">
 						<Link href="/log-in">Log In</Link>
 					</span>
 				</p>

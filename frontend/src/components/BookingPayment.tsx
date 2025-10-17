@@ -107,7 +107,7 @@ const BookingPayment = ({
 				});
 				setReceipt(null);
 
-				setTimeout(() => router.push("/"), 3000);
+				setTimeout(() => router.push("/booking-history"), 10000);
 			} else {
 				const message = res?.message as string;
 				toast.error(message, {
