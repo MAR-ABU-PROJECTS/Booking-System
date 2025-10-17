@@ -312,7 +312,7 @@ const BookingSummary = ({
 				<div className="flex justify-between items-center">
 					<div>
 						<p className="text-[14px] text-[#667085]">
-							Service Fee (5%):
+							Caution Fee (5%):
 						</p>
 					</div>
 					<div>

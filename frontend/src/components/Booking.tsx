@@ -129,12 +129,10 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		},
 
 		onSuccess: async (res) => {
-			
 			if (res?.success) {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
-					progress: undefined,
 				});
 
 				setSummaryData(res.data);
@@ -143,7 +141,6 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 				const message = res?.message as string;
 				toast.error(message, {
 					closeOnClick: false,
-					progress: undefined,
 				});
 			}
 		},
@@ -166,13 +163,11 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 						"Something went wrong";
 					toast.error(`${message}`, {
 						closeOnClick: false,
-						progress: undefined,
 					});
 				}
 			} else {
-				toast.error("Unexpected error, please try again", {
+				toast.error(error.message, {
 					closeOnClick: false,
-					progress: undefined,
 				});
 			}
 		},

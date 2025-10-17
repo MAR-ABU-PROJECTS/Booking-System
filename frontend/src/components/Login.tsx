@@ -61,7 +61,9 @@ const LogIn = () => {
 						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
 					})
 				);
-				router.push("/");
+
+				setTimeout(() => router.push("/"), 5000);
+				
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {

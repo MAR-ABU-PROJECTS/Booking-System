@@ -12,9 +12,10 @@ import { Bath, Bed, Share, Heart } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { updateBooking } from "@lib/features/bookingSlice";
 import { useEffect } from "react";
-import { toTitleCase } from "@lib/utils";
+import { formatCurrency, toTitleCase } from "@lib/utils";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { useIsMobile } from "@hooks/use-mobile";
 
 const SingleProperty = ({ property }: { property: Property }) => {
 	const router = useRouter();
@@ -59,15 +60,39 @@ const SingleProperty = ({ property }: { property: Property }) => {
 				`failed to copy!: ${error?.message ?? "unknown error"}`,
 				{
 					closeOnClick: true,
-					progress: undefined,
 				}
 			);
 		}
 	};
+	
 
 	const onSubmit = (values: z.infer<typeof BookSchema>) => {
+		const minimumNights = property.minimumNights;
+		const nights =
+			values.bookingDate?.from && values.bookingDate?.to
+				? dayjs(values.bookingDate.to)
+						.startOf("day")
+						.diff(
+							dayjs(values.bookingDate.from).startOf("day"),
+							"day"
+						)
+				: 0;
+		if (minimumNights && nights) {
+			if (nights < minimumNights) {
+				toast.error(
+					`Minimum stay for this apartment is ${minimumNights} nights. You selected only ${nights}.`,
+					{
+						closeOnClick: true,
+						progress: undefined,
+					}
+				);
+				return;
+			}
+		}
 		router.push(`/booking?id=${values.id}`);
 	};
+
+	const isMobile = useIsMobile();
 
 	return (
 		<section className="mt-[160px] lg:mt-[110px]">
@@ -107,9 +132,13 @@ const SingleProperty = ({ property }: { property: Property }) => {
 							className="flex flex-col md:pt-9 lg:pt-12 md:flex-row md:justify-between gap-7"
 							onSubmit={form.handleSubmit(onSubmit)}
 						>
-							<div className="md:basis-[52%] lg:basis-[58%] h-auto">
+							<div className="md:basis-[52%] lg:basis-[58%] h-full">
 								<div className="mt-3 py-4 md:py-5 border-b-[1px] border-black/20 w-full flex justify-between gap-4 items-center">
 									<div className="flex items-center gap-6">
+										<p>
+											{formatCurrency(property.price)}
+											/Night
+										</p>
 										<div className="flex items-center gap-2">
 											<Bed
 												size={18}
@@ -173,13 +202,15 @@ const SingleProperty = ({ property }: { property: Property }) => {
 									control={form.control}
 									name="bookingDate"
 									render={({ field }) => (
-										<div className="w-full mt-5">
+										<div className="w-full mt-5 h-full mb-20 md:mb-0">
 											<Calendar
 												mode="range"
-												className="w-full"
+												className="w-full h-full"
 												selected={field.value}
 												captionLayout="dropdown"
-												numberOfMonths={2}
+												numberOfMonths={
+													isMobile ? 1 : 2
+												}
 												disabled={(date) => {
 													const today =
 														dayjs().startOf("day");
@@ -209,12 +240,13 @@ const SingleProperty = ({ property }: { property: Property }) => {
 													}
 												}}
 											/>
+										
 										</div>
 									)}
 								/>
 							</div>
 
-							<div className="relative border-[1px] rounded-[13px] md:basis-[35%] lg:basis-[30%] md:sticky md:top-[95px] lg:top-[105px] h-full shadow-lg">
+							<div className="border-[1px] rounded-[13px] md:basis-[35%] lg:basis-[30%] md:sticky md:top-[95px] lg:top-[105px] h-full shadow-lg">
 								<AvailabilityCalendar />
 							</div>
 						</form>

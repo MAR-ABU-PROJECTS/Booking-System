@@ -62,7 +62,7 @@ const SignUp = () => {
 					name: `${res.data.user.firstName} ${res.data.user.lastName}`,
 					token: res.data.accessToken,
 					refreshToken: res.data.refreshToken,
-					role:res.data.user.role
+					role: res.data.user.role,
 				});
 				dispatch(
 					setUser({
@@ -72,7 +72,7 @@ const SignUp = () => {
 						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
 					})
 				);
-				router.push("/verify-email");
+				setTimeout(() => router.push("/"), 6000);
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
@@ -229,6 +229,7 @@ const SignUp = () => {
 								<Input
 									type="tel"
 									placeholder="Enter phone number"
+									maxLength={11}
 									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>
@@ -294,7 +295,7 @@ const SignUp = () => {
 
 				<p className="text-center text-[16px] font-medium mt-3 !mb-5">
 					Already have an account?{" "}
-					<span className="text-amber-500 text:bg-[#F4A857]">
+					<span className="text-amber-500">
 						<Link href="/log-in">Log In</Link>
 					</span>
 				</p>
