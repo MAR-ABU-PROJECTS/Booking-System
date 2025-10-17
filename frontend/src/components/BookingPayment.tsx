@@ -10,7 +10,6 @@ import { formatCurrency } from "@lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
-import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { resetBooking } from "@lib/features/bookingSlice";
 import Link from "next/link";
@@ -26,7 +25,6 @@ const BookingPayment = ({
 }) => {
 	const dispatch = useDispatch();
 	const [receipt, setReceipt] = useState<File | null>(null);
-	const router = useRouter();
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files && e.target.files.length > 0) {

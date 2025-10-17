@@ -15,7 +15,7 @@ export const properties: Property[] = [
 			"Private Access",
 		],
 		bed: 2,
-		baths: 1,
+		baths: 3,
 		roomStatus: "AVAILABLE",
 		price: 200000,
 		images: [
@@ -79,7 +79,7 @@ export const properties: Property[] = [
 		],
 		isNew: true,
 		bed: 2,
-		baths: 1,
+		baths: 2,
 		status: "Premium",
 		roomStatus: "AVAILABLE",
 		guests: 7,
@@ -122,7 +122,7 @@ export const properties: Property[] = [
 			"/apartment-images/obudu/IMG_3647.jpeg",
 		],
 		bed: 2,
-		baths: 1,
+		baths: 3,
 		guests: 6,
 		roomStatus: "LIMITED",
 		specials: [

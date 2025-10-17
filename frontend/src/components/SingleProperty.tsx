@@ -201,7 +201,7 @@ const SingleProperty = ({ property }: { property: Property }) => {
 								<Controller
 									control={form.control}
 									name="bookingDate"
-									render={({ field, fieldState }) => (
+									render={({ field }) => (
 										<div className="w-full mt-5 h-full mb-20 md:mb-0">
 											<Calendar
 												mode="range"

@@ -72,7 +72,7 @@ const SignUp = () => {
 						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
 					})
 				);
-				setTimeout(() => router.push("/verify-email"), 7000);
+				setTimeout(() => router.push("/"), 6000);
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {

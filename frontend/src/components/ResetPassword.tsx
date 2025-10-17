@@ -5,7 +5,7 @@ import { ResetPasswordSchema } from "@lib/schemas";
 import { checkPasswordStrength } from "@lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { z } from "zod";
