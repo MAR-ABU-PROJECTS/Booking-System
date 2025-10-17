@@ -3,6 +3,7 @@ import { getSession, updateSession } from "@lib/action";
 import { defaultSession } from "@lib/session";
 
 const BASE_URL = "https://booking-system-n26e.onrender.com/api/v1";
+// const BASE_URL = "http://localhost:5050";
 
 const axiosInstance = axios.create({
 	baseURL: BASE_URL,

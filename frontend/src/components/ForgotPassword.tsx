@@ -6,12 +6,12 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ForgotPasswordSchema } from "../lib/schemas";
 import { Button } from "@components/ui/button";
-// import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
+import Link from "next/link";
 
 const ForgotPassword = () => {
 	const form = useForm<z.infer<typeof ForgotPasswordSchema>>({
@@ -50,12 +50,7 @@ const ForgotPassword = () => {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
-					progress: undefined,
 				});
-
-				setTimeout(() => {
-					window.location.href = `/`;
-				}, 1000);
 			}
 		},
 
@@ -67,11 +62,9 @@ const ForgotPassword = () => {
 				console.error("Handled in onError:", message);
 				toast.error(`${message}`, {
 					closeOnClick: false,
-
-					progress: undefined,
 				});
 			} else {
-				console.error("Non-Axios Error:", error);
+				console.error(error.message);
 			}
 		},
 	});
@@ -89,14 +82,20 @@ const ForgotPassword = () => {
 					className="object-contain object-left w-[260px] h-[63px]"
 				/>
 			</div>
-			<div className="mt-18 mb-16">
+			<div className="mt-18">
 				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
 					Welcome Back to MAR ABU Homes!
 				</h1>
 				<p className="text-center text-gray-500">
-					Login to your account
+					Enter your email to reset your password
 				</p>
 			</div>
+			<Link
+				href="/log-in"
+				className="text-black mt-8 mb-16 inline-flex items-center"
+			>
+				<ChevronLeft className="text-black" /> Back
+			</Link>
 
 			<div>
 				<form onSubmit={form.handleSubmit(onSubmit)} className="mb-2">
@@ -140,12 +139,7 @@ const ForgotPassword = () => {
 					</Button>
 				</form>
 
-				{/* <p className="text-center text-[15px] font-medium mt-3 mb-5 ">
-					Don't have an account yet?{" "}
-					<span className="text-amber-500 text:bg-[#F4A857]">
-						<Link href="/sign-up">Sign Up</Link>
-					</span>
-				</p> */}
+				
 			</div>
 		</div>
 	);

@@ -23,14 +23,14 @@ const AvailabilityCalendar = () => {
 
 	const nights =
 		bookingDate?.from && bookingDate?.to
-			? dayjs(bookingDate.to).diff(dayjs(bookingDate.from), "day")
+			? dayjs(bookingDate.to).startOf('day').diff(dayjs(bookingDate.from).startOf('day'), "day")
 			: 0;
 	const nightsLabel = nights === 1 ? "1 Night" : `${nights} Nights`;
 
 	const allErrorMessages = flattenErrors(formState.errors);
 
 	return (
-		<div className="p-5 py-8 md:p-6">
+		<div className="p-5 py-8 md:p-6 h-auto">
 			{nights > 0 ? (
 				<h3 className="text-[18px]">{nightsLabel}</h3>
 			) : (

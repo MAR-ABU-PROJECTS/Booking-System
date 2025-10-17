@@ -10,9 +10,9 @@ import { formatCurrency } from "@lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
-import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { resetBooking } from "@lib/features/bookingSlice";
+import Link from "next/link";
 
 const BookingPayment = ({
 	summaryData,
@@ -25,7 +25,6 @@ const BookingPayment = ({
 }) => {
 	const dispatch = useDispatch();
 	const [receipt, setReceipt] = useState<File | null>(null);
-	const router = useRouter();
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files && e.target.files.length > 0) {
@@ -98,16 +97,25 @@ const BookingPayment = ({
 		},
 
 		onSuccess: async (res) => {
-			console.log(res);
 			if (res?.success) {
 				const message = res?.message as string;
-				toast.success(message, {
-					closeOnClick: false,
-					progress: undefined,
-				});
-				setReceipt(null);
+				toast.success(
+					<div>
+						{message}
+						<br />
+						<Link
+							href="/booking-history"
+							className="text-white underline text-sm"
+						>
+							Click here to view your booking history
+						</Link>
+					</div>,
+					{
+						closeOnClick: false,
+					}
+				);
 
-				setTimeout(() => router.push("/"), 3000);
+				setReceipt(null);
 			} else {
 				const message = res?.message as string;
 				toast.error(message, {
@@ -127,7 +135,7 @@ const BookingPayment = ({
 					progress: undefined,
 				});
 			} else {
-				toast.error("Unexpected error, please try again", {
+				toast.error(error.message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
@@ -182,7 +190,9 @@ const BookingPayment = ({
 				<div className="bg-red-500 text-left font-semibold text-[18px] rounded-xl p-2">
 					<ul className="list-none">
 						{instructions?.map((ins, index) => (
-							<li className="text-[16px]" key={index}>{ins}</li>
+							<li className="text-[16px]" key={index}>
+								{ins}
+							</li>
 						))}
 					</ul>
 				</div>

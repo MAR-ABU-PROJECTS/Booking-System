@@ -26,15 +26,15 @@ const VerifyEmail = ({ email }: Props) => {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
-					progress: undefined,
+					
 				});
 
-				// router.push("/");
+
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
-					progress: undefined,
+				
 				});
 			}
 		},
@@ -47,10 +47,13 @@ const VerifyEmail = ({ email }: Props) => {
 
 				toast.error(`${message}`, {
 					closeOnClick: false,
-					progress: undefined,
+					
 				});
 			} else {
-				console.error("Non-Axios Error:", error);
+				toast.error(error.message, {
+					closeOnClick: false,
+			
+				});
 			}
 		},
 	});
