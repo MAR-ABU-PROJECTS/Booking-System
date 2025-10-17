@@ -24,10 +24,11 @@ export class EmailService {
   private useSmtp: boolean;
 
   constructor() {
-    // Use verified fallback domain if custom domain fails
-    this.fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev";
+    // Always use the verified domain
+    this.fromEmail =
+      process.env.EMAIL_FROM || "noreply@booking.marabuprojects.com";
     this.replyToEmail =
-      process.env.EMAIL_REPLY_TO || "support@booking.marabuprojects.com";
+      process.env.EMAIL_REPLY_TO || "noreply@booking.marabuprojects.com";
 
     // Check if SMTP is preferred or API key is missing
     this.useSmtp =
@@ -74,8 +75,8 @@ export class EmailService {
     return `"${APP_CONSTANTS.COMPANY.NAME}" <${this.fromEmail}>`;
   }
 
-  private getBackendBaseUrl(): string {
-    return (process.env.BACKEND_URL || "http://localhost:5050").replace(
+  private getFrontendBaseUrl(): string {
+    return (process.env.FRONTEND_URL || "http://localhost:5050").replace(
       /\/$/,
       ""
     );
@@ -84,7 +85,7 @@ export class EmailService {
   private apiUrl(path: string): string {
     const prefix = process.env.API_PREFIX || "/api/v1";
     const clean = path.startsWith("/") ? path : `/${path}`;
-    return `${this.getBackendBaseUrl()}${prefix}${clean}`;
+    return `${this.getFrontendBaseUrl()}${prefix}${clean}`;
   }
 
   private validateEmail(email: string): boolean {
@@ -142,20 +143,20 @@ export class EmailService {
         if (response.error) {
           // If domain not verified, retry with verified domain
           if (response.error.message?.includes("domain is not verified")) {
+            const verifiedDomain = "noreply@booking.marabuprojects.com";
             logger.warn(
               "Custom domain not verified, retrying with verified domain",
               {
                 customDomain: this.fromEmail,
-                fallbackDomain: "onboarding@resend.dev",
+                fallbackDomain: verifiedDomain,
               }
             );
 
             // Retry with verified domain
             const fallbackData = {
               ...emailData,
-              from: `"${APP_CONSTANTS.COMPANY.NAME}" <onboarding@resend.dev>`,
+              from: `"${APP_CONSTANTS.COMPANY.NAME}" <${verifiedDomain}>`,
             };
-
             const retryResponse = await this.resend.emails.send(fallbackData);
             if (retryResponse.error) {
               throw new Error(
@@ -167,7 +168,7 @@ export class EmailService {
               to: options.to,
               id: retryResponse.data?.id,
               subject: options.subject,
-              from: "onboarding@resend.dev",
+              from: "support@marabuprojects.com",
             });
             return true;
           }

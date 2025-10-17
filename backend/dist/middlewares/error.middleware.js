@@ -32,11 +32,13 @@ exports.AppError = AppError;
 // Error handler middleware
 const errorHandler = (err, req, res, next) => {
     let statusCode = 500;
-    let message = "Internal server error";
+    let message = err.message || "Internal server error";
     let errors = null;
-    // Log error
+    let errorType = err.constructor.name;
+    // Log error for debugging
     logger.error({
         error: err.message,
+        type: errorType,
         stack: err.stack,
         url: req.url,
         method: req.method,
@@ -47,6 +49,7 @@ const errorHandler = (err, req, res, next) => {
     if (err instanceof AppError) {
         statusCode = err.statusCode;
         message = err.message;
+        errors = err.code ? { code: err.code } : null;
     }
     else if (err instanceof zod_1.ZodError) {
         statusCode = 400;
@@ -60,26 +63,104 @@ const errorHandler = (err, req, res, next) => {
         statusCode = 400;
         switch (err.code) {
             case "P2002":
-                message = "A record with this value already exists";
+                // Unique constraint violation
+                const field = Array.isArray(err.meta?.target)
+                    ? err.meta?.target[0]
+                    : err.meta?.target;
+                // Customize message based on field
+                switch (field) {
+                    case "email":
+                        message = "This email address is already registered";
+                        break;
+                    case "phone":
+                        message = "This phone number is already registered";
+                        break;
+                    default:
+                        message = `This ${field} is already taken`;
+                }
                 errors = {
-                    field: err.meta?.target,
-                    message: "This value is already taken",
+                    field: field,
+                    code: err.code,
+                    type: "UniqueConstraintViolation",
                 };
                 break;
             case "P2025":
+                // Record not found
                 statusCode = 404;
                 message = "Record not found";
+                errors = {
+                    code: err.code,
+                    type: "RecordNotFound",
+                    details: err.meta,
+                };
                 break;
             case "P2003":
-                message = "Invalid reference. Related record not found";
+                // Foreign key constraint violation
+                message = "Referenced record does not exist";
+                errors = {
+                    field: err.meta?.field_name,
+                    code: err.code,
+                    type: "ForeignKeyViolation",
+                };
+                break;
+            case "P2014":
+                message = "Invalid data relationship";
+                errors = {
+                    code: err.code,
+                    type: "InvalidRelation",
+                    details: err.meta,
+                };
                 break;
             default:
-                message = "Database operation failed";
+                message = err.message || "Database operation failed";
+                errors = {
+                    code: err.code,
+                    type: "DatabaseError",
+                    details: process.env.NODE_ENV === "development" ? err.meta : undefined,
+                };
         }
     }
     else if (err instanceof client_1.Prisma.PrismaClientValidationError) {
         statusCode = 400;
         message = "Invalid data provided";
+        errors = {
+            type: "ValidationError",
+            details: err.message.split("\n"),
+        };
+    }
+    // Handle JWT errors
+    else if (err.name === "JsonWebTokenError") {
+        statusCode = 401;
+        message = "Invalid token";
+        errors = {
+            type: "AuthenticationError",
+            code: "INVALID_TOKEN",
+        };
+    }
+    else if (err.name === "TokenExpiredError") {
+        statusCode = 401;
+        message = "Token has expired";
+        errors = {
+            type: "AuthenticationError",
+            code: "TOKEN_EXPIRED",
+        };
+    }
+    // Handle authentication errors
+    else if (err.message?.includes("Invalid credentials")) {
+        statusCode = 401;
+        message = "Invalid email or password";
+        errors = {
+            type: "AuthenticationError",
+            code: "INVALID_CREDENTIALS",
+        };
+    }
+    else if (err.message?.includes("Email not verified")) {
+        statusCode = 403;
+        message = "Please verify your email address first";
+        errors = {
+            type: "AuthenticationError",
+            code: "EMAIL_NOT_VERIFIED",
+        };
     }
     // Send error response
     res.status(statusCode).json({
@@ -88,7 +169,7 @@ const errorHandler = (err, req, res, next) => {
         errors,
         ...(process.env.NODE_ENV === "development" && {
             stack: err.stack,
-            details: err,
+            type: errorType,
         }),
     });
 };
