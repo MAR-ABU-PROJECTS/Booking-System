@@ -240,7 +240,28 @@ router.post(
   validate,
   asyncHandler(async (req: any, res: any) => {
     const { email, password } = req.body;
+    // Get the interface type from the request headers or query
+    const interfaceType =
+      req.query.interface || req.headers["x-interface-type"];
+
     const result = await authService.login(email, password);
+
+    // Check if the user's role matches the interface they're trying to access
+    if (interfaceType === "admin" && result.user.role !== "ADMIN") {
+      throw new AppError(
+        "Access denied. Admin interface is only accessible to administrators",
+        403,
+        "ROLE_MISMATCH"
+      );
+    }
+
+    if (interfaceType === "customer" && result.user.role !== "CUSTOMER") {
+      throw new AppError(
+        "Access denied. Customer interface is only accessible to customers",
+        403,
+        "ROLE_MISMATCH"
+      );
+    }
 
     auditLog(
       "USER_LOGIN",
@@ -248,6 +269,7 @@ router.post(
       {
         email: result.user.email,
         role: result.user.role,
+        interfaceType,
       },
       req.ip
     );
