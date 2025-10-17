@@ -62,7 +62,7 @@ const SignUp = () => {
 					name: `${res.data.user.firstName} ${res.data.user.lastName}`,
 					token: res.data.accessToken,
 					refreshToken: res.data.refreshToken,
-					role:res.data.user.role
+					role: res.data.user.role,
 				});
 				dispatch(
 					setUser({
@@ -72,7 +72,7 @@ const SignUp = () => {
 						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
 					})
 				);
-				router.push("/verify-email");
+				setTimeout(() => router.push("/verify-email"), 7000);
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {

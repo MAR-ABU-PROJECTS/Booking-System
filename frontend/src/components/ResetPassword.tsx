@@ -5,7 +5,7 @@ import { ResetPasswordSchema } from "@lib/schemas";
 import { checkPasswordStrength } from "@lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { z } from "zod";
@@ -48,13 +48,11 @@ const ResetPassword = ({ token }: { token?: string }) => {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
-					progress: undefined,
 				});
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
-					progress: undefined,
 				});
 			}
 		},
@@ -70,7 +68,7 @@ const ResetPassword = ({ token }: { token?: string }) => {
 					progress: undefined,
 				});
 			} else {
-				toast.error(error.message,{
+				toast.error(error.message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
@@ -88,6 +86,8 @@ const ResetPassword = ({ token }: { token?: string }) => {
 		}
 		mutation.mutate(values);
 	};
+
+
 	return (
 		<div className="w-full max-w-xl mx-auto pt-8 pb-6">
 			<div className="h-[60px] relative">
@@ -168,7 +168,7 @@ const ResetPassword = ({ token }: { token?: string }) => {
 						)}
 					/>
 					<Button
-						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform"
+						className="!cursor-pointer w-full mt-7 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform"
 						disabled={mutation.isPending}
 						type="submit"
 					>
@@ -183,7 +183,7 @@ const ResetPassword = ({ token }: { token?: string }) => {
 				</form>
 
 				<p className="text-center text-[16px] font-medium mt-3 !mb-5">
-          Already reset passwprd?{" "}
+					Already reset password?{" "}
 					<span className="text-amber-500">
 						<Link href="/log-in">Log In</Link>
 					</span>

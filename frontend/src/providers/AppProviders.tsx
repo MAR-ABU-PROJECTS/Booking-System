@@ -20,7 +20,7 @@ export default function AppProviders({ children }: Props) {
 					position="top-right"
 					draggable={false}
 					theme="colored"
-					autoClose={15000}
+					autoClose={10000}
 					hideProgressBar={true}
 					style={{
 						color: "#ffffff",

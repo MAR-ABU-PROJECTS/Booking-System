@@ -13,6 +13,7 @@ import { isAxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { resetBooking } from "@lib/features/bookingSlice";
+import Link from "next/link";
 
 const BookingPayment = ({
 	summaryData,
@@ -98,16 +99,25 @@ const BookingPayment = ({
 		},
 
 		onSuccess: async (res) => {
-			console.log(res);
 			if (res?.success) {
 				const message = res?.message as string;
-				toast.success(message, {
-					closeOnClick: false,
-					progress: undefined,
-				});
-				setReceipt(null);
+				toast.success(
+					<div>
+						{message}
+						<br />
+						<Link
+							href="/booking-history"
+							className="text-white underline text-sm"
+						>
+							Click here to view your booking history
+						</Link>
+					</div>,
+					{
+						closeOnClick: false,
+					}
+				);
 
-				setTimeout(() => router.push("/booking-history"), 10000);
+				setReceipt(null);
 			} else {
 				const message = res?.message as string;
 				toast.error(message, {
@@ -182,7 +192,9 @@ const BookingPayment = ({
 				<div className="bg-red-500 text-left font-semibold text-[18px] rounded-xl p-2">
 					<ul className="list-none">
 						{instructions?.map((ins, index) => (
-							<li className="text-[16px]" key={index}>{ins}</li>
+							<li className="text-[16px]" key={index}>
+								{ins}
+							</li>
 						))}
 					</ul>
 				</div>
