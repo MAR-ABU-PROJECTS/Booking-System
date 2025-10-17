@@ -229,6 +229,7 @@ const SignUp = () => {
 								<Input
 									type="tel"
 									placeholder="Enter phone number"
+									maxLength={11}
 									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
 									{...field}
 								/>

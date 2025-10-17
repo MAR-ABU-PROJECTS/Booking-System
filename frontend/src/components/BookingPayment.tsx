@@ -137,7 +137,7 @@ const BookingPayment = ({
 					progress: undefined,
 				});
 			} else {
-				toast.error("Unexpected error, please try again", {
+				toast.error(error.message, {
 					closeOnClick: false,
 					progress: undefined,
 				});

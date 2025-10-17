@@ -20,6 +20,7 @@ export type Property = {
 	isNew?: boolean;
 	type?: string;
 	specials?: string[];
+	minimumNights?:3
 };
 
 // {

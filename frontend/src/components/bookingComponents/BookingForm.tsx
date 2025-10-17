@@ -328,9 +328,10 @@ const BookingForm = ({ isSubmitting }: Props) => {
 											</span>
 										</Label>
 										<Input
-											type="number"
-											placeholder="+234 XXX XXXX XXX"
+											type="tel"
+											placeholder="080 XXX XXXX XXX"
 											className="border-2 border-[#f7d5b0]"
+										  maxLength={11}
 											{...field}
 										/>
 										{fieldState.error && (

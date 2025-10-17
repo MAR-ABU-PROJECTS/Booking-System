@@ -88,6 +88,7 @@ export const properties: Property[] = [
 			"Outdoor Pool &ndash; Enjoy a private pool for leisure, relaxation, and recreation under the sun.",
 			"Minimalist, High-End Interiors &ndash; Stylish, modern design with high-quality furnishings and décor for a premium living experience.",
 		],
+		minimumNights:3
 	},
 
 	{
