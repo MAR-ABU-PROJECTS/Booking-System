@@ -158,7 +158,7 @@ router.post(
     res.status(201).json({
       success: true,
       message:
-        "Registration successful. Please check your email to verify your account.",
+        "Registration successful. Please Log In to continue.",
       data: { user: result.user },
     });
   })
