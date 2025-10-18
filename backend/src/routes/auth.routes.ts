@@ -429,35 +429,6 @@ router.get(
   })
 );
 
-// Additional route that accepts :id parameter for frontend compatibility
-router.get(
-  "/verify-email/:id",
-  asyncHandler(async (req: any, res: any) => {
-    const { id } = req.params;
-    try {
-      const user = await authService.verifyEmailByToken(id);
-      if (!user) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid or expired verification token",
-          errors: null,
-        });
-      }
-      await emailService.sendWelcomeEmail(user.email, user.firstName);
-      return res.json({
-        success: true,
-        message: "Email verified successfully. You can now log in.",
-      });
-    } catch (error: any) {
-      console.error("Email verification error:", error);
-      return res.status(500).json({
-        success: false,
-        message: error.message || "Internal server error",
-        errors: null,
-      });
-    }
-  })
-);
 
 /**
  * @route   POST /api/v1/auth/verify-email/resend
