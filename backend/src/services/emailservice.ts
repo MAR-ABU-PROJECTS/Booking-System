@@ -46,7 +46,7 @@ export class EmailService {
         },
         // Required for Gmail to allow custom From address
         tls: {
-          rejectUnauthorized: true,
+          rejectUnauthorized: false,
         },
       });
       logger.info("Email service initialized with SMTP", {
