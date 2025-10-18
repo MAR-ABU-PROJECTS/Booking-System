@@ -3,7 +3,6 @@ import {
 	BadgeCheck,
 	BookOpen,
 	Calendar,
-	House,
 	Loader2,
 	Mail,
 	Phone,

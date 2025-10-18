@@ -16,7 +16,7 @@ import { formatCurrency, toTitleCase } from "@lib/utils";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useIsMobile } from "@hooks/use-mobile";
-import { DayPicker } from "react-day-picker";
+
 
 const SingleProperty = ({ property }: { property: Property }) => {
 	const router = useRouter();

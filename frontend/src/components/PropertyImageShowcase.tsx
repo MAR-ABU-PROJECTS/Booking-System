@@ -19,46 +19,46 @@ const PropertyImageShowcase = () => {
   // MAR ABU HOMES property images from the provided photos
   const propertyImages: PropertyImage[] = [
     // All Spaces - Featured images
-    { id: 1, src: "/images/mar-abu/game-room.jpg", alt: "Game Room with Foosball Table", featured: true, category: "all" },
-    { id: 2, src: "/images/mar-abu/main-living.jpg", alt: "Main Living Area with Curved Seating", featured: true, category: "all" },
-    { id: 3, src: "/images/mar-abu/dining-area.jpg", alt: "Elegant Dining Area", featured: true, category: "all" },
-    { id: 4, src: "/images/mar-abu/modern-kitchen.jpg", alt: "Modern Kitchen with Purple Lighting", featured: true, category: "all" },
+    { id: 1, src: "/images/mar-abu/game-room.jpg", alt: "furnished kitchen", featured: true, category: "all" },
+    { id: 2, src: "/images/mar-abu/main-living.jpg", alt: "Elegant Dining Area", featured: true, category: "all" },
+    { id: 3, src: "/images/mar-abu/dining-area.jpg", alt: "Modern kitchen featuring a cozy dining nook", featured: true, category: "all" },
+    { id: 4, src: "/images/mar-abu/modern-kitchen.jpg", alt: "Spa-inspired bathroom", featured: true, category: "all" },
 
     // Living Areas
-    { id: 5, src: "/images/mar-abu/main-living.jpg", alt: "Main Living Room with Curved Sectional", category: "living" },
-    { id: 6, src: "/images/mar-abu/game-room.jpg", alt: "Entertainment Room with Game Table", category: "living" },
-    { id: 7, src: "/images/mar-abu/dining-area.jpg", alt: "Dining Area with Modern Fixtures", category: "living" },
-    { id: 8, src: "/images/mar-abu/pool-room.jpg", alt: "Pool Table Recreation Room", category: "living" },
+    { id: 5, src: "/images/mar-abu/main-living.jpg", alt: "Bright and airy living area", category: "living" },
+    { id: 6, src: "/images/mar-abu/game-room.jpg", alt: "Main Living Room with Curved Sectional", category: "living" },
+    { id: 7, src: "/images/mar-abu/dining-area.jpg", alt: "Open and roomy lounge", category: "living" },
+    { id: 8, src: "/images/mar-abu/pool-room.jpg", alt: "Living room with sleek shelves", category: "living" },
 
     // Bedrooms
-    { id: 9, src: "/images/mar-abu/game-room.jpg", alt: "Multi-purpose Room", category: "bedroom" },
-    { id: 10, src: "/images/mar-abu/main-living.jpg", alt: "Open Living Space", category: "bedroom" },
-    { id: 11, src: "/images/mar-abu/pool-room.jpg", alt: "Recreation Room", category: "bedroom" },
-    { id: 12, src: "/images/mar-abu/dining-area.jpg", alt: "Elegant Interior Space", category: "bedroom" },
+    { id: 9, src: "/images/mar-abu/game-room.jpg", alt: "Bright bedroom featuring a large glass wall", category: "bedroom" },
+    { id: 10, src: "/images/mar-abu/main-living.jpg", alt: "Modern bedroom with a sleek design", category: "bedroom" },
+    { id: 11, src: "/images/mar-abu/pool-room.jpg", alt: "spacious bedroom", category: "bedroom" },
+    { id: 12, src: "/images/mar-abu/dining-area.jpg", alt: "king size bed", category: "bedroom" },
 
     // Bathrooms
     { id: 13, src: "/images/mar-abu/luxury-bathroom.jpg", alt: "Luxury Bathroom with Glass Shower", category: "bathroom" },
-    { id: 14, src: "/images/mar-abu/main-living.jpg", alt: "Premium Interior Design", category: "bathroom" },
-    { id: 15, src: "/images/mar-abu/modern-kitchen.jpg", alt: "Modern Fixtures and Lighting", category: "bathroom" },
-    { id: 16, src: "/images/mar-abu/dining-area.jpg", alt: "Contemporary Design Elements", category: "bathroom" },
+    { id: 14, src: "/images/mar-abu/main-living.jpg", alt: "Luxurious Bathroom", category: "bathroom" },
+    { id: 15, src: "/images/mar-abu/modern-kitchen.jpg", alt: "Stylish & Modern Bathroom", category: "bathroom" },
+    { id: 16, src: "/images/mar-abu/dining-area.jpg", alt: "Compact bathroom", category: "bathroom" },
 
     // Kitchen
-    { id: 17, src: "/images/mar-abu/modern-kitchen.jpg", alt: "Modern Kitchen with Purple LED Lighting", category: "kitchen" },
-    { id: 18, src: "/images/mar-abu/luxury-kitchen.jpg", alt: "Luxury Kitchen with Island", category: "kitchen" },
-    { id: 19, src: "/images/mar-abu/compact-kitchen.jpg", alt: "Compact Modern Kitchen", category: "kitchen" },
-    { id: 20, src: "/images/mar-abu/dining-area.jpg", alt: "Kitchen and Dining Integration", category: "kitchen" },
+    { id: 17, src: "/images/mar-abu/modern-kitchen.jpg", alt: "Luxury Kitchen with Island", category: "kitchen" },
+    { id: 18, src: "/images/mar-abu/luxury-kitchen.jpg", alt: "Modern Kitchen with Purple LED Lighting", category: "kitchen" },
+    { id: 19, src: "/images/mar-abu/compact-kitchen.jpg", alt: "Fully equipped modern kitchen", category: "kitchen" },
+    { id: 20, src: "/images/mar-abu/dining-area.jpg", alt: "Compact Modern Kitchen", category: "kitchen" },
 
     // Outdoor
-    { id: 21, src: "/images/mar-abu/game-room.jpg", alt: "Indoor Entertainment Space", category: "outdoor" },
-    { id: 22, src: "/images/mar-abu/main-living.jpg", alt: "Spacious Living Area", category: "outdoor" },
-    { id: 23, src: "/images/mar-abu/pool-room.jpg", alt: "Recreation Area", category: "outdoor" },
-    { id: 24, src: "/images/mar-abu/dining-area.jpg", alt: "Entertainment Dining Space", category: "outdoor" },
+    // { id: 21, src: "/images/mar-abu/game-room.jpg", alt: "Indoor Entertainment Space", category: "outdoor" },
+    // { id: 22, src: "/images/mar-abu/main-living.jpg", alt: "Spacious Living Area", category: "outdoor" },
+    // { id: 23, src: "/images/mar-abu/pool-room.jpg", alt: "Recreation Area", category: "outdoor" },
+    // { id: 24, src: "/images/mar-abu/dining-area.jpg", alt: "Entertainment Dining Space", category: "outdoor" },
 
     // Amenities
     { id: 25, src: "/images/mar-abu/pool-room.jpg", alt: "Pool Table Recreation", category: "amenities" },
     { id: 26, src: "/images/mar-abu/game-room.jpg", alt: "Game Room with Foosball", category: "amenities" },
-    { id: 27, src: "/images/mar-abu/luxury-bathroom.jpg", alt: "Spa-like Bathroom", category: "amenities" },
-    { id: 28, src: "/images/mar-abu/modern-kitchen.jpg", alt: "Premium Kitchen Amenities", category: "amenities" }
+    { id: 27, src: "/images/mar-abu/luxury-bathroom.jpg", alt: "Premium Kitchen Amenities", category: "amenities" },
+    { id: 28, src: "/images/mar-abu/modern-kitchen.jpg", alt: "Outdoor tennis court", category: "amenities" }
   ];
 
   // Categories for filtering
@@ -68,7 +68,7 @@ const PropertyImageShowcase = () => {
     { id: "bedroom", name: "Bedrooms" },
     { id: "bathroom", name: "Bathrooms" },
     { id: "kitchen", name: "Kitchen" },
-    { id: "outdoor", name: "Outdoor" },
+    // { id: "outdoor", name: "Outdoor" },
     { id: "amenities", name: "Amenities" }
   ];
 
@@ -90,40 +90,41 @@ const PropertyImageShowcase = () => {
         "/banner/bedroom.JPG"  // Bedroom
       ],
       "living": [
-        "/banner/living-area.JPG", // Main living area
+        "/apartment-images/abike-penthouse/IMG_5289.jpeg", // Main living area
         "/banner/Living-Room.JPG", // Living room
-        "/banner/indoor.jpg", // Indoor space
-        "/banner/all-spaces.JPG"  // All spaces view
+        "/apartment-images/whitestone/IMG_0513.JPG",// Indoor space
+        "/apartment-images/zircon/IMG_5263.jpeg"  // All spaces view
       ],
+      
       "bedroom": [
-        "/banner/bedroom.JPG", // Main bedroom
-        "/banner/indoor.jpg", // Indoor bedroom space
-        "/banner/living-area.JPG", // Bedroom living area
-        "/banner/all-spaces.JPG"  // Bedroom in all spaces
+        "/apartment-images/abike-penthouse/IMG_5275.jpeg",// Main bedroom
+        "/apartment-images/obudu/IMG_5698.jpeg", // Indoor bedroom space
+        "/apartment-images/whitestone/IMG_0516.JPG",  // Bedroom living area
+        "/apartment-images/zircon/IMG_4790.JPG"  // Bedroom in all spaces
       ],
       "bathroom": [
-        "/banner/indoor.jpg", // Indoor bathroom space
-        "/banner/all-spaces.JPG", // Bathroom in all spaces
-        "/banner/living-area.JPG", // Bathroom area
-        "/banner/amenities.JPG"  // Bathroom amenities
+        "/apartment-images/abike-penthouse/IMG_5288.jpeg", // Indoor bathroom space
+        "/apartment-images/whitestone/IMG_0520.JPG", // Bathroom in all spaces
+        "/apartment-images/zircon/IMG_5252.jpeg", // Bathroom area
+        "/apartment-images/abike-penthouse/IMG_5281.jpeg",  // Bathroom amenities
       ],
       "kitchen": [
         "/banner/kitchen.JPG", // Main kitchen
         "/banner/kitchen-cabinet.JPG", // Kitchen cabinets
-        "/banner/indoor.jpg", // Indoor kitchen space
+        "/apartment-images/abike-penthouse/IMG_5280.jpeg", // Indoor kitchen space
         "/banner/all-spaces.JPG"  // Kitchen in all spaces
       ],
-      "outdoor": [
-        "/banner/outdoor.JPG", // Main outdoor space
-        "/banner/all-spaces.JPG", // Outdoor in all spaces
-        "/banner/amenities.JPG", // Outdoor amenities
-        "/banner/living-area.JPG"  // Outdoor living area
-      ],
+      // "outdoor": [
+      //   "/banner/outdoor.JPG", // Main outdoor space
+      //   "/banner/all-spaces.JPG", // Outdoor in all spaces
+      //   "/banner/amenities.JPG", // Outdoor amenities
+      //   "/banner/living-area.JPG"  // Outdoor living area
+      // ],
       "amenities": [
         "/banner/amenities.JPG", // Main amenities
         "/banner/outdoor.JPG", // Outdoor amenities
         "/banner/kitchen.JPG", // Kitchen amenities
-        "/banner/indoor.jpg"  // Indoor amenities
+        "/apartment-images/obudu/IMG_3647.jpeg"  // Indoor amenities
       ]
     };
 
