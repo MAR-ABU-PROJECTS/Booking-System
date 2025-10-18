@@ -23,7 +23,9 @@ const BookingCard = ({
 	children,
 	infants,
 	property,
-	total
+	total,
+	serviceFee
+	
 }: BookingCardType) => {
 	dayjs.extend(advancedFormat);
 	// const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -129,6 +131,10 @@ const BookingCard = ({
 				<div className="flex justify-between font-[600]">
 					<p className="text-sm text-gray-700">Guests:</p>
 					<p className="text-sm text-gray-700">{totalGuests}</p>
+				</div>
+				<div className="flex justify-between font-[600]">
+					<p className="text-sm text-gray-700">Caution Fee:</p>
+					<p className="text-sm text-gray-700">{formatCurrency(serviceFee)}</p>
 				</div>
 				<div className="flex justify-between font-[600]">
 					<p className="text-sm text-gray-700">Total:</p>

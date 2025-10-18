@@ -5,7 +5,7 @@ import {
 	CalendarRange,
 	MessageSquareMore,
 	UserRound,
-	Loader2
+	Loader2,
 } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
@@ -56,6 +56,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 						<div className="flex w-full items-center gap-[10px]">
 							<Controller
 								control={control}
+								
 								name="checkIn"
 								render={({ field, fieldState }) => (
 									<div className="flex flex-col w-full gap-1">
@@ -87,6 +88,7 @@ const BookingForm = ({ isSubmitting }: Props) => {
 											>
 												<Calendar
 													mode="single"
+											
 													selected={field.value}
 													captionLayout="dropdown"
 													disabled={(date) => {
@@ -286,8 +288,6 @@ const BookingForm = ({ isSubmitting }: Props) => {
 									</div>
 								)}
 							/>
-
-						
 						</div>
 						<div className="flex justify-between items-center gap-[20px]">
 							<Controller
@@ -328,11 +328,19 @@ const BookingForm = ({ isSubmitting }: Props) => {
 											</span>
 										</Label>
 										<Input
+											{...field}
 											type="tel"
 											placeholder="080 XXX XXXX XXX"
 											className="border-2 border-[#f7d5b0]"
-										  maxLength={11}
-											{...field}
+											maxLength={11}
+											onChange={(e) => {
+												const cleaned =
+													e.target.value.replace(
+														/\D/g,
+														""
+													);
+												field.onChange(cleaned);
+											}}
 										/>
 										{fieldState.error && (
 											<p className="text-sm text-red-600">
@@ -343,7 +351,6 @@ const BookingForm = ({ isSubmitting }: Props) => {
 								)}
 							/>
 						</div>
-
 					</div>
 				</div>
 				{/* <div className="flex-col w-full gap-[20px] hidden">
@@ -388,8 +395,6 @@ const BookingForm = ({ isSubmitting }: Props) => {
 								</div>
 							)}
 						/>
-
-					
 
 						<div className="w-full h-full p-[10px] bg-[#fef9f3] border-2 border-[#f7d5b0] rounded-xl">
 							<Controller

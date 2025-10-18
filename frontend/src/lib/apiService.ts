@@ -30,7 +30,7 @@ const refreshAccessToken = async () => {
 	const refreshToken = session?.user?.refreshToken;
 
 	if (!refreshToken) {
-		throw new Error("No refresh token available");
+		throw new Error("You need to sign up or login to continue booking");
 	}
 
 	const { data } = await axios.post(
@@ -43,7 +43,7 @@ const refreshAccessToken = async () => {
 
 	const newToken = data?.accessToken;
 	if (!newToken) {
-		throw new Error("No access token received");
+		throw new Error("You need to sign up or login to continue booking");
 	}
 
 	await updateSession({
@@ -104,7 +104,7 @@ axiosInstance.interceptors.response.use(
 
 				await updateSession({ ...defaultSession.user });
 				if (typeof window !== "undefined") {
-					window.location.href = "/log-in";
+					setTimeout(() => (window.location.href = "/log-in"), 7000);
 				}
 				return Promise.reject(err);
 			} finally {

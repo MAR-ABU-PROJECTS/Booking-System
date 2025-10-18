@@ -227,11 +227,18 @@ const SignUp = () => {
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
+									{...field}
 									type="tel"
 									placeholder="Enter phone number"
 									maxLength={11}
 									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
-									{...field}
+									onChange={(e) => {
+										const cleaned = e.target.value.replace(
+											/\D/g,
+											""
+										);
+										field.onChange(cleaned);
+									}}
 								/>
 
 								{fieldState.error && (

@@ -13,7 +13,8 @@ import {
 	LogOut,
 	UserRound,
 	Loader2,
-	History
+	History,
+	House
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -165,7 +166,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 				{/* Right Navigation */}
 				<div className="flex items-center gap-1 md:gap-4">
 					{/* Become a Host */}
-					<Link
+					{/* <Link
 						href="/property"
 						className={`hidden md:block px-4 py-2 rounded-full text-sm font-medium ${
 							isScrolled
@@ -174,7 +175,7 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 						} transition-colors`}
 					>
 						Property
-					</Link>
+					</Link> */}
 
 					{/* Language Selector */}
 					<button
@@ -237,6 +238,13 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 												>
 													<History className="w-5 h-5" />
 													<span>Booking History</span>
+												</Link>
+												<Link
+													href="/property"
+													className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+												>
+													<House className="w-5 h-5" />
+													<span>Property</span>
 												</Link>
 												<Link
 													href="/wishlist"
@@ -302,6 +310,13 @@ const AirbnbStyleNavigation = ({ whiteBg }: Props) => {
 												>
 													Log in
 												</Link>
+												<Link
+													href="/property"
+													className="w-full block text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+												>
+													Property
+												</Link>
+											
 											</div>
 											<div>
 												<Link

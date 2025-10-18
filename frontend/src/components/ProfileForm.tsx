@@ -30,7 +30,6 @@ const ProfileForm = ({ data }: { data: UserProfile }) => {
 			lastName: "",
 			firstName: "",
 			phone: "",
-		
 		},
 		mode: "onChange",
 	});
@@ -42,7 +41,6 @@ const ProfileForm = ({ data }: { data: UserProfile }) => {
 				firstName: data?.firstName,
 				lastName: data?.lastName,
 				phone: data?.phone,
-				
 			});
 		}
 	}, [form, data]);
@@ -125,7 +123,9 @@ const ProfileForm = ({ data }: { data: UserProfile }) => {
 								information.
 							</CardDescription>
 						</CardHeader>
-						<fieldset disabled={!isEditProfile || mutation.isPending}>
+						<fieldset
+							disabled={!isEditProfile || mutation.isPending}
+						>
 							<CardContent className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-6">
 								<Controller
 									control={form.control}
@@ -213,9 +213,17 @@ const ProfileForm = ({ data }: { data: UserProfile }) => {
 												</span>
 											</Label>
 											<Input
+												{...field}
 												placeholder="Phone Number"
 												className="border-2 border-[#f7d5b0]"
-												{...field}
+												onChange={(e) => {
+													const cleaned =
+														e.target.value.replace(
+															/\D/g,
+															""
+														);
+													field.onChange(cleaned);
+												}}
 											/>
 											{fieldState.error && (
 												<p className="text-sm text-red-600">
@@ -225,8 +233,6 @@ const ProfileForm = ({ data }: { data: UserProfile }) => {
 										</div>
 									)}
 								/>
-
-								
 							</CardContent>
 						</fieldset>
 						<CardFooter className="">
