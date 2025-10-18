@@ -24,7 +24,9 @@ const BookingCard = ({
 	infants,
 	property,
 	total,
-	serviceFee
+	serviceFee,
+	baseAmount
+
 	
 }: BookingCardType) => {
 	dayjs.extend(advancedFormat);
@@ -131,6 +133,10 @@ const BookingCard = ({
 				<div className="flex justify-between font-[600]">
 					<p className="text-sm text-gray-700">Guests:</p>
 					<p className="text-sm text-gray-700">{totalGuests}</p>
+				</div>
+				<div className="flex justify-between font-[600]">
+					<p className="text-sm text-gray-700">Price / Night:</p>
+					<p className="text-sm text-gray-700">{formatCurrency(baseAmount)}</p>
 				</div>
 				<div className="flex justify-between font-[600]">
 					<p className="text-sm text-gray-700">Caution Fee:</p>

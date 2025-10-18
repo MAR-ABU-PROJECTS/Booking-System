@@ -15,10 +15,6 @@ import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { checkPasswordStrength } from "@lib/utils";
 import PasswordStrengthChecker from "@components/PasswordStrengthChecker";
-import { setSession } from "@lib/action";
-import { useRouter } from "next/navigation";
-import { useDispatch } from "react-redux";
-import { setUser } from "@lib/features/authSlice";
 
 const SignUp = () => {
 	const form = useForm<z.infer<typeof SignUpSchema>>({
@@ -34,13 +30,12 @@ const SignUp = () => {
 		mode: "onChange",
 	});
 	const [passwordStrength, setPasswordStrength] = useState(0);
-	const router = useRouter();
 	const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
 		const strength = checkPasswordStrength(e.target.value);
 		setPasswordStrength((strength / 5) * 100);
 	};
 
-	const dispatch = useDispatch();
+
 
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
@@ -56,23 +51,7 @@ const SignUp = () => {
 					closeOnClick: false,
 					progress: undefined,
 				});
-				await setSession({
-					email: res.data.user.email,
-					id: res.data.user.id,
-					name: `${res.data.user.firstName} ${res.data.user.lastName}`,
-					token: res.data.accessToken,
-					refreshToken: res.data.refreshToken,
-					role: res.data.user.role,
-				});
-				dispatch(
-					setUser({
-						email: res.data.user.email,
-						id: res.data.user.id,
-						isLoggedIn: true,
-						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
-					})
-				);
-				setTimeout(() => router.push("/"), 6000);
+				
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
