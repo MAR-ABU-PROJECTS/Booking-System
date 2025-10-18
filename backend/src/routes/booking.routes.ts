@@ -680,7 +680,7 @@ router.post(
       res.status(201).json({
         success: true,
         message:
-          "Booking created and auto-approved. Please check your email for confirmation and payment instructions.",
+          "Booking created and Approved. Please check your email for confirmation.",
         data: booking,
       });
     } catch (error) {

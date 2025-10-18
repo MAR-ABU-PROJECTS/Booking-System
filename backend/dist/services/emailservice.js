@@ -20,14 +20,18 @@ class EmailService {
         this.useSmtp =
             process.env.EMAIL_DRIVER === "smtp" || !process.env.RESEND_API_KEY;
         if (this.useSmtp && process.env.SMTP_HOST && process.env.SMTP_PASS) {
-            // Use SMTP
+            // Use Gmail SMTP
             this.transporter = nodemailer_1.default.createTransport({
                 host: process.env.SMTP_HOST,
                 port: Number(process.env.SMTP_PORT || 465),
                 secure: true, // SSL
                 auth: {
-                    user: process.env.SMTP_USER || "resend",
+                    user: process.env.SMTP_USER,
                     pass: process.env.SMTP_PASS,
+                },
+                // Required for Gmail to allow custom From address
+                tls: {
+                    rejectUnauthorized: true,
                 },
             });
             logger_middleware_1.logger.info("Email service initialized with SMTP", {
@@ -77,15 +81,21 @@ class EmailService {
                 return false;
             }
             if (this.useSmtp && this.transporter) {
-                // Send via SMTP with retry
-                await this.transporter.sendMail({
+                // Send via SMTP with Gmail
+                const mailOptions = {
                     from: this.buildFrom(),
+                    sender: process.env.SMTP_USER || "", // Gmail account that's actually sending
                     to: options.to,
                     subject: options.subject,
                     html: options.html,
                     replyTo: this.replyToEmail,
                     attachments: options.attachments,
-                });
+                    headers: {
+                        "X-Sender": process.env.SMTP_USER || "",
+                        "X-Mailer": "MAR ABU Booking System",
+                    },
+                };
+                await this.transporter.sendMail(mailOptions);
                 logger_middleware_1.logger.info("Email sent successfully via SMTP", {
                     to: options.to,
                     subject: options.subject,
@@ -250,12 +260,12 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
      * Send email verification
      */
     async sendEmailVerification(email, verificationToken) {
-        // Use backend API route for verification
-        const verifyapiUrl = this.apiUrl(`/auth/verify-email/${verificationToken}`);
+        // Use frontend URL directly (without API prefix)
+        const verifyUrl = `${this.getFrontendBaseUrl()}/verify-email/${verificationToken}`;
         const content = `
       <h2>Verify Your Email Address</h2>
       <p>Please click the button below to verify your email address:</p>
-      <a href="${verifyapiUrl}" class="button">Verify Email</a>
+      <a href="${verifyUrl}" class="button">Verify Email</a>
       <p>This link will expire in 24 hours.</p>
     `;
         return this.sendEmail({
