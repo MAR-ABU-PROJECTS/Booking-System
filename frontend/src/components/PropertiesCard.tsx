@@ -9,116 +9,7 @@ import { properties } from "@lib/mockData";
 import { formatCurrency } from "@lib/utils";
 
 const PropertiesCard = () => {
-	// const cardContent = [
-	// 	{
-	// 		id: 1,
-	// 		status: "Premium",
-	// 		desc: "Exquisite penthouse with panoramic Lagos lagoon views and premium finishes",
-	// 		name: "MAR Luxury Penthouse - Victoria Island",
-	// 		location: "Victoria Island, Lagos",
-	// 		amenities: ["Ocean View", "Concierge", "Gym"],
-	// 		bed: 4,
-	// 		baths: 5,
-	// 		roomStatus: "AVAILABLE",
-	// 		statusColor: "#12B76A",
-	// 		amount: "₦285,000",
-	// 	},
-	// 	{
-	// 		id: 2,
-	// 		status: "Executive",
-	// 		desc: "Sophisticated executive suites with contemporary design and premium amenities",
-	// 		name: "MAR Executive Suites - Ikoyi Heights",
-	// 		location: "Ikoyi, Lagos",
-	// 		amenities: ["City View", "Rooftop Terrance", "Fitness Center"],
-	// 		bed: 3,
-	// 		baths: 2,
-	// 		roomStatus: "LIMITED",
-	// 		statusColor: "#F4A857",
-	// 		amount: "₦195,000",
-	// 	},
-	// 	{
-	// 		id: 3,
-	// 		status: "Water Front",
-	// 		desc: "Modern waterfront residence with direct lagoon access and luxury finishes",
-	// 		name: "MAR Waterfront Residences - Lekki Phase 1",
-	// 		location: "Lekki, Lagos",
-	// 		amenities: ["Water Front", "Private Jetty", "Garden"],
-	// 		bed: 3,
-	// 		baths: 3,
-	// 		roomStatus: "AVAILABLE",
-	// 		statusColor: "#12B76A",
-	// 		amount: "₦165,000",
-	// 	},
-	// 	{
-	// 		id: 4,
-	// 		status: "Presidential",
-	// 		desc: "Ultra-luxury presidential villa with private beach access and world-class amenities",
-	// 		name: "MAR Presidential Villa - Banana Island",
-	// 		location: "Banana Island, Lagos",
-	// 		amenities: ["Private Beach", "Infinity Pool", "Home Cinema"],
-	// 		bed: 5,
-	// 		baths: 4,
-	// 		roomStatus: "AVAILABLE",
-	// 		statusColor: "#12B76A",
-	// 		amount: "₦450,000",
-	// 	},
-	// 	{
-	// 		id: 5,
-	// 		status: "Corporate",
-	// 		desc: "Premium corporate accommodation in the heart of Nigeria's capital city",
-	// 		name: "MAR Corporate Towers - Wuse 2, Abuja",
-	// 		location: "Wuse 2, Abuja",
-	// 		amenities: ["Business Center", "Meeting Rooms", "High-Speed Wifi"],
-	// 		bed: 2,
-	// 		baths: 2,
-	// 		roomStatus: "AVAILABLE",
-	// 		statusColor: "#12B76A",
-	// 		amount: "₦125,000",
-	// 	},
-	// 	{
-	// 		id: 6,
-	// 		status: "Garden",
-	// 		desc: "Serene garden court residence in Abuja's most prestigious diplomatic zone",
-	// 		name: "MAR Garden Court - Maitama, Abuja",
-	// 		location: "Maitama, Abuja",
-	// 		amenities: ["Private Garden", "Diplomatic Security", "Quiet Zone"],
-	// 		bed: 3,
-	// 		baths: 2,
-	// 		roomStatus: "LIMITED",
-	// 		statusColor: "#F4A857",
-	// 		amount: "₦155,000",
-	// 	},
-	// 	{
-	// 		id: 7,
-	// 		status: "Skyline",
-	// 		desc: "Modern skyline apartments with panoramic city views in Port Harcourt's premier district",
-	// 		name: "MAR Skyline Apartments - GRA, Port Harcourt",
-	// 		location: "GRA Phase 2, Port Harcourt",
-	// 		amenities: ["City Views", "Business District", "Airport Proximity"],
-	// 		bed: 2,
-	// 		baths: 2,
-	// 		roomStatus: "AVAILABLE",
-	// 		statusColor: "#12B76A",
-	// 		amount: "₦95,000",
-	// 	},
-	// 	{
-	// 		id: 8,
-	// 		status: "Heritage",
-	// 		desc: "Magnificent heritage mansion in Abuja's most exclusive residential district",
-	// 		name: "MAR Heritage Mansion - Asokoro, Abuja",
-	// 		location: "Asokoro District, Abuja",
-	// 		amenities: [
-	// 			"Exclusive District",
-	// 			"Private Gardens",
-	// 			"VIP Security",
-	// 		],
-	// 		bed: 4,
-	// 		baths: 3,
-	// 		roomStatus: "UNAVAILABLE",
-	// 		statusColor: "#F04438",
-	// 		amount: "₦225,000",
-	// 	},
-	// ];
+	
 
 	const renderStatus = (roomStatus: string) => {
 		let statusColor = "";
@@ -174,7 +65,7 @@ const PropertiesCard = () => {
 							<div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
 							{card.images.length > 0 && (
 								<div
-									className="absolute inset-0 bg-center bg-no-repeat bg-cover group-hover:filter-none filter blur-[2px] transition-all duration-500"
+									className="absolute inset-0 bg-center bg-no-repeat bg-cover  transition-all duration-500"
 									style={{
 										backgroundImage: `url(${card.images[0]})`,
 									}}
@@ -213,7 +104,7 @@ const PropertiesCard = () => {
 
 							{/* Property Description Overlay */}
 							<div className="absolute bottom-4 left-4 right-4 z-10">
-								<p className="text-white text-sm leading-relaxed font-light">
+								<p className="text-white text-sm leading-relaxed font-light line-clamp-2">
 									{card.desc}
 								</p>
 							</div>

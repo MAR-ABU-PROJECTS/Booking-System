@@ -3,7 +3,6 @@ import {
 	BadgeCheck,
 	BookOpen,
 	Calendar,
-	House,
 	Loader2,
 	Mail,
 	Phone,
@@ -38,13 +37,13 @@ const ProfileSummary = ({ data }: { data?: UserProfile }) => {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
-					progress: undefined,
+
 				});
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
-					progress: undefined,
+					
 				});
 			}
 		},
@@ -60,7 +59,10 @@ const ProfileSummary = ({ data }: { data?: UserProfile }) => {
 					progress: undefined,
 				});
 			} else {
-				console.error("Non-Axios Error:", error);
+				toast.error(error.message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
 			}
 		},
 	});
@@ -115,7 +117,7 @@ const ProfileSummary = ({ data }: { data?: UserProfile }) => {
 				<h3 className="text-[16px] font-medium text-gray-900 text-center mb-4">
 					Activity Stats
 				</h3>
-				<div className="grid grid-cols-2 gap-2 text-center">
+				<div className="grid grid-cols-1 gap-2 text-center">
 					<div className="p-2 bg-gray-50 rounded-lg">
 						<BookOpen className="text-gray-500 size-4 mx-auto" />
 
@@ -124,14 +126,7 @@ const ProfileSummary = ({ data }: { data?: UserProfile }) => {
 						</h4>
 						<p className="text-xs text-gray-500">Bookings</p>
 					</div>
-					<div className="p-2 bg-gray-50 rounded-lg">
-						<House className="text-gray-500 size-4 mx-auto" />
-
-						<h4 className="text-lg font-semibold text-gray-900">
-							{data?._count.hostedProperties}
-						</h4>
-						<p className="text-xs text-gray-500">Properties</p>
-					</div>
+					
 				</div>
 			</div>
 		</Card>
