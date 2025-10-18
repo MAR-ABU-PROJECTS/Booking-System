@@ -210,7 +210,7 @@ export class AuthService {
       });
 
       if (!user) {
-        throw new Error("Invalid email or password");
+        throw new Error("No user found");
       }
 
       // Check user status

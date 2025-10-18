@@ -603,7 +603,7 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
         }, req.ip);
         res.status(201).json({
             success: true,
-            message: "Booking created and auto-approved. Please check your email for confirmation and payment instructions.",
+            message: "Booking created and Approved. Please check your email for confirmation.",
             data: booking,
         });
     }
