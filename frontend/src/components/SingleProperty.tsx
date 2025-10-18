@@ -16,6 +16,7 @@ import { formatCurrency, toTitleCase } from "@lib/utils";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useIsMobile } from "@hooks/use-mobile";
+import { DayPicker } from "react-day-picker";
 
 const SingleProperty = ({ property }: { property: Property }) => {
 	const router = useRouter();
@@ -64,7 +65,6 @@ const SingleProperty = ({ property }: { property: Property }) => {
 			);
 		}
 	};
-	
 
 	const onSubmit = (values: z.infer<typeof BookSchema>) => {
 		const minimumNights = property.minimumNights;
@@ -166,7 +166,9 @@ const SingleProperty = ({ property }: { property: Property }) => {
 									<h3 className="font-semibold mb-3 text-[18px] sm:text-[22px] lg:text-[30px] text-black">
 										About this place
 									</h3>
-									<p>{property.desc}</p>
+									<p className="leading-[30px]">
+										{property.desc}
+									</p>
 								</div>
 
 								<div className="py-5 sm:py-7 border-b-[1px] border-black/20">
@@ -240,7 +242,6 @@ const SingleProperty = ({ property }: { property: Property }) => {
 													}
 												}}
 											/>
-										
 										</div>
 									)}
 								/>
