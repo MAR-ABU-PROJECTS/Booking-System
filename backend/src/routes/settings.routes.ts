@@ -373,7 +373,7 @@ router.get(
  *                 data:
  *                   type: object
  *                   properties:
- *                     defaultServiceFeePercentage:
+ *                     defaultcautionFeePercentage:
  *                       type: number
  *                       example: 10
  *                     maxAdvanceBookingDays:
@@ -399,7 +399,7 @@ router.get(
  * example:
  *   success: true
  *   data:
- *     defaultServiceFeePercentage: 10
+ *     defaultcautionFeePercentage: 10
  *     maxAdvanceBookingDays: 365
  *     minAdvanceBookingHours: 24
  *     cancellationGracePeriodHours: 24
@@ -423,7 +423,7 @@ router.get(
 
     // Set defaults if not found
     const defaultSettings = {
-      defaultServiceFeePercentage: 10,
+      defaultcautionFeePercentage: 10,
       maxAdvanceBookingDays: 365,
       minAdvanceBookingHours: 24,
       cancellationGracePeriodHours: 24,
@@ -463,7 +463,7 @@ router.get(
  *           schema:
  *             type: object
  *             properties:
- *               defaultServiceFeePercentage:
+ *               defaultcautionFeePercentage:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 50
@@ -512,7 +512,7 @@ router.put(
   "/booking",
   requireAuth({ role: UserRole.ADMIN }),
   [
-    body("defaultServiceFeePercentage").optional().isFloat({ min: 0, max: 50 }),
+    body("defaultcautionFeePercentage").optional().isFloat({ min: 0, max: 50 }),
     body("maxAdvanceBookingDays").optional().isInt({ min: 1, max: 730 }),
     body("minAdvanceBookingHours").optional().isInt({ min: 0, max: 168 }),
     body("cancellationGracePeriodHours").optional().isInt({ min: 0, max: 168 }),

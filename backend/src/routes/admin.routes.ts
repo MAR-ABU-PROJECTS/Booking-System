@@ -97,7 +97,7 @@ const validate = (req: any, res: any, next: any) => {
  *                           type: number
  *                           format: float
  *                           example: 95000
- *                         serviceFees:
+ *                         cautionFees:
  *                           type: number
  *                           format: float
  *                           example: 3000
@@ -173,7 +173,7 @@ router.get(
         },
         _sum: {
           total: true,
-          serviceFee: true,
+          cautionFee: true,
         },
         _count: true,
       }),
@@ -227,7 +227,7 @@ router.get(
       bookings: bookingStats,
       revenue: {
         total: revenueStats._sum.total || 0,
-        serviceFees: revenueStats._sum.serviceFee || 0,
+        cautionFees: revenueStats._sum.cautionFee || 0,
         count: revenueStats._count,
       },
       recentBookings,

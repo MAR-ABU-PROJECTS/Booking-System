@@ -88,7 +88,7 @@ const validate = (req, res, next) => {
  *                           type: number
  *                           format: float
  *                           example: 95000
- *                         serviceFees:
+ *                         cautionFees:
  *                           type: number
  *                           format: float
  *                           example: 3000
@@ -151,7 +151,7 @@ router.get("/dashboard", (0, error_middleware_1.asyncHandler)(async (req, res) =
             },
             _sum: {
                 total: true,
-                serviceFee: true,
+                cautionFee: true,
             },
             _count: true,
         }),
@@ -196,7 +196,7 @@ router.get("/dashboard", (0, error_middleware_1.asyncHandler)(async (req, res) =
         bookings: bookingStats,
         revenue: {
             total: revenueStats._sum.total || 0,
-            serviceFees: revenueStats._sum.serviceFee || 0,
+            cautionFees: revenueStats._sum.cautionFee || 0,
             count: revenueStats._count,
         },
         recentBookings,

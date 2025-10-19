@@ -134,7 +134,7 @@ router.post("/register", [
     }, req.ip);
     res.status(201).json({
         success: true,
-        message: "Registration successful. Please check your email to verify your account.",
+        message: "Registration successful. Please Log In to continue.",
         data: { user: result.user },
     });
 }));
