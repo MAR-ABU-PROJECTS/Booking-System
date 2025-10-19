@@ -1,48 +1,19 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailService = exports.EmailService = void 0;
-// MAR ABU PROJECTS SERVICES LLC - Production Email Service (Resend API + SMTP)
+// MAR ABU PROJECTS SERVICES LLC - Production Email Service (Resend API Only)
 const resend_1 = require("resend");
-const nodemailer_1 = __importDefault(require("nodemailer"));
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const constants_1 = require("../utils/constants");
 class EmailService {
     constructor() {
-        // Use verified fallback domain if custom domain fails
-        this.fromEmail =
-            process.env.EMAIL_FROM || "noreply@booking.marabuprojects.com";
-        this.replyToEmail =
-            process.env.EMAIL_REPLY_TO || "support@booking.marabuprojects.com";
-        // Check if SMTP is preferred or API key is missing
-        this.useSmtp =
-            process.env.EMAIL_DRIVER === "smtp" || !process.env.RESEND_API_KEY;
-        if (this.useSmtp && process.env.SMTP_HOST && process.env.SMTP_PASS) {
-            // Use SMTP
-            this.transporter = nodemailer_1.default.createTransport({
-                host: process.env.SMTP_HOST,
-                port: Number(process.env.SMTP_PORT || 465),
-                secure: true, // SSL
-                auth: {
-                    user: process.env.SMTP_USER || "resend",
-                    pass: process.env.SMTP_PASS,
-                },
-            });
-            logger_middleware_1.logger.info("Email service initialized with SMTP", {
-                host: process.env.SMTP_HOST,
-            });
+        if (!process.env.RESEND_API_KEY) {
+            throw new Error("RESEND_API_KEY is required for EmailService");
         }
-        else if (process.env.RESEND_API_KEY) {
-            // Use Resend API
-            this.resend = new resend_1.Resend(process.env.RESEND_API_KEY);
-            this.useSmtp = false;
-            logger_middleware_1.logger.info("Email service initialized with Resend API");
-        }
-        else {
-            throw new Error("Either RESEND_API_KEY or SMTP configuration is required");
-        }
+        this.resend = new resend_1.Resend(process.env.RESEND_API_KEY);
+        this.fromEmail = process.env.EMAIL_FROM || "noreply@booking.marabuprojects.com";
+        this.replyToEmail = process.env.EMAIL_REPLY_TO || "support@booking.marabuprojects.com";
+        logger_middleware_1.logger.info("Email service initialized with Resend API");
     }
     safeBookingProperty(property) {
         return property && typeof property === "object"
@@ -71,90 +42,60 @@ class EmailService {
     }
     async sendEmail(options) {
         try {
-            // Validate email address
             if (!this.validateEmail(options.to)) {
                 logger_middleware_1.logger.error("Invalid email address", { email: options.to });
                 return false;
             }
-            if (this.useSmtp && this.transporter) {
-                // Send via SMTP with retry
-                await this.transporter.sendMail({
-                    from: this.buildFrom(),
-                    to: options.to,
-                    subject: options.subject,
-                    html: options.html,
-                    replyTo: this.replyToEmail,
-                    attachments: options.attachments,
-                });
-                logger_middleware_1.logger.info("Email sent successfully via SMTP", {
-                    to: options.to,
-                    subject: options.subject,
-                    from: this.fromEmail,
-                });
-                return true;
+            const emailData = {
+                from: this.buildFrom(),
+                to: options.to,
+                subject: options.subject,
+                html: options.html,
+                reply_to: this.replyToEmail,
+            };
+            if (options.attachments?.length) {
+                emailData.attachments = options.attachments.map((att) => ({
+                    filename: att.filename,
+                    content: Buffer.isBuffer(att.content)
+                        ? att.content.toString("base64")
+                        : Buffer.from(att.content).toString("base64"),
+                }));
             }
-            else if (this.resend) {
-                // Send via Resend API
-                const emailData = {
-                    from: this.buildFrom(),
-                    to: options.to,
-                    subject: options.subject,
-                    html: options.html,
-                    reply_to: this.replyToEmail,
-                };
-                if (options.attachments?.length) {
-                    emailData.attachments = options.attachments.map((att) => ({
-                        filename: att.filename,
-                        content: Buffer.isBuffer(att.content)
-                            ? att.content.toString("base64")
-                            : Buffer.from(att.content).toString("base64"),
-                    }));
-                }
-                const response = await this.resend.emails.send(emailData);
-                if (response.error) {
-                    // If domain not verified, retry with verified domain
-                    if (response.error.message?.includes("domain is not verified")) {
-                        logger_middleware_1.logger.warn("Custom domain not verified, retrying with verified domain", {
-                            customDomain: this.fromEmail,
-                            fallbackDomain: "onboarding@resend.dev",
-                        });
-                        // Retry with verified domain
-                        const fallbackData = {
-                            ...emailData,
-                            from: `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <noreply@booking.marabuprojects.com>`,
-                        };
-                        const retryResponse = await this.resend.emails.send(fallbackData);
-                        if (retryResponse.error) {
-                            throw new Error(`Resend API error: ${retryResponse.error.message}`);
-                        }
-                        logger_middleware_1.logger.info("Email sent successfully via API (fallback domain)", {
-                            to: options.to,
-                            id: retryResponse.data?.id,
-                            subject: options.subject,
-                            from: "noreply@booking.marabuprojects.com",
-                        });
-                        return true;
+            const response = await this.resend.emails.send(emailData);
+            if (response.error) {
+                if (response.error.message?.includes("domain is not verified")) {
+                    logger_middleware_1.logger.warn("Domain not verified, retrying with fallback domain...", {
+                        from: this.fromEmail,
+                    });
+                    const fallbackData = {
+                        ...emailData,
+                        from: `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <noreply@booking.marabuprojects.com>`,
+                    };
+                    const retryResponse = await this.resend.emails.send(fallbackData);
+                    if (retryResponse.error) {
+                        throw new Error(`Resend API fallback error: ${retryResponse.error.message}`);
                     }
-                    throw new Error(`Resend API error: ${response.error.message}`);
+                    logger_middleware_1.logger.info("✅ Email sent successfully (fallback domain)", {
+                        to: options.to,
+                        id: retryResponse.data?.id,
+                    });
+                    return true;
                 }
-                logger_middleware_1.logger.info("Email sent successfully via API", {
-                    to: options.to,
-                    id: response.data?.id,
-                    subject: options.subject,
-                    from: this.fromEmail,
-                });
-                return true;
+                throw new Error(`Resend API error: ${response.error.message}`);
             }
-            else {
-                throw new Error("No email service configured");
-            }
+            logger_middleware_1.logger.info("✅ Email sent successfully via API", {
+                to: options.to,
+                id: response.data?.id,
+                subject: options.subject,
+            });
+            return true;
         }
         catch (err) {
-            logger_middleware_1.logger.error("Email send failed", {
+            logger_middleware_1.logger.error("❌ Email send failed", {
                 to: options.to,
                 error: err?.message,
                 from: this.fromEmail,
-                method: this.useSmtp ? "SMTP" : "API",
+                method: "API",
             });
             return false;
         }
