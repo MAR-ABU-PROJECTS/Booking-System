@@ -24,29 +24,25 @@ export class EmailService {
   private useSmtp: boolean;
 
   constructor() {
-    // Always use the verified domain
+    // Use verified fallback domain if custom domain fails
     this.fromEmail =
       process.env.EMAIL_FROM || "noreply@booking.marabuprojects.com";
     this.replyToEmail =
-      process.env.EMAIL_REPLY_TO || "noreply@booking.marabuprojects.com";
+      process.env.EMAIL_REPLY_TO || "support@booking.marabuprojects.com";
 
     // Check if SMTP is preferred or API key is missing
     this.useSmtp =
       process.env.EMAIL_DRIVER === "smtp" || !process.env.RESEND_API_KEY;
 
     if (this.useSmtp && process.env.SMTP_HOST && process.env.SMTP_PASS) {
-      // Use Gmail SMTP
+      // Use SMTP
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: Number(process.env.SMTP_PORT || 465),
         secure: true, // SSL
         auth: {
-          user: process.env.SMTP_USER,
+          user: process.env.SMTP_USER || "resend",
           pass: process.env.SMTP_PASS,
-        },
-        // Required for Gmail to allow custom From address
-        tls: {
-          rejectUnauthorized: false,
         },
       });
       logger.info("Email service initialized with SMTP", {
@@ -79,8 +75,8 @@ export class EmailService {
     return `"${APP_CONSTANTS.COMPANY.NAME}" <${this.fromEmail}>`;
   }
 
-  private getFrontendBaseUrl(): string {
-    return (process.env.FRONTEND_URL || "http://localhost:5050").replace(
+  private getBackendBaseUrl(): string {
+    return (process.env.BACKEND_URL || "http://localhost:5050").replace(
       /\/$/,
       ""
     );
@@ -89,7 +85,7 @@ export class EmailService {
   private apiUrl(path: string): string {
     const prefix = process.env.API_PREFIX || "/api/v1";
     const clean = path.startsWith("/") ? path : `/${path}`;
-    return `${this.getFrontendBaseUrl()}${prefix}${clean}`;
+    return `${this.getBackendBaseUrl()}${prefix}${clean}`;
   }
 
   private validateEmail(email: string): boolean {
@@ -106,21 +102,15 @@ export class EmailService {
       }
 
       if (this.useSmtp && this.transporter) {
-        // Send via SMTP with Gmail
-        const mailOptions = {
+        // Send via SMTP with retry
+        await this.transporter.sendMail({
           from: this.buildFrom(),
-          sender: process.env.SMTP_USER || "", // Gmail account that's actually sending
           to: options.to,
           subject: options.subject,
           html: options.html,
           replyTo: this.replyToEmail,
           attachments: options.attachments,
-          headers: {
-            "X-Sender": process.env.SMTP_USER || "",
-            "X-Mailer": "MAR ABU Booking System",
-          } as { [key: string]: string },
-        };
-        await this.transporter.sendMail(mailOptions);
+        });
 
         logger.info("Email sent successfully via SMTP", {
           to: options.to,
@@ -153,20 +143,20 @@ export class EmailService {
         if (response.error) {
           // If domain not verified, retry with verified domain
           if (response.error.message?.includes("domain is not verified")) {
-            const verifiedDomain = "noreply@booking.marabuprojects.com";
             logger.warn(
               "Custom domain not verified, retrying with verified domain",
               {
                 customDomain: this.fromEmail,
-                fallbackDomain: verifiedDomain,
+                fallbackDomain: "onboarding@resend.dev",
               }
             );
 
             // Retry with verified domain
             const fallbackData = {
               ...emailData,
-              from: `"${APP_CONSTANTS.COMPANY.NAME}" <${verifiedDomain}>`,
+              from: `"${APP_CONSTANTS.COMPANY.NAME}" <noreply@booking.marabuprojects.com>`,
             };
+
             const retryResponse = await this.resend.emails.send(fallbackData);
             if (retryResponse.error) {
               throw new Error(
@@ -178,7 +168,7 @@ export class EmailService {
               to: options.to,
               id: retryResponse.data?.id,
               subject: options.subject,
-              from: "support@marabuprojects.com",
+              from: "noreply@booking.marabuprojects.com",
             });
             return true;
           }
@@ -309,13 +299,13 @@ a{color:${APP_CONSTANTS.COLORS.PRIMARY};}
     email: string,
     verificationToken: string
   ): Promise<boolean> {
-    // Use frontend URL directly (without API prefix)
-    const verifyUrl = `${this.getFrontendBaseUrl()}/verify-email/${verificationToken}`;
+    // Use backend API route for verification
+    const verifyapiUrl = this.apiUrl(`/auth/verify-email/${verificationToken}`);
 
     const content = `
       <h2>Verify Your Email Address</h2>
       <p>Please click the button below to verify your email address:</p>
-      <a href="${verifyUrl}" class="button">Verify Email</a>
+      <a href="${verifyapiUrl}" class="button">Verify Email</a>
       <p>This link will expire in 24 hours.</p>
     `;
 
