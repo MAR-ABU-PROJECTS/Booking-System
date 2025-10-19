@@ -7,8 +7,8 @@ exports.APP_CONSTANTS = {
         NAME: "MAR ABU PROJECTS SERVICES LLC",
         PRIMARY_COLOR: "#F6931B",
         SECONDARY_COLOR: "#000000",
-        EMAIL: "info@marabuprojects.com",
-        SUPPORT_EMAIL: "support@marabuprojects.com",
+        EMAIL: "noreply@booking.marabuprojects.com",
+        SUPPORT_EMAIL: "support@booking.marabuprojects.com",
         ADDRESS: "Lagos, Nigeria",
     },
     COLORS: {
@@ -69,8 +69,8 @@ exports.APP_CONSTANTS = {
         CHECKIN_TIME: "15:00",
     },
     PRICING: {
-        CAUTION_FEE_RATE: 0.05, // 5%
-        MAX_CAUTION_FEE: 50000, // 50,000 NGN
+        CAUTION_FEE_RATE: 100000, // Fixed 100,000 NGN
+        MAX_CAUTION_FEE: 150000, // 150,000 NGN
         DEFAULT_CLEANING_FEE: 15000, // 15,000 NGN
         CURRENCY: "NGN",
         LOCALE: "en-NG",
