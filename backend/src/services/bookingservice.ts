@@ -306,8 +306,7 @@ export class BookingService {
 
     // Calculate standalone fees
     const cleaningFee = property.cleaningFee || 0;
-    const cautionFeeRate = property.cautionFee || 0.05;
-    const cautionFee = Math.round(totalNightlyAmount * cautionFeeRate);
+    const cautionFee = 100000;
     const taxes = 0; // Add tax calculation if needed
 
     // Calculate discounts
