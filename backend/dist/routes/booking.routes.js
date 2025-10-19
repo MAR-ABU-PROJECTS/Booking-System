@@ -562,7 +562,7 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
                 nights: nights,
                 baseAmount: pricing.baseAmount,
                 cleaningFee: pricing.cleaningFee,
-                serviceFee: pricing.serviceFee,
+                cautionFee: pricing.cautionFee,
                 taxes: pricing.taxes,
                 discount: pricing.discounts,
                 total: pricing.totalAmount,
@@ -1073,19 +1073,19 @@ router.get("/:id/invoice", (0, authservice_1.requireAuth)(), (0, error_middlewar
                             },
                         ]
                         : []),
-                    ...(booking.serviceFee > 0
+                    ...(booking.cautionFee > 0
                         ? [
                             {
                                 description: "Service fee",
                                 quantity: 1,
-                                rate: booking.serviceFee,
-                                amount: booking.serviceFee,
+                                rate: booking.cautionFee,
+                                amount: booking.cautionFee,
                             },
                         ]
                         : []),
                 ],
                 subtotal: booking.baseAmount,
-                fees: booking.cleaningFee + booking.serviceFee,
+                fees: booking.cleaningFee + booking.cautionFee,
                 total: booking.total,
             },
         },

@@ -29,7 +29,7 @@ exports.createPropertySchema = zod_1.z.object({
     monthlyDiscount: zod_1.z.number().min(0).max(50).default(0),
     cleaningFee: zod_1.z.number().min(0).default(0),
     securityDeposit: zod_1.z.number().min(0).default(0),
-    serviceFee: zod_1.z.number().min(0).max(1).default(0.05),
+    cautionFee: zod_1.z.number().min(0).max(1).default(0.05),
     minStay: zod_1.z.number().int().min(1).default(1),
     maxStay: zod_1.z.number().int().max(365).default(90),
     checkInTime: zod_1.z

@@ -104,7 +104,7 @@ model Property {
   monthlyDiscount Float? @default(0)
   cleaningFee     Float? @default(0)
   securityDeposit Float? @default(0)
-  serviceFee      Float? @default(0.05)
+  cautionFee      Float? @default(0.05)
   currency        String @default("NGN")
 
   // Booking rules
@@ -168,7 +168,7 @@ model Booking {
   // Pricing breakdown
   baseAmount  Float
   cleaningFee Float  @default(0)
-  serviceFee  Float  @default(0)
+  cautionFee  Float  @default(0)
   taxes       Float  @default(0) // Renamed from taxes
   discount    Float  @default(0) // Renamed from discounts
   total       Float // Renamed from totalAmount

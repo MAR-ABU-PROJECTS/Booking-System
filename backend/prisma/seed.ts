@@ -202,7 +202,7 @@ async function main() {
     },
     { key: "PRIMARY_COLOR", value: "#F6931B", category: "Branding" },
     { key: "SECONDARY_COLOR", value: "#000000", category: "Branding" },
-    { key: "DEFAULT_SERVICE_FEE", value: "0.05", category: "Payment" },
+    { key: "DEFAULT_CAUTION_FEE", value: "0.05", category: "Payment" },
     { key: "MIN_BOOKING_DAYS", value: "1", category: "Booking" },
     { key: "MAX_BOOKING_DAYS", value: "90", category: "Booking" },
     { key: "BOOKING_PREFIX", value: "MAR", category: "Booking" },

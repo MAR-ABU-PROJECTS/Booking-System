@@ -243,7 +243,7 @@ const getDateRange = (startDate, endDate, period) => {
  *                           cleaningFee:
  *                             type: number
  *                             example: 5000
- *                           serviceFee:
+ *                           cautionFee:
  *                             type: number
  *                             example: 2000
  *                           total:
@@ -383,7 +383,7 @@ router.get("/bookings", (0, authservice_1.requireAuth)({ role: client_1.UserRole
             children: booking.children,
             baseAmount: booking.baseAmount,
             cleaningFee: booking.cleaningFee,
-            serviceFee: booking.serviceFee,
+            cautionFee: booking.cautionFee,
             total: booking.total,
             status: booking.status,
             paymentStatus: booking.paymentStatus,
@@ -525,7 +525,7 @@ router.get("/bookings", (0, authservice_1.requireAuth)({ role: client_1.UserRole
  *                         propertyRevenue:
  *                           type: number
  *                           example: 1000000
- *                         serviceFeeRevenue:
+ *                         cautionFeeRevenue:
  *                           type: number
  *                           example: 200000
  *                         cleaningFeeRevenue:
@@ -560,7 +560,7 @@ router.get("/bookings", (0, authservice_1.requireAuth)({ role: client_1.UserRole
  *                               propertyRevenue:
  *                                 type: number
  *                                 example: 400000
- *                               serviceFeeRevenue:
+ *                               cautionFeeRevenue:
  *                                 type: number
  *                                 example: 80000
  *                               cleaningFeeRevenue:
@@ -596,7 +596,7 @@ router.get("/bookings", (0, authservice_1.requireAuth)({ role: client_1.UserRole
  *                               propertyRevenue:
  *                                 type: number
  *                                 example: 160000
- *                               serviceFeeRevenue:
+ *                               cautionFeeRevenue:
  *                                 type: number
  *                                 example: 30000
  *                               cleaningFeeRevenue:
@@ -693,7 +693,7 @@ router.get("/revenue", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
             _sum: {
                 total: true,
                 baseAmount: true,
-                serviceFee: true,
+                cautionFee: true,
                 cleaningFee: true,
             },
             _avg: { total: true },
@@ -729,7 +729,7 @@ router.get("/revenue", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
                 bookingCount: revenue._count.propertyId,
                 totalRevenue: revenue._sum.total,
                 propertyRevenue: revenue._sum.baseAmount,
-                serviceFeeRevenue: revenue._sum.serviceFee,
+                cautionFeeRevenue: revenue._sum.cautionFee,
                 cleaningFeeRevenue: revenue._sum.cleaningFee,
                 avgBookingValue: revenue._avg.total,
             };
@@ -741,7 +741,7 @@ router.get("/revenue", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
         _sum: {
             total: true,
             baseAmount: true,
-            serviceFee: true,
+            cautionFee: true,
             cleaningFee: true,
         },
         _count: true,
@@ -760,7 +760,7 @@ router.get("/revenue", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
             totalBookings: totalRevenue._count,
             totalRevenue: totalRevenue._sum.total || 0,
             propertyRevenue: totalRevenue._sum.baseAmount || 0,
-            serviceFeeRevenue: totalRevenue._sum.serviceFee || 0,
+            cautionFeeRevenue: totalRevenue._sum.cautionFee || 0,
             cleaningFeeRevenue: totalRevenue._sum.cleaningFee || 0,
             avgBookingValue: totalRevenue._avg.total || 0,
         },

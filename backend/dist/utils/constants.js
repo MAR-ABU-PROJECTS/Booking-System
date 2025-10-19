@@ -69,8 +69,8 @@ exports.APP_CONSTANTS = {
         CHECKIN_TIME: "15:00",
     },
     PRICING: {
-        SERVICE_FEE_RATE: 0.05, // 5%
-        MAX_SERVICE_FEE: 50000, // 50,000 NGN
+        CAUTION_FEE_RATE: 0.05, // 5%
+        MAX_CAUTION_FEE: 50000, // 50,000 NGN
         DEFAULT_CLEANING_FEE: 15000, // 15,000 NGN
         CURRENCY: "NGN",
         LOCALE: "en-NG",

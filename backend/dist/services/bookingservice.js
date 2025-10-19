@@ -97,7 +97,7 @@ class BookingService {
                 baseRate: true,
                 weekendPremium: true,
                 cleaningFee: true,
-                serviceFee: true,
+                cautionFee: true,
                 maxGuests: true,
                 status: true,
             },
@@ -146,8 +146,8 @@ class BookingService {
         const totalNightlyAmount = breakdown.reduce((sum, d) => sum + d.rate, 0);
         // Calculate standalone fees
         const cleaningFee = property.cleaningFee || 0;
-        const serviceFeeRate = property.serviceFee || 0.05;
-        const serviceFee = Math.round(totalNightlyAmount * serviceFeeRate);
+        const cautionFeeRate = property.cautionFee || 0.05;
+        const cautionFee = Math.round(totalNightlyAmount * cautionFeeRate);
         const taxes = 0; // Add tax calculation if needed
         // Calculate discounts
         let discounts = 0;
@@ -163,11 +163,11 @@ class BookingService {
             }
         }
         // TOTAL = (Total Nightly Amount) + Cleaning Fee + Service Fee + Taxes - Discounts
-        const totalAmount = totalNightlyAmount + cleaningFee + serviceFee + taxes - discounts;
+        const totalAmount = totalNightlyAmount + cleaningFee + cautionFee + taxes - discounts;
         return {
             baseAmount: Math.round(baseAmount),
             cleaningFee: Math.round(cleaningFee),
-            serviceFee,
+            cautionFee,
             taxes,
             discounts,
             totalAmount: Math.round(totalAmount),
@@ -208,7 +208,7 @@ class BookingService {
                     arrivalTime: validatedData.arrivalTime,
                     baseAmount: pricing.baseAmount,
                     cleaningFee: pricing.cleaningFee,
-                    serviceFee: pricing.serviceFee,
+                    cautionFee: pricing.cautionFee,
                     taxes: pricing.taxes,
                     discount: pricing.discounts,
                     total: pricing.totalAmount,
@@ -461,7 +461,7 @@ class BookingService {
                     nights,
                     baseAmount: pricing.baseAmount,
                     cleaningFee: pricing.cleaningFee,
-                    serviceFee: pricing.serviceFee,
+                    cautionFee: pricing.cautionFee,
                     total: pricing.totalAmount,
                 };
             }
