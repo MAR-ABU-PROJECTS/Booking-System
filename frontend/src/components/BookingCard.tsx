@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-// import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { BookingCardType } from "@lib/type";
 import { formatCurrency } from "@lib/utils";
 // import Image from "next/image";
@@ -20,8 +19,16 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
 import { toast } from "react-toastify";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin, Users } from "lucide-react";
 import { isAxiosError } from "axios";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "./ui/card";
+import Link from "next/link";
 
 const BookingCard = ({
 	checkInDate,
@@ -38,6 +45,7 @@ const BookingCard = ({
 	cautionFee,
 	baseAmount,
 	id,
+	cleaningFee,
 }: BookingCardType) => {
 	dayjs.extend(advancedFormat);
 	// const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -111,7 +119,7 @@ const BookingCard = ({
 	return (
 		<div>
 			<motion.div
-				className="group cursor-pointer"
+				className="group cursor-pointer hidden"
 				whileHover={{ y: -4 }}
 				transition={{ duration: 0.2 }}
 			>
@@ -243,6 +251,169 @@ const BookingCard = ({
 					)}
 				</div>
 			</motion.div>
+
+			<Card className="overflow-hidden transition-shadow hover:shadow-md">
+				<CardHeader className="border-b pb-4">
+					<div className="flex items-start justify-between">
+						<div className="flex-1">
+							<CardTitle className="text-lg">
+								{property.name}
+							</CardTitle>
+							<CardDescription className="mt-1 flex items-center gap-1">
+								<MapPin className="h-4 w-4" />
+								{property.state} • {property.type}
+							</CardDescription>
+						</div>
+					</div>
+				</CardHeader>
+
+				<CardContent className="">
+					{/* Booking Code */}
+					<div className="mb-6 rounded-lg bg-muted p-3">
+						<p className="text-sm font-medium text-muted-foreground">
+							Booking Code
+						</p>
+						<p className="font-mono text-sm font-semibold">
+							{bookingCode}
+						</p>
+					</div>
+
+					{/* Details Grid */}
+					<div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
+						{/* Dates */}
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">
+								Check-in
+							</p>
+							<p className="mt-1 font-semibold">
+								{formattedCheckin}
+							</p>
+							<p className="text-sm text-muted-foreground">
+								to {formattedCheckOut}
+							</p>
+						</div>
+
+						{/* Guests */}
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">
+								Guests
+							</p>
+							<div className="mt-1 flex items-center gap-2">
+								<Users className="h-4 w-4 text-muted-foreground" />
+								<p className="font-semibold">{totalGuests}</p>
+							</div>
+						</div>
+
+						{/* Price */}
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">
+								Price/Night
+							</p>
+							<p className="mt-1 font-semibold">
+								{formatCurrency(baseAmount)}
+							</p>
+						</div>
+
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">
+								Caution Fee
+							</p>
+							<p className="mt-1 font-semibold">
+								{formatCurrency(cautionFee)}
+							</p>
+						</div>
+
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">
+								Cleaning Fee
+							</p>
+							<p className="mt-1 font-semibold">
+								{formatCurrency(cleaningFee)}
+							</p>
+						</div>
+
+						{/* Total */}
+						<div>
+							<p className="text-sm font-medium text-muted-foreground">
+								Total
+							</p>
+							<p className="mt-1 font-semibold text-primary">
+								{formattedPrice}
+							</p>
+						</div>
+					</div>
+
+					{/* Status Badges */}
+					<div className="mt-6 flex flex-wrap items-center gap-3">
+						<div className="flex items-center gap-2">
+							<span className="text-sm font-medium text-muted-foreground">
+								Booking:
+							</span>
+							<BookingStatus status={status} />
+						</div>
+						<div className="flex items-center gap-2">
+							<span className="text-sm font-medium text-muted-foreground">
+								Payment:
+							</span>
+							<PaymentStatus status={paymentStatus} />
+						</div>
+					</div>
+
+					{/* Action Buttons */}
+
+					{status.toLowerCase() != "cancelled" ? (
+						<div className="mt-6 flex gap-2">
+							<Button
+								variant={"destructive"}
+								onClick={() => setConfirm(true)}
+								size="sm"
+								className="flex-1 h-[40px] text-[14px]"
+							>
+								Cancel Booking
+							</Button>
+							<Button
+								size="sm"
+								className="flex-1 h-[40px] text-[14px]"
+								asChild
+							>
+								<Link href={`/booking?id=${property.id}`}>
+									Book Again
+								</Link>
+							</Button>
+						</div>
+					) : (
+						<Button
+							size="sm"
+							className="flex-1 h-[40px] text-[14px] mt-6 w-full"
+							asChild
+						>
+							<Link href={`/booking?id=${property.id}`} className="w-full">
+								Book Again
+							</Link>
+						</Button>
+					)}
+					{/* <div className="mt-6 flex gap-2">
+						<Button
+							variant={"destructive"}
+							onClick={() => setConfirm(true)}
+							size="sm"
+							className="flex-1 h-[40px] text-sm"
+						>
+							Cancel Booking
+						</Button>
+						<Button
+							size="sm"
+							className="flex-1 h-[40px] text-sm"
+							asChild
+						>
+							<Link href={`/booking?id=${property.id}`}>
+								Book Again
+							</Link>
+						</Button>
+					</div> */}
+				</CardContent>
+			</Card>
+
 			<AlertDialog open={confirm} onOpenChange={setConfirm}>
 				<AlertDialogContent>
 					<AlertDialogHeader>

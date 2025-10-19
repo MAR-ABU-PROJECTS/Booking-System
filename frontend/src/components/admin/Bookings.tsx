@@ -1,5 +1,5 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
@@ -29,6 +29,15 @@ import {
 import { Label } from "@components/ui/label";
 import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
 import { formatCurrency } from "@lib/utils";
+import { Loader2 } from "lucide-react";
+import { Button } from "@components/ui/button";
+import {
+	AlertDialog,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@components/ui/alert-dialog";
 dayjs.extend(advancedFormat);
 
 const Bookings = () => {
@@ -77,6 +86,10 @@ const Bookings = () => {
 			}
 		}
 	}, [getBookings.error]);
+
+	const [confirm, setConfirm] = useState(false);
+	const [selectedId, setSelectedId] = useState("");
+	const [reason, setReason] = useState("");
 
 	const columns: ColumnDef<Booking>[] = [
 		{
@@ -149,9 +162,7 @@ const Bookings = () => {
 				const date = row.original.createdAt;
 				const formattedDate = dayjs(date).format("Do MMM YYYY");
 				return (
-					<span
-						className={`py-1 rounded-full text-sm font-medium`}
-					>
+					<span className={`py-1 rounded-full text-sm font-medium`}>
 						{formattedDate}
 					</span>
 				);
@@ -226,7 +237,73 @@ const Bookings = () => {
 				);
 			},
 		},
+		{
+			id: "action",
+			cell: ({ row }) => {
+				return (
+					<Button
+						variant="destructive"
+						onClick={() => {
+							setConfirm(true);
+							setSelectedId(row.original.id);
+						}}
+					>
+						Cancel
+					</Button>
+				);
+			},
+		},
 	];
+
+	useEffect(() => {
+		if (!confirm) {
+			setSelectedId("");
+			setReason("");
+		}
+
+		return () => {
+			setConfirm(false);
+			setSelectedId("");
+			setReason("");
+		};
+	}, [confirm, selectedId]);
+	const queryClient = useQueryClient();
+
+	const mutation = useMutation({
+		mutationFn: async () => {
+			return await apiService.post(`/bookings/${selectedId}/cancel`, {
+				reason,
+			});
+		},
+		onSuccess: (data) => {
+			if (data.success) {
+				setConfirm(false);
+				setReason("");
+				toast.success(data.message as string, {
+					closeOnClick: true,
+				});
+				queryClient.invalidateQueries({
+					queryKey: ["admin-bookings"],
+					exact: false,
+				});
+			} else {
+				toast.error(data.message as string, {
+					closeOnClick: true,
+				});
+			}
+		},
+		onError(error) {
+			if (isAxiosError(error)) {
+				const message = error.response?.data?.message;
+				toast.error(message as string, {
+					closeOnClick: true,
+				});
+			} else
+				toast.error(error.message as string, {
+					closeOnClick: true,
+				});
+		},
+	});
 
 	const bookingStatusOptions = Object.values(BookingStatus).map((status) => ({
 		label: status
@@ -394,6 +471,54 @@ const Bookings = () => {
 					);
 				}}
 			/>
+
+			<AlertDialog open={confirm} onOpenChange={setConfirm}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+						<AlertDialogDescription className="text-[15px]">
+							Are you sure you want to cancel this booking?
+						</AlertDialogDescription>
+
+						<div className="mt-3">
+							<textarea
+								className="w-full border-[1px] h-[100px] p-1.5"
+								value={reason}
+								onChange={(e) => setReason(e.target.value)}
+								placeholder="If yes please enter your reason for cancelling"
+							/>
+						</div>
+
+						<div className="flex gap-4 mt-2">
+							<Button
+								onClick={() => {
+									mutation.mutate();
+								}}
+								className="flex-1 h-[45px] text-[15px]"
+								type="button"
+								disabled={mutation.isPending}
+								variant="default"
+							>
+								{mutation.isPending && (
+									<Loader2 className="animate-spin text-white mr-1.5" />
+								)}
+								Continue
+							</Button>
+							<Button
+								type="button"
+								className="flex-1 h-[45px] text-[15px]"
+								onClick={() => {
+									setConfirm(false);
+								}}
+								variant="destructive"
+								disabled={mutation.isPending}
+							>
+								Cancel
+							</Button>
+						</div>
+					</AlertDialogHeader>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 };

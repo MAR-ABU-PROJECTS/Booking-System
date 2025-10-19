@@ -126,7 +126,7 @@ const BookingHistoryList = () => {
 
 	const Loader = () => {
 		return (
-			<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3  gap-6">
+			<div className="mt-7 grid grid-cols-1 gap-6">
 				{Array.from({ length: 6 }).map((_, i) => (
 					<BookingCardSkeleton key={i} />
 				))}
@@ -139,7 +139,7 @@ const BookingHistoryList = () => {
 			<h2 className="text-2xl font-bold text-gray-900 mb-5">
 				Booking History
 			</h2>
-			<div className="flex justify-between flex-wrap gap-4 mb-5 items-center">
+			<div className="hidden flex justify-between flex-wrap gap-4 mb-5 items-center">
 				<h3 className="text-xl font-semibold">Filter:</h3>
 				<div className="flex items-center flex-wrap gap-4">
 					<div className="flex flex-col gap-1">
@@ -251,6 +251,7 @@ const BookingHistoryList = () => {
 					</div>
 				</div>
 			</div>
+			
 
 			<QueryStateHandler
 				query={getHistory}
@@ -261,7 +262,7 @@ const BookingHistoryList = () => {
 					const data = res.data as BookingCardType[];
 					
 					return (
-						<div className="mt-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+						<div className="mt-7 grid grid-cols-1 gap-6">
 							{data.map((booking, i: number) => (
 								<BookingCard key={i} {...booking} />
 							))}
