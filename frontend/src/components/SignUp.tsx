@@ -103,19 +103,13 @@ const SignUp = () => {
 	};
 	return (
 		<div className="w-full max-w-2xl mx-auto pt-8 pb-6">
-			{/* <div className="h-[60px] relative flex justisy-start">
-				<img
-					src="/logo/black-logo.png"
-					alt="MAR ABU HOMES"
-					className="object-contain object-left w-[260px] h-[63px]"
-				/>
-			</div> */}
+		
 			<div className="mt-18 mb-16">
 				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl ">
 					Welcome to MAR ABU Homes!
 				</h1>
 				<p className=" text-gray-500">
-					Create your account to get started
+					Create your account to get started.
 				</p>
 			</div>
 			<div>

@@ -51,7 +51,7 @@ const LogIn = () => {
 					rememberMe: variables.rememberMe,
 					token: res.data.accessToken,
 					refreshToken: res.data.refreshToken,
-					role: res.data.user.role
+					role: res.data.user.role,
 				});
 				dispatch(
 					setUser({
@@ -63,7 +63,6 @@ const LogIn = () => {
 				);
 
 				setTimeout(() => router.push("/"), 5000);
-				
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
@@ -95,7 +94,7 @@ const LogIn = () => {
 					});
 				}
 			} else {
-				toast.error('Unexpected error, please try again', {
+				toast.error("Unexpected error, please try again", {
 					closeOnClick: false,
 					progress: undefined,
 				});
@@ -108,20 +107,13 @@ const LogIn = () => {
 	};
 	const dispatch = useDispatch();
 	return (
-		<div className="w-full max-w-xl mx-auto pt-8">
-			<div className="h-[60px] relative">
-				<img
-					src="/logo/black-logo.png"
-					alt="MAR ABU HOMES"
-					className="object-contain object-left w-[260px] h-[63px]"
-				/>
-			</div>
+		<div className="w-full max-w-2xl mx-auto pt-8">
 			<div className="mt-18 mb-16">
-				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl text-center">
-					Welcome Back to MAR ABU Homes!
+				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl ">
+					Welcome to MAR ABU Homes!
 				</h1>
-				<p className="text-center text-gray-500">
-					Login to your account
+				<p className=" text-gray-500">
+					Log into your account to continue.
 				</p>
 			</div>
 
@@ -132,19 +124,19 @@ const LogIn = () => {
 						name="email"
 						render={({ field, fieldState }) => (
 							<div className="grid w-full items-center gap-1.5 mb-3.5">
-								<Label className="text-base">
+								<Label className="text-base !text-foreground !font-medium">
 									Email
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="email"
-									placeholder="Enter email"
-									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
+									placeholder="you@example.com"
+									className="border-2 border-[#f7d5b0] h-[47px] !text-base bg-white"
 									{...field}
 								/>
 
 								{fieldState.error && (
-									<p className="text-[15px] text-red-600 text-right">
+									<p className="text-[14px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -157,22 +149,22 @@ const LogIn = () => {
 						name="password"
 						render={({ field, fieldState }) => (
 							<div className="grid w-full items-center gap-1.5  mb-3.5">
-								<Label className="text-base">
+								<Label className="text-base !text-foreground !font-medium">
 									Password
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="password"
 									id="password"
-									placeholder="Enter password"
-									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
+									placeholder="password"
+									className="border-2 border-[#f7d5b0] h-[47px] !text-base bg-white"
 									onChange={(e) => {
 										field.onChange(e);
 									}}
 								/>
 
 								{fieldState.error && (
-									<p className="text-[15px] text-red-600 text-right">
+									<p className="text-[14px] text-red-600 text-right">
 										{fieldState.error.message}
 									</p>
 								)}
@@ -194,13 +186,13 @@ const LogIn = () => {
 									/>
 									<Label
 										htmlFor="terms"
-										className="text-[15px] md:text-[14px] text-start"
+										className="text-[15px] font-medium text-start text-muted-foreground"
 									>
 										<p>Remember Me</p>
 									</Label>
 								</div>
 
-								<span className="text-amber-500 text:bg-[#F4A857]">
+								<span className="text-amber-500 font-medium text-[16px]">
 									<Link href="/forgot-password">
 										Forgot Password
 									</Link>
@@ -210,7 +202,7 @@ const LogIn = () => {
 					/>
 
 					<Button
-						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform"
+						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
 						disabled={mutation.isPending}
 						type="submit"
 					>
@@ -220,13 +212,13 @@ const LogIn = () => {
 								strokeWidth={3}
 							/>
 						) : null}
-						Submit
+						Continue
 					</Button>
 				</form>
 
-				<p className="text-center text-[16px] font-medium mt-3 mb-5 ">
-					Don&apos;t have an account yet?{" "}
-					<span className="text-amber-500 text:bg-[#F4A857]">
+				<p className="text-center text-[16px] font-normal mt-4 !mb-5 text-muted-foreground">
+					Don&apos;t have an account?{" "}
+					<span className="text-amber-500 font-medium">
 						<Link href="/sign-up">Sign Up</Link>
 					</span>
 				</p>
