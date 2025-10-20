@@ -51,6 +51,9 @@ const SignUp = () => {
 					closeOnClick: false,
 					progress: undefined,
 				});
+				form.reset();
+				setPasswordStrength(0)
+
 				
 			} else {
 				const message = res?.message as string;
@@ -84,7 +87,7 @@ const SignUp = () => {
 					});
 				}
 			} else {
-				toast.error("Unexpected error, please try again", {
+				toast.error(error.message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
@@ -218,6 +221,7 @@ const SignUp = () => {
 										);
 										field.onChange(cleaned);
 									}}
+									
 								/>
 
 								{fieldState.error && (
@@ -239,6 +243,7 @@ const SignUp = () => {
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
+								{...field}
 									type="password"
 									id="password"
 									placeholder="Enter password"

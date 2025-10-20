@@ -48,9 +48,9 @@ const BookingSummary = ({
 	const ratePerNight = summaryData.baseAmount;
 	const subtotal = ratePerNight * nights;
 	const cleaningFee = summaryData.cleaningFee;
-	const serviceFee = summaryData.serviceFee;
+	const cautionFee = summaryData.cautionFee;
 	const taxes = summaryData.taxes;
-	const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
+	const totalAmount = subtotal + cleaningFee + cautionFee + taxes;
 	const location = booking.location;
 	const images = getPropertyImages(propertyId);
 
@@ -318,7 +318,7 @@ const BookingSummary = ({
 					<div>
 						<p className="text-[14px] font-[500]">
 							{" "}
-							{formatCurrency(serviceFee)}
+							{formatCurrency(cautionFee)}
 						</p>
 					</div>
 				</div>

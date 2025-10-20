@@ -15,9 +15,9 @@ export const generateConfirmationPdf = async (data: BookingCardType) => {
 	const formattedCheckOut = dayjs(data.checkOutDate).format("MMMM Do, YYYY");
 	const subtotal = data.total * data.nights;
 	const totalAmount =
-		subtotal + data.cleaningFee + data.serviceFee + data.taxes;
+		subtotal + data.cleaningFee + data.cleaningFee + data.taxes;
 
-	const formatServiceFee = formatCurrency(data.serviceFee);
+	const formatCautionFee = formatCurrency(data.cautionFee);
 	const formattedTaxes = formatCurrency(data.taxes);
 	const formattedCleaningFee = formatCurrency(data.cleaningFee);
 	const formatTotalNights = formatCurrency(data.baseAmount * data.nights);
@@ -119,7 +119,7 @@ export const generateConfirmationPdf = async (data: BookingCardType) => {
 					widths: ["*", "*"],
 					body: [
 						["Total Nights", formatTotalNights],
-						["Service Fee", formatServiceFee],
+						["Caution Fee", formatCautionFee],
 						["Cleaning Fee", formattedCleaningFee],
 						["Taxes", formattedTaxes],
 						[
