@@ -15,16 +15,26 @@ import Image from "next/image";
 import { useState } from "react";
 import { toast } from "react-toastify";
 
-type Props = {
-	data: User;
-};
-const UserDetails = ({ data }: Props) => {
+const UserDetails = ({
+	id,
+	avatar,
+	firstName,
+	lastName,
+	emailVerified,
+	role,
+	bookings,
+	hostedProperties,
+	email,
+	phone,
+	status,
+	country,
+}: User) => {
 	const [open, setOpen] = useState(false);
 	const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 	const mutation = useMutation({
 		mutationFn: async () => {
-			return await apiService.delete(`/admin/users/${data.id}`);
+			return await apiService.delete(`/admin/users/${id}`);
 		},
 		onSuccess: (data) => {
 			if (data?.success) {
@@ -54,8 +64,8 @@ const UserDetails = ({ data }: Props) => {
 						<div className="relative w-full h-full rounded-full overflow-hidden border">
 							<Image
 								src={
-									data?.avatar
-										? `${BASE_URL}${data.avatar}`
+									avatar && BASE_URL
+										? `${BASE_URL}${avatar}`
 										: "/images/blank-image.jpeg"
 								}
 								fill
@@ -69,13 +79,11 @@ const UserDetails = ({ data }: Props) => {
 						<h2 className="text-xl font-semibold text-gray-900">
 							{/* {data?.lastName} {data?.firstName} */}
 						</h2>
-						<p className="text-gray-500 text-sm">
-							Role: {data?.role}
-						</p>
+						<p className="text-gray-500 text-sm">Role: {role}</p>
 					</div>
 					<div className="flex gap-3 items-center justify-between">
 						<span>Email Verification </span>{" "}
-						{data?.emailVerified ? (
+						{emailVerified ? (
 							<div className="flex items-center gap-1">
 								Verified{" "}
 								<BadgeCheck className="text-green-500 size-4 shrink-0" />{" "}
@@ -99,7 +107,7 @@ const UserDetails = ({ data }: Props) => {
 								<BookOpen className="text-gray-500 size-4 mx-auto" />
 
 								<h4 className="text-lg font-semibold text-gray-900">
-									{data.bookings.length}
+									{bookings.length}
 								</h4>
 								<p className="text-xs text-gray-500">
 									Bookings
@@ -109,7 +117,7 @@ const UserDetails = ({ data }: Props) => {
 								<House className="text-gray-500 size-4 mx-auto" />
 
 								<h4 className="text-lg font-semibold text-gray-900">
-									{data?.hostedProperties ?? 0}
+									{hostedProperties.length ?? 0}
 								</h4>
 								<p className="text-xs text-gray-500">
 									Properties
@@ -133,23 +141,23 @@ const UserDetails = ({ data }: Props) => {
 				<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 self-start">
 					<div className="rounded-sm border-2 border-[#f7d5b0] self-start p-3 flex flex-col gap-5">
 						<h4 className="font-medium">User Id</h4>
-						<p className="font-medium">{data.id}</p>
+						<p className="font-medium">{id}</p>
 					</div>
 					<div className="rounded-sm border-2 border-[#f7d5b0] self-start p-3 flex flex-col gap-5">
 						<h4 className="font-medium">First Name</h4>
-						<p className="font-medium">{data.firstName}</p>
+						<p className="font-medium">{firstName}</p>
 					</div>
 					<div className="rounded-sm border-2 border-[#f7d5b0] self-start p-3 flex flex-col gap-5">
 						<h4 className="font-medium">Last Name</h4>
-						<p className="font-medium">{data.lastName}</p>
+						<p className="font-medium">{lastName}</p>
 					</div>
 					<div className="rounded-sm border-2 border-[#f7d5b0] self-start p-3 flex flex-col gap-5">
 						<h4 className="font-medium">Email</h4>
-						<p className="font-medium">{data.email}</p>
+						<p className="font-medium">{email}</p>
 					</div>
 					<div className="rounded-sm border-2 border-[#f7d5b0] self-start p-3 flex flex-col gap-5">
 						<h4 className="font-medium">Phone</h4>
-						<p className="font-medium">{data.phone}</p>
+						<p className="font-medium">{phone}</p>
 					</div>
 
 					<div className="rounded-sm border-2 border-[#f7d5b0] self-start p-3 flex flex-col gap-5">
@@ -157,17 +165,17 @@ const UserDetails = ({ data }: Props) => {
 						<p className="font-medium">
 							<span
 								className={`px-3 py-1 rounded-full text-sm font-medium ${
-									statusColors[data.status] ??
+									statusColors[status] ??
 									"bg-gray-100 text-gray-800"
 								}`}
 							>
-								{data.status.replace("_", " ")}
+								{status?.replace("_", " ")}
 							</span>
 						</p>
 					</div>
 					<div className="rounded-sm border-2 border-[#f7d5b0] self-start p-3 flex flex-col gap-5">
 						<h4 className="font-medium">Country</h4>
-						<p className="font-medium">{data.country}</p>
+						<p className="font-medium">{country}</p>
 					</div>
 				</div>
 			</div>
@@ -177,8 +185,8 @@ const UserDetails = ({ data }: Props) => {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete User</AlertDialogTitle>
 						<AlertDialogDescription className="text-[15px]">
-							Are you sure you want to delete {data.firstName}{" "}
-							{data.lastName}?
+							Are you sure you want to delete {firstName}{" "}
+							{lastName}
 						</AlertDialogDescription>
 
 						<div className="flex gap-4 mt-6">
