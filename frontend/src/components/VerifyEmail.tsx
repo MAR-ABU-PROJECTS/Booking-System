@@ -4,7 +4,7 @@ import { Button } from "@components/ui/button";
 import { toast } from "react-toastify";
 import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
-import { ArrowRight, Loader2, Mail, RotateCcw } from "lucide-react";
+import { ArrowRight, Mail, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
 type Props = {
@@ -90,7 +90,7 @@ const VerifyEmail = ({ email }: Props) => {
 						</div>
 						<div className="text-left">
 							<p className="text-[16px] font-medium text-muted-foreground mb-1">
-								Didn't receive the email?
+								Didn&apos;'t receive the email?
 							</p>
 							<p className="text-[16px] text-muted-foreground font-medium">
 								Check your spam folder or request a new

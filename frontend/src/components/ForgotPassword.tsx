@@ -6,7 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ForgotPasswordSchema } from "../lib/schemas";
 import { Button } from "@components/ui/button";
-import { Loader2, ChevronLeft } from "lucide-react";
+import { Loader2} from "lucide-react";
 import { toast } from "react-toastify";
 import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
