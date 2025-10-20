@@ -214,9 +214,9 @@ const Bookings = () => {
 				const nights = data.nights;
 				const subtotal = ratePerNight * nights;
 				const cleaningFee = data.cleaningFee;
-				const serviceFee = data.serviceFee;
+				const cautionFee = data.cautionFee;
 				const taxes = data.taxes;
-				const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
+				const totalAmount = subtotal + cleaningFee + cautionFee + taxes;
 				return <div>{formatCurrency(totalAmount)}</div>;
 			},
 		},

@@ -2,7 +2,7 @@ import type { Property } from "@lib/type";
 
 export const properties: Property[] = [
 	{
-		id: "cmg11dcum001pgt4tdpmk0y50",
+		id: "cmgz4kxpt002een4t130q8w45",
 		status: "Premium",
 		desc: `Nestled within the prestigious Abike Residence, the Abike Penthouse is a stunning 2-bedroom luxury suite that reflects the very essence of Mar Abu${"'"}s commitment to excellence. Built by us, owned by us.Designed for those who appreciate refined living, this fully furnished penthouse offers a seamless blend of modern comfort, sophisticated aesthetics, and unmatched build quality.`,
 		name: "ABIKE PENTHOUSE",
@@ -51,7 +51,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmg11dcu8001bgt4tu80g11kn",
+		id: "cmgz4kxpn001qen4thm3opn2r",
 		name: "WHITE-STONE",
 		type: "Short Let",
 		location: "Whitestone by Schlepp, Perchstone & Graeys Close, Lekki",
@@ -104,7 +104,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmg11dctf0003gt4t8nccwy41",
+		id: "cmgz4kxp40002en4tk40comq5",
 		name: "OBUDU VILLA",
 		type: "Short Let",
 		location: "lakowe lakes golf & country estate, ibeju-lekki",
@@ -153,7 +153,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmg11dctx000pgt4tvq8rvlne",
+		id: "cmgz4kxph000uen4t8kq9i83r",
 		name: "ZIRCON",
 		type: "Short Let",
 		location: "sapphire garden estate, awoyaya, ibeju lekki",

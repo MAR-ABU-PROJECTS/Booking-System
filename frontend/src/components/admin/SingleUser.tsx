@@ -101,9 +101,7 @@ const SingleUser = ({ id }: Props) => {
 				const date = row.original.createdAt;
 				const formattedDate = dayjs(date).format("Do MMM YYYY");
 				return (
-					<span
-						className={`py-1 rounded-full text-sm font-medium`}
-					>
+					<span className={`py-1 rounded-full text-sm font-medium`}>
 						{formattedDate}
 					</span>
 				);
@@ -156,9 +154,9 @@ const SingleUser = ({ id }: Props) => {
 				const nights = data.nights;
 				const subtotal = ratePerNight * nights;
 				const cleaningFee = data.cleaningFee;
-				const serviceFee = data.serviceFee;
+				const cautionFee = data.cautionFee;
 				const taxes = data.taxes;
-				const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
+				const totalAmount = subtotal + cleaningFee + cautionFee + taxes;
 				return <div>{formatCurrency(totalAmount)}</div>;
 			},
 		},
@@ -204,7 +202,7 @@ const SingleUser = ({ id }: Props) => {
 				loadingComponent={
 					<div>
 						<ProfileSkeleton />
-						<div className="my-5"/>
+						<div className="my-5" />
 						<DataTableSkeleton
 							columnCount={7}
 							cellWidths={[
@@ -221,13 +219,19 @@ const SingleUser = ({ id }: Props) => {
 				}
 				render={(res) => {
 					const data = res.data as User;
+				
 
 					return (
 						<div className="flex flex-col gap-6">
-							<UserDetails data={data} />
+							<UserDetails {...data} />
+						
 							<DataTable
 								columns={columns}
-								data={data.bookings}
+								data={
+									Array.isArray(data.bookings)
+										? data.bookings
+										: []
+								}
 								pagination={pagination}
 								setPagination={setPagination}
 							/>

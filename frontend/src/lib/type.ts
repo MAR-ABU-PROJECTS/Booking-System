@@ -20,7 +20,7 @@ export type Property = {
 	isNew?: boolean;
 	type?: string;
 	specials?: string[];
-	minimumNights?:3
+	minimumNights?: 3;
 };
 
 // {
@@ -83,7 +83,7 @@ export interface Booking {
 	paymentStatus: PaymentStatus;
 	baseAmount: number;
 	cleaningFee: number;
-	serviceFee: number;
+	cautionFee: number;
 	taxes: number;
 	discount: number;
 	total: number;
@@ -378,41 +378,43 @@ export type Users = {
 };
 
 export type User = {
-	address: string;
-	avatar: string;
-	bio: string | null;
-	bookings: Booking[];
-	city: string | null;
-	country: string;
-	createdAt: string;
-	dateOfBirth: string | null;
-	deletedAt: string | null;
-	email: string;
-	emailVerified: string;
-	firstName: string;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	hostedProperties: any[];
-	id: string;
-	idNumber: string | null;
-	idType: string | null;
-	identityVerified: boolean | null;
-	lastLoginAt: string;
-	lastName: string;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	notificationPreferences: any | null;
-	password: string;
-	phone: string;
-	phoneVerified: boolean | null;
-	resetToken: string | null;
-	resetTokenExpiry: string | null;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	reviews: any[];
-	role: string;
-	state: string | null;
-	status: string;
-	updatedAt: string;
-	verificationToken: string | null;
-	verificationTokenExpiry: string | null;
+
+		address: string;
+		avatar: string;
+		bio: string | null;
+		bookings: Booking[];
+		city: string | null;
+		country: string;
+		createdAt: string;
+		dateOfBirth: string | null;
+		deletedAt: string | null;
+		email: string;
+		emailVerified: string;
+		firstName: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		hostedProperties: [];
+		id: string;
+		idNumber: string | null;
+		idType: string | null;
+		identityVerified: boolean | null;
+		lastLoginAt: string;
+		lastName: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		notificationPreferences: any | null;
+		password: string;
+		phone: string;
+		phoneVerified: boolean | null;
+		resetToken: string | null;
+		resetTokenExpiry: string | null;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		reviews: any[];
+		role: string;
+		state: string | null;
+		status: string;
+		updatedAt: string;
+		verificationToken: string | null;
+		verificationTokenExpiry: string | null;
+
 };
 
 export type DashboardData = {
