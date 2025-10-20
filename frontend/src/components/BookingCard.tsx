@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import type { BookingCardType } from "@lib/type";
 import { formatCurrency } from "@lib/utils";
 // import Image from "next/image";
@@ -48,28 +47,12 @@ const BookingCard = ({
 	cleaningFee,
 }: BookingCardType) => {
 	dayjs.extend(advancedFormat);
-	// const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
 	const formattedCheckin = dayjs(checkInDate).format("Do, MMM YYYY");
 	const formattedCheckOut = dayjs(checkOutDate).format("Do, MMM YYYY");
 	const formattedDateBooked = dayjs(createdAt).format("Do, MMM YYYY");
-
 	const formattedPrice = formatCurrency(total);
-
 	const totalGuests = adults + children + infants;
-
-	// const nextImage = (e: React.MouseEvent) => {
-	// 	e.stopPropagation();
-	// 	setCurrentImageIndex((prev) => (prev + 1) % (images.length || 1));
-	// };
-
-	// const prevImage = (e: React.MouseEvent) => {
-	// 	e.stopPropagation();
-	// 	setCurrentImageIndex((prev) =>
-	// 		prev === 0 ? images.length - 1 : prev - 1
-	// 	);
-	// };
-
 	const [confirm, setConfirm] = useState(false);
 	const queryClient = useQueryClient();
 	const [reason, setReason] = useState("");
@@ -118,8 +101,6 @@ const BookingCard = ({
 
 	return (
 		<div>
-		
-
 			<Card className="overflow-hidden transition-shadow hover:shadow-md">
 				<CardHeader className="border-b pb-4">
 					<div className="flex items-start justify-between">
@@ -137,13 +118,24 @@ const BookingCard = ({
 
 				<CardContent className="">
 					{/* Booking Code */}
-					<div className="mb-6 rounded-lg bg-muted p-3">
-						<p className="text-sm font-medium text-muted-foreground">
-							Booking Code
-						</p>
-						<p className="text-[14px] font-semibold">
-							{bookingCode}
-						</p>
+
+					<div className="flex justify-between items-center mb-6 rounded-lg bg-muted p-3">
+						<div className="">
+							<p className="text-sm font-medium text-muted-foreground">
+								Date Booked
+							</p>
+							<p className="text-[14px] font-semibold">
+								{formattedDateBooked}
+							</p>
+						</div>
+						<div className="">
+							<p className="text-sm font-medium text-muted-foreground">
+								Booking Code
+							</p>
+							<p className="text-[14px] font-semibold">
+								{bookingCode}
+							</p>
+						</div>
 					</div>
 
 					{/* Details Grid */}
@@ -244,7 +236,10 @@ const BookingCard = ({
 								className="flex-1 h-[40px] text-[14px]"
 								asChild
 							>
-								<Link href={`/booking?id=${property.id}`} className="text-[15px] w-full">
+								<Link
+									href={`/booking?id=${property.id}`}
+									className="text-[15px] w-full"
+								>
 									Book Again
 								</Link>
 							</Button>
@@ -255,7 +250,10 @@ const BookingCard = ({
 							className="flex-1 h-[40px] text-[14px] mt-6 w-full"
 							asChild
 						>
-							<Link href={`/booking?id=${property.id}`} className="w-full text-[15px]">
+							<Link
+								href={`/booking?id=${property.id}`}
+								className="w-full text-[15px]"
+							>
 								Book Again
 							</Link>
 						</Button>

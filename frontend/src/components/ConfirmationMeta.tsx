@@ -73,7 +73,7 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 		const approvedAt = dayjs(data.approvedAt, "M/D/YYYY, h:mm:ss A").format("MMMM Do, YYYY h:mm A"); 
 		const subtotal = data.total * data.nights;
 		const totalAmount =
-			subtotal + data.cleaningFee + data.serviceFee + data.taxes;
+			subtotal + data.cleaningFee + data.cautionFee + data.taxes;
 
 		const handleShare = async () => {
 			try {
@@ -302,10 +302,10 @@ const ConfirmationMeta = forwardRef<HTMLDivElement, { data: BookingCardType }>(
 								<div className="flex flex-col px-[10px] py-[5px] bg-[#FEF9F3] rounded-md border-2 border-[#f7d5b0] gap-[10px]">
 									<div className="flex flex-col gap-[2px]">
 										<p className="text-[14px] text-[#667085] font-[400] uppercase">
-											Service Fee
+											Caution Fee
 										</p>
 										<p className="text-[16px] font-[500]">
-											{formatCurrency(data.serviceFee)}
+											{formatCurrency(data.cautionFee)}
 										</p>
 									</div>
 								</div>
