@@ -391,7 +391,7 @@ export type User = {
 		email: string;
 		emailVerified: string;
 		firstName: string;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		 
 		hostedProperties: [];
 		id: string;
 		idNumber: string | null;
