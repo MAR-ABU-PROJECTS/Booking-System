@@ -141,7 +141,7 @@ const BookingCard = ({
 						<p className="text-sm font-medium text-muted-foreground">
 							Booking Code
 						</p>
-						<p className="font-mono text-sm font-semibold">
+						<p className="text-[14px] font-semibold">
 							{bookingCode}
 						</p>
 					</div>
@@ -235,7 +235,7 @@ const BookingCard = ({
 								variant={"destructive"}
 								onClick={() => setConfirm(true)}
 								size="sm"
-								className="flex-1 h-[40px] text-[14px]"
+								className="flex-1 h-[40px] text-[15px] w-full"
 							>
 								Cancel Booking
 							</Button>
@@ -244,7 +244,7 @@ const BookingCard = ({
 								className="flex-1 h-[40px] text-[14px]"
 								asChild
 							>
-								<Link href={`/booking?id=${property.id}`}>
+								<Link href={`/booking?id=${property.id}`} className="text-[15px] w-full">
 									Book Again
 								</Link>
 							</Button>
@@ -255,7 +255,7 @@ const BookingCard = ({
 							className="flex-1 h-[40px] text-[14px] mt-6 w-full"
 							asChild
 						>
-							<Link href={`/booking?id=${property.id}`} className="w-full">
+							<Link href={`/booking?id=${property.id}`} className="w-full text-[15px]">
 								Book Again
 							</Link>
 						</Button>

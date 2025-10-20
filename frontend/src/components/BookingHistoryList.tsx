@@ -133,9 +133,9 @@ const BookingHistoryList = () => {
 	};
 
 	return (
-		<div className="mt-[150px] lg:mt-[130px] px-4 mx-auto max-w-7xl mb-10">
+		<div className="mt-[150px] lg:mt-[130px] px-4 mx-auto max-w-7xl mb-12">
 			<div className="mb-8">
-				<h1 className="text-3xl font-bold text-foreground">
+				<h1 className="text-2xl sm:text-3xl font-bold text-foreground">
 					Booking History
 				</h1>
 				<p className="mt-2 text-muted-foreground">
