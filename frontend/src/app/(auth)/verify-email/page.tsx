@@ -13,15 +13,15 @@ export const metadata: Metadata = {
 };
 
 const page = async () => {
-	// const session = await getSessionUser();
+	const session = await getSessionUser();
 
-	// if (!session?.user?.isLoggedIn) {
-	// 	redirect("/");
-	// }
+	if (!session?.user?.isLoggedIn) {
+		redirect("/log-in");
+	}
 
 	return (
 		<>
-			<VerifyEmail email={''} />
+			<VerifyEmail email={session.user.email} />
 		</>
 	);
 };

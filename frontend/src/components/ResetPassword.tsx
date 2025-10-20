@@ -29,7 +29,7 @@ const ResetPassword = ({ token }: { token?: string }) => {
 
 	const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
 		const strength = checkPasswordStrength(e.target.value);
-		setPasswordStrength((strength / 5) * 100);
+		setPasswordStrength(Math.min(strength, 4));
 	};
 
 	const mutation = useMutation({
@@ -87,21 +87,16 @@ const ResetPassword = ({ token }: { token?: string }) => {
 		mutation.mutate(values);
 	};
 
-
 	return (
-		<div className="w-full max-w-xl mx-auto pt-8 pb-6">
-			<div className="h-[60px] relative">
-				<img
-					src="/logo/black-logo.png"
-					alt="MAR ABU HOMES"
-					className="object-contain object-left w-[260px] h-[63px]"
-				/>
-			</div>
+		<div className="w-full max-w-2xl mx-auto pt-8 pb-6">
 			<div className="mt-18 mb-16">
-				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl text-center">
-					Welcome to MAR ABU Homes!
+				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl ">
+					Set a New Password
 				</h1>
-				<p className="text-center text-gray-500">Reset Password</p>
+				<p className=" text-gray-500">
+					Enter a strong password to secure your account. This will
+					replace your old password.
+				</p>
 			</div>
 			<div>
 				<form onSubmit={form.handleSubmit(onSubmit)} className="mb-2">
@@ -110,65 +105,69 @@ const ResetPassword = ({ token }: { token?: string }) => {
 						name="password"
 						render={({ field, fieldState }) => (
 							<div className="grid w-full items-center gap-1.5 ">
-								<Label className="text-base">
+								<Label className="text-base !text-foreground !font-medium">
 									Password
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="password"
 									id="password"
-									placeholder="Enter password"
-									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
+									placeholder="password"
+									className="border-2 border-[#f7d5b0] h-[47px] !text-base bg-white"
 									onChange={(e) => {
 										handlePasswordChange(e);
 										field.onChange(e);
 									}}
 								/>
 
-								{fieldState.error && (
-									<p className="text-[15px] text-red-600 text-right">
-										{fieldState.error.message}
-									</p>
-								)}
+								<p className="text-[14px] text-right min-h-[18px] text-red-600">
+									{
+										fieldState.error?.message ||
+											"\u00A0" /* non-breaking space */
+									}
+								</p>
 							</div>
 						)}
 					/>
 
-					<div className=" mt-3 w-full max-w-[300px]">
-						<PasswordStrengthChecker
-							strength={passwordStrength}
-							password={form.getValues("password")}
-						/>
-					</div>
+					{form.getValues("password") && (
+						<div className=" mt-3 w-full mb-3.5">
+							<PasswordStrengthChecker
+								strength={passwordStrength}
+								password={form.watch("password")}
+							/>
+						</div>
+					)}
 
 					<Controller
 						control={form.control}
 						name="confirmPassword"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mt-4">
-								<Label className="text-base">
+							<div className="grid w-full items-center gap-1.5">
+								<Label className="text-base !text-foreground !font-medium">
 									Confirm Password
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="password"
 									placeholder="Confirm password"
-									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
+									className="border-2 border-[#f7d5b0] h-[47px] bg-white !text-base"
 									onChange={(e) => {
 										field.onChange(e);
 									}}
 								/>
 
-								{fieldState.error && (
-									<p className="text-[15px] text-red-600 text-right">
-										{fieldState.error.message}
-									</p>
-								)}
+								<p className="text-[14px] text-right min-h-[18px] text-red-600">
+									{
+										fieldState.error?.message ||
+											"\u00A0" /* non-breaking space */
+									}
+								</p>
 							</div>
 						)}
 					/>
 					<Button
-						className="!cursor-pointer w-full mt-7 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform"
+						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
 						disabled={mutation.isPending}
 						type="submit"
 					>
@@ -182,9 +181,9 @@ const ResetPassword = ({ token }: { token?: string }) => {
 					</Button>
 				</form>
 
-				<p className="text-center text-[16px] font-medium mt-3 !mb-5">
-					Already reset password?{" "}
-					<span className="text-amber-500">
+				<p className="text-center text-[16px] font-normal mt-4 !mb-5 text-muted-foreground">
+					Remember password?{" "}
+					<span className="text-amber-500 font-medium">
 						<Link href="/log-in">Log In</Link>
 					</span>
 				</p>
