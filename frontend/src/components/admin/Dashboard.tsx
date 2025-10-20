@@ -54,7 +54,6 @@ const Dashboard = () => {
 		}
 	}, [getDashboard.error]);
 
-	console.log(getDashboard.data);
 
 	const columns: ColumnDef<Booking>[] = [
 		{
@@ -181,9 +180,9 @@ const Dashboard = () => {
 				const nights = data.nights;
 				const subtotal = ratePerNight * nights;
 				const cleaningFee = data.cleaningFee;
-				const serviceFee = data.serviceFee;
+				const cautionFee = data.cautionFee;
 				const taxes = data.taxes;
-				const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
+				const totalAmount = subtotal + cleaningFee + cautionFee + taxes;
 				return <div>{formatCurrency(totalAmount)}</div>;
 			},
 		},
@@ -325,15 +324,7 @@ const Dashboard = () => {
 													{data.pendingReviews}
 												</Badge>
 											</div>
-											<div className="flex items-center justify-between">
-												<span className="text-sm text-muted-foreground">
-													Properties needing
-													maintenance
-												</span>
-												<Badge variant="secondary">
-													3
-												</Badge>
-											</div>
+											
 										</div>
 									</CardContent>
 								</Card>
@@ -374,11 +365,11 @@ const Dashboard = () => {
 										
 											<div className="flex items-center justify-between">
 												<span className="text-sm text-muted-foreground">
-													Service Fee Revenue
+													Caution Fee 
 												</span>
 												<span className="font-medium text-foreground">
 													{formatCurrency(
-														data.revenue.serviceFees
+														data.revenue.cautionFees
 													)}
 												</span>
 											</div>
