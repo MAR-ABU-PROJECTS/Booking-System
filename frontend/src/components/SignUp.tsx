@@ -103,7 +103,6 @@ const SignUp = () => {
 	};
 	return (
 		<div className="w-full max-w-2xl mx-auto pt-8 pb-6">
-		
 			<div className="mt-18 mb-16">
 				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl ">
 					Welcome to MAR ABU Homes!
@@ -114,12 +113,12 @@ const SignUp = () => {
 			</div>
 			<div>
 				<form onSubmit={form.handleSubmit(onSubmit)} className="mb-2">
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-2 gap-4 mb-0.5">
 						<Controller
 							control={form.control}
 							name="firstName"
 							render={({ field, fieldState }) => (
-								<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<div className="grid w-full items-center gap-1.5">
 									<Label className="text-base !text-foreground !font-medium">
 										First Name
 										<span className="text-red-600">*</span>
@@ -131,11 +130,12 @@ const SignUp = () => {
 										{...field}
 									/>
 
-									{fieldState.error && (
-										<p className="text-[14px]  text-red-600 text-right">
-											{fieldState.error.message}
-										</p>
-									)}
+									<p className="text-[14px] text-right min-h-[18px] text-red-600">
+										{
+											fieldState.error?.message ||
+												"\u00A0" /* non-breaking space */
+										}
+									</p>
 								</div>
 							)}
 						/>
@@ -144,7 +144,7 @@ const SignUp = () => {
 							control={form.control}
 							name="lastName"
 							render={({ field, fieldState }) => (
-								<div className="grid w-full items-center gap-1.5 mb-3.5">
+								<div className="grid w-full items-center gap-1.5">
 									<Label className="text-base !text-foreground !font-medium">
 										Last Name
 										<span className="text-red-600">*</span>
@@ -156,11 +156,12 @@ const SignUp = () => {
 										{...field}
 									/>
 
-									{fieldState.error && (
-										<p className="text-[14px] text-red-600 text-right">
-											{fieldState.error.message}
-										</p>
-									)}
+									<p className="text-[14px] text-right min-h-[18px] text-red-600">
+										{
+											fieldState.error?.message ||
+												"\u00A0" /* non-breaking space */
+										}
+									</p>
 								</div>
 							)}
 						/>
@@ -170,7 +171,7 @@ const SignUp = () => {
 						control={form.control}
 						name="email"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-3.5">
+							<div className="grid w-full items-center gap-1.5 mb-0.5">
 								<Label className="text-base !text-foreground !font-medium">
 									Email
 									<span className="text-red-600">*</span>
@@ -182,11 +183,12 @@ const SignUp = () => {
 									{...field}
 								/>
 
-								{fieldState.error && (
-									<p className="text-[14px] text-red-600 text-right">
-										{fieldState.error.message}
-									</p>
-								)}
+								<p className="text-[14px] text-right min-h-[18px] text-red-600">
+									{
+										fieldState.error?.message ||
+											"\u00A0" /* non-breaking space */
+									}
+								</p>
 							</div>
 						)}
 					/>
@@ -195,7 +197,7 @@ const SignUp = () => {
 						control={form.control}
 						name="phone"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-3.5">
+							<div className="grid w-full items-center gap-1.5 mb-0.5">
 								<Label className="text-base !text-foreground !font-medium">
 									Phone
 									<span className="text-red-600">*</span>
@@ -215,11 +217,12 @@ const SignUp = () => {
 									}}
 								/>
 
-								{fieldState.error && (
-									<p className="text-[14px] text-red-600 text-right">
-										{fieldState.error.message}
-									</p>
-								)}
+								<p className="text-[14px] text-right min-h-[18px] text-red-600">
+									{
+										fieldState.error?.message ||
+											"\u00A0" /* non-breaking space */
+									}
+								</p>
 							</div>
 						)}
 					/>
@@ -245,11 +248,12 @@ const SignUp = () => {
 									}}
 								/>
 
-								{fieldState.error && (
-									<p className="text-[14px] text-red-600 text-right">
-										{fieldState.error.message}
-									</p>
-								)}
+								<p className="text-[14px] text-right min-h-[18px] text-red-600">
+									{
+										fieldState.error?.message ||
+											"\u00A0" /* non-breaking space */
+									}
+								</p>
 							</div>
 						)}
 					/>
@@ -263,7 +267,7 @@ const SignUp = () => {
 					)}
 
 					<Button
-						className="!cursor-pointer w-full mt-8 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
+						className="!cursor-pointer w-full mt-4 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
 						disabled={mutation.isPending}
 						type="submit"
 					>

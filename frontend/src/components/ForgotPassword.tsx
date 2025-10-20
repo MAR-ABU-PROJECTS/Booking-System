@@ -75,13 +75,7 @@ const ForgotPassword = () => {
 
 	return (
 		<div className="w-full max-w-xl mx-auto pt-8">
-			<div className="h-[60px] relative">
-				<img
-					src="/logo/black-logo.png"
-					alt="MAR ABU HOMES"
-					className="object-contain object-left w-[260px] h-[63px]"
-				/>
-			</div>
+			
 			<div className="mt-18">
 				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
 					Welcome Back to MAR ABU Homes!

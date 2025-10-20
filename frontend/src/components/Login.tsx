@@ -123,7 +123,7 @@ const LogIn = () => {
 						control={form.control}
 						name="email"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5 mb-3.5">
+							<div className="grid w-full items-center gap-1.5 mb-0.5">
 								<Label className="text-base !text-foreground !font-medium">
 									Email
 									<span className="text-red-600">*</span>
@@ -135,11 +135,12 @@ const LogIn = () => {
 									{...field}
 								/>
 
-								{fieldState.error && (
-									<p className="text-[14px] text-red-600 text-right">
-										{fieldState.error.message}
-									</p>
-								)}
+								<p className="text-[14px] text-right min-h-[18px] text-red-600">
+									{
+										fieldState.error?.message ||
+											"\u00A0" /* non-breaking space */
+									}
+								</p>
 							</div>
 						)}
 					/>
@@ -148,12 +149,13 @@ const LogIn = () => {
 						control={form.control}
 						name="password"
 						render={({ field, fieldState }) => (
-							<div className="grid w-full items-center gap-1.5  mb-3.5">
+							<div className="grid w-full items-center gap-1.5  mb-0.5">
 								<Label className="text-base !text-foreground !font-medium">
 									Password
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
+									{...field}
 									type="password"
 									id="password"
 									placeholder="password"
@@ -163,11 +165,12 @@ const LogIn = () => {
 									}}
 								/>
 
-								{fieldState.error && (
-									<p className="text-[14px] text-red-600 text-right">
-										{fieldState.error.message}
-									</p>
-								)}
+								<p className="text-[14px] text-right min-h-[18px] text-red-600">
+									{
+										fieldState.error?.message ||
+											"\u00A0" /* non-breaking space */
+									}
+								</p>
 							</div>
 						)}
 					/>
@@ -176,7 +179,7 @@ const LogIn = () => {
 						name="rememberMe"
 						control={form.control}
 						render={({ field: { value, onChange, ref } }) => (
-							<div className="flex justify-between items-center">
+							<div className="flex justify-between items-center mt-2.5">
 								<div className="flex items-start gap-[10px]">
 									<Checkbox
 										checked={value}
