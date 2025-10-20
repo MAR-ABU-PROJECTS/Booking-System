@@ -59,7 +59,7 @@ const ForgotPassword = () => {
 				const message =
 					(error.response?.data?.message as string) ||
 					"Something went wrong";
-				console.error("Handled in onError:", message);
+
 				toast.error(`${message}`, {
 					closeOnClick: false,
 				});
@@ -74,22 +74,16 @@ const ForgotPassword = () => {
 	};
 
 	return (
-		<div className="w-full max-w-xl mx-auto pt-8">
-			
-			<div className="mt-18">
-				<h1 className="mb-1 font-semibold text-3xl md:text-4xl text-center">
-					Welcome Back to MAR ABU Homes!
+		<div className="w-full max-w-2xl mx-auto pt-8">
+			<div className="mt-18 mb-16">
+				<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl ">
+					Forgot Your Password?
 				</h1>
-				<p className="text-center text-gray-500">
-					Enter your email to reset your password
+				<p className=" text-gray-500">
+					Enter your email address and we&apos;ll send you a link to
+					reset your password.
 				</p>
 			</div>
-			<Link
-				href="/log-in"
-				className="text-black mt-8 mb-16 inline-flex items-center"
-			>
-				<ChevronLeft className="text-black" /> Back
-			</Link>
 
 			<div>
 				<form onSubmit={form.handleSubmit(onSubmit)} className="mb-2">
@@ -98,14 +92,14 @@ const ForgotPassword = () => {
 						name="email"
 						render={({ field, fieldState }) => (
 							<div className="grid w-full items-center gap-1.5 mb-3.5">
-								<Label className="text-base">
+								<Label className="text-base !text-foreground !font-medium">
 									Email
 									<span className="text-red-600">*</span>
 								</Label>
 								<Input
 									type="email"
-									placeholder="Enter email"
-									className="border-2 border-[#f7d5b0] h-[55px] !text-base"
+									placeholder="you@example.com"
+									className="border-2 border-[#f7d5b0] h-[47px] bg-white !text-base"
 									{...field}
 								/>
 
@@ -119,7 +113,7 @@ const ForgotPassword = () => {
 					/>
 
 					<Button
-						className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
+						className="!cursor-pointer w-full mt-3 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform hover:-translate-y-0.5"
 						disabled={mutation.isPending}
 						type="submit"
 					>
@@ -133,7 +127,12 @@ const ForgotPassword = () => {
 					</Button>
 				</form>
 
-				
+				<p className="text-center text-[16px] font-normal mt-4 !mb-5 text-muted-foreground">
+					Remember password?{" "}
+					<span className="text-amber-500 font-medium">
+						<Link href="/log-in">Log In</Link>
+					</span>
+				</p>
 			</div>
 		</div>
 	);
