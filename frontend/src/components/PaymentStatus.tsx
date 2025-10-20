@@ -1,4 +1,5 @@
 import {PaymentStatus} from "@lib/type";
+import { Badge } from "./ui/badge";
 
 export const paymentStatusColors: Record<PaymentStatus, string> = {
 	PENDING: "bg-yellow-100 text-yellow-800",
@@ -15,13 +16,13 @@ const PaymentStatusBadge = ({ status }: { status?: PaymentStatus }) => {
 	if (!status) return null;
 
 	return (
-		<span
-			className={`px-3 py-1 rounded-full text-sm font-medium ${
+		<Badge
+			className={`px-2 py-0.5 rounded-full text-sm font-medium ${
 				paymentStatusColors[status] ?? "bg-gray-100 text-gray-800"
 			}`}
 		>
 			{status.replace("_", " ")}
-		</span>
+		</Badge>
 	);
 };
 

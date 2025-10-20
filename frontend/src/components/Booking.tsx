@@ -38,7 +38,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		paymentStatus: undefined,
 		baseAmount: 0,
 		cleaningFee: 0,
-		serviceFee: 0,
+		cautionFee: 0,
 		taxes: 0,
 		discount: 0,
 		total: 0,

@@ -77,9 +77,9 @@ const BookingPayment = ({
 	const nights = summaryData.nights;
 	const subtotal = ratePerNight * nights;
 	const cleaningFee = summaryData.cleaningFee;
-	const serviceFee = summaryData.serviceFee;
+	const cautionFee = summaryData.cautionFee;
 	const taxes = summaryData.taxes;
-	const totalAmount = subtotal + cleaningFee + serviceFee + taxes;
+	const totalAmount = subtotal + cleaningFee + cautionFee + taxes;
 
 	const mutation = useMutation({
 		mutationFn: async () => {

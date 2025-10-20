@@ -1,4 +1,5 @@
 import {BookingStatus} from "@lib/type"; 
+import { Badge } from "./ui/badge";
 
 export const statusColors: Record<BookingStatus, string> = {
 	PENDING: "bg-yellow-100 text-yellow-800",
@@ -17,13 +18,13 @@ const BookingStatusBadge = ({ status }: { status?: BookingStatus }) => {
 	if (!status) return null;
 
 	return (
-		<span
-			className={`px-3 py-1 rounded-full text-sm font-medium ${
+		<Badge
+			className={`px-2 py-0.5 rounded-full text-sm font-medium ${
 				statusColors[status] ?? "bg-gray-100 text-gray-800"
 			}`}
 		>
 			{status.replace("_", " ")}
-		</span>
+		</Badge>
 	);
 };
 
