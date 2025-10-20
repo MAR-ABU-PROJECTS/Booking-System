@@ -90,7 +90,7 @@ const VerifyEmail = ({ email }: Props) => {
 						</div>
 						<div className="text-left">
 							<p className="text-[16px] font-medium text-muted-foreground mb-1">
-								Didn&apos;'t receive the email?
+								Didn&apos;t receive the email?
 							</p>
 							<p className="text-[16px] text-muted-foreground font-medium">
 								Check your spam folder or request a new

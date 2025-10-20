@@ -24,7 +24,7 @@ const AuthBanner = () => {
 				</h2>
 				<p className="text-lg text-white/90 max-w-[500px]">
 					Discover luxury apartments, executive short lets, and
-					premium buildings in Nigeria&apos;'s most prestigious locations.
+					premium buildings in Nigeria&apos;s most prestigious locations.
 				</p>
 			</div>
 
