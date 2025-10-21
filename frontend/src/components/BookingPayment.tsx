@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { CircleCheckBig, Copy, FileText, Loader2 } from "lucide-react";
+import {
+	AlertCircle,
+	CircleCheckBig,
+	FileText,
+	Loader2,
+} from "lucide-react";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { toast } from "react-toastify";
@@ -145,61 +150,116 @@ const BookingPayment = ({
 
 	return (
 		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] self-start">
-			<div className="flex flex-col justify-center items-center">
-				<h1 className="text-[18px] font-bold text-center">
-					To confirm booking for the selected apartment, a payment of{" "}
-					{formatCurrency(totalAmount)} is required. Kindly pay into
-					our account below and upload payment receipt.
+			<div className="text-center">
+				<h1 className="text-[22px] font-bold text-slate-900 mb-2">
+					Complete Your Payment
 				</h1>
-				<p className="text-[16px] text-[#667085] text-center">
+				<p className="text-slate-600 max-w-[600px] mx-auto">
+					To confirm your booking for the selected apartment, a
+					payment of {formatCurrency(totalAmount)} is required. Kindly
+					pay into our account below and upload the payment receipt.
+				</p>
+				<p className="text-[15px] text-slate-500 mt-2">
 					Secure your premium accommodation experience
 				</p>
 			</div>
 
-			<div className="my-6">
-				<div className="bg-amber-400 w-full rounded-xl p-4">
-					<h2 className="text-[20px] font-bold text-left">
+			<div className="">
+				<div className="my-7 bg-[#fef9f3]   rounded-xl p-6 border border-amber-200">
+					<h2 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+						<div className="w-5 h-5 rounded-full bg-amber-600 flex items-center justify-center">
+							<span className="text-white text-xs font-bold">
+								✓
+							</span>
+						</div>
 						Account Details
 					</h2>
-
-					<div className="mt-5 flex flex-col gap-3">
-						<p className="font-bold">
-							ACCOUNT NAME: MAR ABU PROJECT SERVICES LTD AIRBNB
-						</p>
-
-						<div className="flex items-center gap-5">
-							<p className="font-bold">
-								ACCOUNT NUMBER: 2044748043
-							</p>{" "}
-							<Button
-								variant={"ghost"}
-								onClick={handleCopy}
-								type="button"
-							>
-								<Copy />
-							</Button>
+					<div className="space-y-3">
+						<div>
+							<p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+								Account Name
+							</p>
+							<p className="text-slate-900 font-semibold mt-1">
+								MAR ABU PROJECT SERVICES LTD AIRBNB
+							</p>
 						</div>
-						<p className="font-bold">BANK NAME: FIRST BANK</p>
+						<div>
+							<p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+								Account Number
+							</p>
+							<div className="flex items-center gap-2 mt-1">
+								<p className="text-slate-900 font-semibold">
+									2044748043
+								</p>
+								<button
+									className="p-1 hover:bg-amber-200 rounded transition-colors outline-none !cursor-pointer"
+									onClick={handleCopy}
+								>
+									<svg
+										className="w-4 h-4 text-slate-600"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+										/>
+									</svg>
+								</button>
+							</div>
+						</div>
+						<div>
+							<p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+								Bank Name
+							</p>
+							<p className="text-slate-900 font-semibold mt-1">
+								FIRST BANK
+							</p>
+						</div>
 					</div>
 				</div>
-				<p className="bg-red-500 text-center font-semibold text-[18px] mt-4 rounded-xl p-2">
-					You can only continue after you have made the payment of{" "}
-					{formatCurrency(totalAmount)}.
-				</p>
-				<h1 className="text-[17px] mb-1 font-medium mt-5">Note:</h1>
-				<div className="bg-red-500 text-left font-semibold text-[18px] rounded-xl p-2">
-					<ul className="list-none">
-						{instructions?.map((ins, index) => (
-							<li className="text-[16px]" key={index}>
-								{ins}
-							</li>
+
+				<div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+					<AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+					<p className="text-red-900 font-semibold">
+						You can only continue after you have made the payment of{" "}
+						{formatCurrency(totalAmount)}.
+					</p>
+				</div>
+
+				<div className="mb-2">
+					<h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+						<div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
+							<span className="text-white text-xs font-bold">
+								!
+							</span>
+						</div>
+						Things to Note
+					</h3>
+					<div className="bg-blue-50 border border-blue-200 rounded-xl p-6 space-y-3">
+						{instructions?.map((note, index) => (
+							<div key={index} className="flex items-start gap-3">
+								<div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+									<span className="text-white text-xs font-bold">
+										{index + 1}
+									</span>
+								</div>
+								<p className="text-slate-700 text-sm leading-relaxed">
+									{note}
+								</p>
+							</div>
 						))}
-					</ul>
+					</div>
 				</div>
 			</div>
 
-			<div className="w-full grid items-center gap-1">
-				<Label htmlFor="file-upload">Upload Payment Receipt</Label>
+			<div className="w-full grid items-center gap-1 mt-2">
+				<Label htmlFor="file-upload" className="text-[15px]">
+					Upload Payment Receipt
+				</Label>
 				<label
 					htmlFor="file-upload"
 					className={`h-[150px] w-full flex flex-col justify-center items-center mx-auto border-2 border-dashed cursor-pointer rounded-xl

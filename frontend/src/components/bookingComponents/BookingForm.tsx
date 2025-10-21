@@ -34,10 +34,10 @@ const BookingForm = ({ isSubmitting }: Props) => {
 	return (
 		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] self-start">
 			<div className="flex flex-col justify-center items-center">
-				<h1 className="text-[20px] font-bold">
+				<h1 className="text-[22px] font-bold">
 					Complete Your MAR Booking
 				</h1>
-				<p className="text-[16px] text-[#667085] text-center">
+				<p className="text-slate-600 text-center">
 					Secure your premium accommodation experience
 				</p>
 			</div>
