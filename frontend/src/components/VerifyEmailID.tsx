@@ -61,7 +61,7 @@ const VerifyEmailId = ({ id }: Props) => {
 
 	return (
 		<div className="h-full flex items-center ">
-			<div className="mx-auto max-w-xl">
+			<div className="mx-auto max-w-2xl">
 				{getStatus.isPending && (
 					<div className="text-center">
 						<Loader2 className="mx-auto animate-spin text-[#F4A857] size-10 mb-1.5" />

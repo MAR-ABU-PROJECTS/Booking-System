@@ -8,17 +8,27 @@ export function cn(...inputs: ClassValue[]) {
 export const formatCurrency = (amount: number) =>
 	`₦${new Intl.NumberFormat("en-NG").format(amount)}`;
 
-export const checkPasswordStrength = (pwd: string) => {
+export const checkPasswordStrength = (password: string) => {
 	let strength = 0;
 
-	if (pwd.length >= 8) strength++;
-	if (/[A-Z]/.test(pwd)) strength++;
-	if (/[a-z]/.test(pwd)) strength++;
-	if (/\d/.test(pwd)) strength++;
-	if (/[\W_]/.test(pwd)) strength++; // Special characters
+	if (password.length >= 8) strength++;
+	if (/[A-Z]/.test(password)) strength++;
+	if (/[a-z]/.test(password)) strength++;
+	if (/[0-9]/.test(password)) strength++;
+	if (/[^A-Za-z0-9]/.test(password)) strength++;
 
 	return strength;
 };
+
+// const calculatePasswordStrength = (password: string) => {
+// 	let strength = 0
+// 	if (password.length >= 8) strength++
+// 	if (/[A-Z]/.test(password)) strength++
+// 	if (/[a-z]/.test(password)) strength++
+// 	if (/[0-9]/.test(password)) strength++
+// 	if (/[^A-Za-z0-9]/.test(password)) strength++
+
+// }
 
 export function toTitleCase(str: string): string {
 	return str
@@ -44,17 +54,13 @@ export function flattenErrors(errorObj: unknown): string[] {
 	});
 }
 
-
-
-
-
 export const getBase64ImageFromUrl = async (url: string): Promise<string> => {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => resolve(reader.result as string);
-    reader.readAsDataURL(blob);
-  });
+	const res = await fetch(url);
+	const blob = await res.blob();
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onerror = reject;
+		reader.onload = () => resolve(reader.result as string);
+		reader.readAsDataURL(blob);
+	});
 };

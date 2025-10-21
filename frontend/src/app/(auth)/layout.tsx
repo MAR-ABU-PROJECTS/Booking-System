@@ -17,7 +17,7 @@ export default function RootLayout({
 	return (
 		<div className="w-full h-svh flex">
 			<AuthBanner />
-			<div className=" w-full h-full p-4 flex justify-center items-start bg-white overflow-x-hidden overflow-y-scroll">{children}</div>
+			<div className=" w-full h-full p-4 flex justify-center items-start bg-[#FDF7F1] overflow-x-hidden overflow-y-scroll">{children}</div>
 		</div>
 	);
 }
