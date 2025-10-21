@@ -106,13 +106,13 @@ const AdminLogIn = () => {
 	};
 	const dispatch = useDispatch();
 	return (
-		<div className="flex justify-center items-start h-svh">
+		<div className="flex justify-center items-start h-svh bg-[#FDF7F1]">
 			<div className="w-full max-w-xl mx-auto px-4 pt-14">
 				<div className="h-[60px] relative">
 					<img
 						src="/logo/black-logo.png"
 						alt="MAR ABU HOMES"
-						className="object-contain object-left w-[260px] h-[63px]"
+						className="object-contain object-left w-[260px] h-[63px] mx-auto"
 					/>
 				</div>
 				<div className="mt-11 mb-11">
@@ -134,22 +134,23 @@ const AdminLogIn = () => {
 							name="email"
 							render={({ field, fieldState }) => (
 								<div className="grid w-full items-center gap-1.5 mb-3.5">
-									<Label className="text-base">
+									<Label className="text-base !text-foreground !font-medium">
 										Email
 										<span className="text-red-600">*</span>
 									</Label>
 									<Input
 										type="email"
-										placeholder="Enter email"
-										className="border-2 border-[#f7d5b0] h-[55px] !text-base"
+										placeholder="you@example.com"
+										className="border-2 border-[#f7d5b0] h-[47px] !text-base bg-white"
 										{...field}
 									/>
 
-									{fieldState.error && (
-										<p className="text-[15px] text-red-600 text-right">
-											{fieldState.error.message}
-										</p>
-									)}
+									<p className="text-[14px] text-right min-h-[18px] text-red-600">
+										{
+											fieldState.error?.message ||
+												"\u00A0" /* non-breaking space */
+										}
+									</p>
 								</div>
 							)}
 						/>
@@ -159,25 +160,26 @@ const AdminLogIn = () => {
 							name="password"
 							render={({ field, fieldState }) => (
 								<div className="grid w-full items-center gap-1.5  mb-3.5">
-									<Label className="text-base">
+									<Label className="text-base !text-foreground !font-medium">
 										Password
 										<span className="text-red-600">*</span>
 									</Label>
 									<Input
 										type="password"
 										id="password"
-										placeholder="Enter password"
-										className="border-2 border-[#f7d5b0] h-[55px] !text-base"
+										placeholder="password"
+										className="border-2 border-[#f7d5b0] h-[47px] !text-base bg-white"
 										onChange={(e) => {
 											field.onChange(e);
 										}}
 									/>
 
-									{fieldState.error && (
-										<p className="text-[15px] text-red-600 text-right">
-											{fieldState.error.message}
-										</p>
-									)}
+									<p className="text-[14px] text-right min-h-[18px] text-red-600">
+										{
+											fieldState.error?.message ||
+												"\u00A0" /* non-breaking space */
+										}
+									</p>
 								</div>
 							)}
 						/>
@@ -196,7 +198,7 @@ const AdminLogIn = () => {
 										/>
 										<Label
 											htmlFor="terms"
-											className="text-[15px] md:text-[14px] text-start"
+											className="text-[15px] font-medium text-start text-muted-foreground"
 										>
 											<p>Remember Me</p>
 										</Label>
@@ -208,7 +210,7 @@ const AdminLogIn = () => {
 						/>
 
 						<Button
-							className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[50px] text-[16px] items-center transition-transform duration-300 transform"
+							className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
 							disabled={mutation.isPending}
 							type="submit"
 						>

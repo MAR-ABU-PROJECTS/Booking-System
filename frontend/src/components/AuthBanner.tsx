@@ -11,18 +11,27 @@ const AuthBanner = () => {
 				fill
 			/>
 
+			<div className="absolute bottom-0 left-0 right-0 p-14 text-white z-[20]">
+				<div className="h-[60px] relative mb-8">
+					<img
+						src="/logo/logo.png"
+						alt="MAR ABU HOMES"
+						className="object-contain object-left w-[260px] h-[63px]"
+					/>
+				</div>
+				<h2 className="text-5xl font-serif font-bold mb-4">
+					MAR ABU Homes
+				</h2>
+				<p className="text-lg text-white/90 max-w-[500px]">
+					Discover luxury apartments, executive short lets, and
+					premium buildings in Nigeria&apos;s most prestigious locations.
+				</p>
+			</div>
+
 			{/* Overlay */}
 			<div className="absolute inset-0 bg-black/70 z-10" />
-
-			{/* Optional Content over the overlay */}
-			<div className="relative z-20 text-white text-center px-4">
-				{/* You can put logo or text here */}
-				{/* <img src="/logo/logo.png" alt="Logo" className="mb-4" /> */}
-				{/* <h2 className="text-2xl font-bold">Welcome to MAR ABU HOMES</h2>
-				<p className="mt-2 text-sm">Experience luxury and comfort</p> */}
-			</div>
 		</div>
-	)
-}
+	);
+};
 
-export default AuthBanner
+export default AuthBanner;

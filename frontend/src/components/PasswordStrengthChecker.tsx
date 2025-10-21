@@ -1,4 +1,4 @@
-import { Check, Dot } from "lucide-react";
+import { Check} from "lucide-react";
 import React from "react";
 
 type Props = {
@@ -7,89 +7,82 @@ type Props = {
 };
 
 const PasswordStrengthChecker = (props: Props) => {
+	const requirements = [
+		{ label: "At least 8 characters", met: props.password.length >= 8 },
+		{
+			label: "At least 1 uppercase letter",
+			met: /[A-Z]/.test(props.password),
+		},
+		{
+			label: "At least 1 lowercase letter",
+			met: /[a-z]/.test(props.password),
+		},
+		{ label: "At least 1 number", met: /[0-9]/.test(props.password) },
+		{
+			label: "At least 1 special character",
+			met: /[^A-Za-z0-9]/.test(props.password),
+		},
+	];
+
+	const getStrengthColor = () => {
+		const colors = [
+			"",
+			"bg-red-500",
+			"bg-orange-500",
+			"bg-yellow-500",
+			"bg-green-500",
+		];
+		return colors[props.strength];
+	};
+
+	const getStrengthLabel = () => {
+		const labels = ["", "Weak", "Fair", "Good", "Strong"];
+		return labels[props.strength];
+	};
 	return (
 		<div>
-			<div className=" flex items-center gap-4">
-				<p className=" text-[14px] font-medium whitespace-nowrap text-[#4A4A4A]">
-					Password strength
-				</p>
-				<div
-					style={{
-						width: "100%",
-						backgroundColor: "#e0e0e0",
-						borderRadius: "5px",
-					}}
-				>
-					<div
-						style={{
-							height: "6px",
-							width: `${props.strength}%`,
-							backgroundColor:
-								props.strength >= 90
-									? "green"
-									: props.strength >= 60
-										? "orange"
-										: "red",
-							borderRadius: "5px",
-							transition: "width 0.3s ease",
-						}}
-					/>
+			<div className="space-y-3">
+				<div className="flex items-center justify-between">
+					<span className="text-sm font-medium text-muted-foreground">
+						Password strength
+					</span>
+					<span className="text-sm font-medium text-foreground">
+						{getStrengthLabel()}
+					</span>
 				</div>
-				<p className=" text-[14px] font-medium">
-					{props.strength >= 90 ? (
-						<span className=" ">Excellent</span>
-					) : props.strength >= 60 ? (
-						<span>Strong</span>
-					) : (
-						<span>Weak</span>
-					)}
-				</p>
-			</div>
-			<div className="mt-2 flex flex-col items-start">
-				{/* <p className=" font-medium text-[#4A4A4ACC] text-xs">
-          Must contain at least
-        </p> */}
-				<ul className="text-[13px] text-[#A6A5A5] flex flex-col gap-1 text-right">
-					<li className=" flex items-center gap-1">
-						{props.password.length >= 8 ? (
-							<Check className=" size-4" />
-						) : (
-							<Dot className=" size-5" />
-						)}
-						At least 8 characters
-					</li>
-					<li className=" flex items-center gap-1">
-						{/[A-Z]/.test(props.password) ? (
-							<Check className=" size-4" />
-						) : (
-							<Dot className=" size-5" />
-						)}
-						At least 1 uppercase character
-					</li>
-					<li className=" flex items-center gap-1">
-						{/[a-z]/.test(props.password) ? (
-							<Check className=" size-4" />
-						) : (
-							<Dot className=" size-5" />
-						)}
-						At least 1 lowercase character
-					</li>
-					<li className=" flex items-center gap-1">
-						{/\d/.test(props.password) ? (
-							<Check className=" size-4" />
-						) : (
-							<Dot className=" size-5" />
-						)}
-						At least 1 number
-					</li>
-					<li className=" flex items-center gap-1">
-						{/[\W_]/.test(props.password) ? (
-							<Check className=" size-4" />
-						) : (
-							<Dot className=" size-5" />
-						)}
-						At least 1 special character
-					</li>
+				<div className="flex gap-1">
+					{[...Array(4)].map((_, i) => (
+						<div
+							key={i}
+							className={`h-1 flex-1 rounded-full transition-colors ${
+								i < props.strength
+									? getStrengthColor()
+									: "bg-border"
+							}`}
+						/>
+					))}
+				</div>
+				<ul className="space-y-2">
+					{requirements.map((req, idx) => (
+						<li
+							key={idx}
+							className="flex items-center gap-2 text-sm text-muted-foreground"
+						>
+							<div
+								className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors ${
+									req.met ? "bg-green-500/20" : "bg-border"
+								}`}
+							>
+								{req.met && (
+									<Check
+										size={12}
+										className="text-green-600"
+									/>
+								)}
+							</div>
+							{req.label}
+						</li>
+					))}
 				</ul>
 			</div>
 		</div>
