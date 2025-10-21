@@ -244,7 +244,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 							{step != 1 && (
 								<button
 									type="button"
-									className="mb-4 cursor-pointer text-amber-500 flex items-center active:scale-95 hover:scale-95 transition-all"
+									className="mb-4 cursor-pointer text-amber-600 flex items-center active:scale-95 hover:scale-95 transition-all"
 									onClick={handleBack}
 								>
 									{" "}
