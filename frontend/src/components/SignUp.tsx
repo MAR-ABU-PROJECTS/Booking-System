@@ -35,6 +35,7 @@ const SignUp = () => {
 		setPasswordStrength(Math.min(strength, 4));
 	};
 
+
 	const mutation = useMutation({
 		mutationFn: async (formData: z.infer<typeof SignUpSchema>) => {
 			const response = await apiService.post("/auth/register", {
@@ -92,13 +93,13 @@ const SignUp = () => {
 	});
 
 	const onSubmit = (values: z.infer<typeof SignUpSchema>) => {
-		if (passwordStrength < 90) {
-			form.setError("password", {
-				type: "manual",
-				message: "password is not strong enough",
-			});
-			return;
-		}
+		// if (passwordStrength !>= 4) {
+		// 	form.setError("password", {
+		// 		type: "manual",
+		// 		message: "password is not strong enough",
+		// 	});
+		// 	return;
+		// }
 		mutation.mutate(values);
 	};
 	return (
