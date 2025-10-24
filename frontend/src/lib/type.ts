@@ -136,9 +136,7 @@ export type SummaryData = {
 	status: BookingStatus | undefined;
 	paymentStatus: PaymentStatus | undefined;
 	baseAmount: number;
-	cleaningFee: number;
 	cautionFee: number;
-	taxes: number;
 	discount: number;
 	total: number;
 	paidAmount: number;

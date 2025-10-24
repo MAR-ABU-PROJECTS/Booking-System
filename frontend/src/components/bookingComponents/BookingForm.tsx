@@ -88,7 +88,6 @@ const BookingForm = ({ isSubmitting }: Props) => {
 											>
 												<Calendar
 													mode="single"
-											
 													selected={field.value}
 													captionLayout="dropdown"
 													disabled={(date) => {
