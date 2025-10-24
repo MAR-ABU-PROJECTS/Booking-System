@@ -11,8 +11,9 @@ class EmailService {
             throw new Error("RESEND_API_KEY is required for EmailService");
         }
         this.resend = new resend_1.Resend(process.env.RESEND_API_KEY);
-        this.fromEmail = process.env.EMAIL_FROM || "noreply@booking.marabuprojects.com";
-        this.replyToEmail = process.env.EMAIL_REPLY_TO || "support@booking.marabuprojects.com";
+        this.fromEmail = process.env.EMAIL_FROM || "noreply@marabuprojects.com";
+        this.replyToEmail =
+            process.env.EMAIL_REPLY_TO || "support@marabuprojects.com";
         logger_middleware_1.logger.info("Email service initialized with Resend API");
     }
     safeBookingProperty(property) {
@@ -69,7 +70,7 @@ class EmailService {
                     });
                     const fallbackData = {
                         ...emailData,
-                        from: `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <noreply@booking.marabuprojects.com>`,
+                        from: `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <noreply@marabuprojects.com>`,
                     };
                     const retryResponse = await this.resend.emails.send(fallbackData);
                     if (retryResponse.error) {

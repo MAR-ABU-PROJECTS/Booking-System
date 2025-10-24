@@ -7,8 +7,8 @@ exports.APP_CONSTANTS = {
         NAME: "MAR ABU PROJECTS SERVICES LLC",
         PRIMARY_COLOR: "#F6931B",
         SECONDARY_COLOR: "#000000",
-        EMAIL: "noreply@booking.marabuprojects.com",
-        SUPPORT_EMAIL: "support@booking.marabuprojects.com",
+        EMAIL: "noreply@marabuprojects.com",
+        SUPPORT_EMAIL: "support@marabuprojects.com",
         ADDRESS: "Lagos, Nigeria",
     },
     COLORS: {

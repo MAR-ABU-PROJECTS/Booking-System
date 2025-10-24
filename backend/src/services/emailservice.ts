@@ -26,8 +26,9 @@ export class EmailService {
     }
 
     this.resend = new Resend(process.env.RESEND_API_KEY);
-    this.fromEmail = process.env.EMAIL_FROM || "noreply@booking.marabuprojects.com";
-    this.replyToEmail = process.env.EMAIL_REPLY_TO || "support@booking.marabuprojects.com";
+    this.fromEmail = process.env.EMAIL_FROM || "noreply@marabuprojects.com";
+    this.replyToEmail =
+      process.env.EMAIL_REPLY_TO || "support@marabuprojects.com";
 
     logger.info("Email service initialized with Resend API");
   }
@@ -48,7 +49,10 @@ export class EmailService {
   }
 
   private getBackendBaseUrl(): string {
-    return (process.env.BACKEND_URL || "http://localhost:5050").replace(/\/$/, "");
+    return (process.env.BACKEND_URL || "http://localhost:5050").replace(
+      /\/$/,
+      ""
+    );
   }
 
   private apiUrl(path: string): string {
@@ -96,12 +100,14 @@ export class EmailService {
 
           const fallbackData = {
             ...emailData,
-            from: `"${APP_CONSTANTS.COMPANY.NAME}" <noreply@booking.marabuprojects.com>`,
+            from: `"${APP_CONSTANTS.COMPANY.NAME}" <noreply@marabuprojects.com>`,
           };
           const retryResponse = await this.resend.emails.send(fallbackData);
 
           if (retryResponse.error) {
-            throw new Error(`Resend API fallback error: ${retryResponse.error.message}`);
+            throw new Error(
+              `Resend API fallback error: ${retryResponse.error.message}`
+            );
           }
 
           logger.info("✅ Email sent successfully (fallback domain)", {
