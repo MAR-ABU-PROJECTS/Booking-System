@@ -911,10 +911,7 @@ router.get(
         orderBy: { createdAt: "desc" },
         include: {
           user: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
+            select: {email: true,
             },
           },
         },

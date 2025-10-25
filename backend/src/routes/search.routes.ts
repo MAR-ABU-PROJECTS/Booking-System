@@ -250,7 +250,7 @@ const validate = (req: any, res: any, next: any) => {
  */
 router.get(
   "/properties",
-  optionalAuth(),
+  optionalAuth,
   [
     query("q")
       .optional()
@@ -421,8 +421,6 @@ router.get(
           host: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
               avatar: true,
               createdAt: true,
             },
@@ -1419,13 +1417,13 @@ router.get(
 
     const savedSearches = await prisma.savedSearch.findMany({
       where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' },
-    })
+      orderBy: { createdAt: "desc" },
+    });
 
     res.json({
       success: true,
       data: savedSearches,
-    })
+    });
   })
 );
 

@@ -142,8 +142,6 @@ export interface PropertyWithDetails {
   updatedAt: Date;
   host: {
     id: string;
-    firstName: string;
-    lastName: string;
     email: string;
   };
   propertyImages?: Array<{
@@ -201,8 +199,6 @@ export class PropertyService {
           host: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
               email: true,
             },
           },
@@ -248,8 +244,6 @@ export class PropertyService {
         host: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
             email: true,
           },
         },
@@ -325,8 +319,6 @@ export class PropertyService {
           host: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
               email: true,
             },
           },
@@ -528,8 +520,6 @@ export class PropertyService {
             host: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
                 email: true,
               },
             },
@@ -602,8 +592,6 @@ export class PropertyService {
         host: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
             email: true,
           },
         },

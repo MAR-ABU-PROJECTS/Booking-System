@@ -43,6 +43,11 @@ const searchBookingsSchema = z.object({
   guestEmail: z.string().optional(),
   checkInFrom: z.string().optional(),
   checkInTo: z.string().optional(),
+  checkOutFrom: z.string().optional(),
+  checkOutTo: z.string().optional(),
+  createdFrom: z.string().optional(),
+  createdTo: z.string().optional(),
+  dateRange: z.enum(["today", "week", "month", "quarter", "year"]).optional(),
 });
 
 const cancelBookingSchema = z.object({
@@ -135,6 +140,36 @@ const validate = (req: any, res: any, next: any) => {
  *           type: string
  *           format: date
  *         description: Filter check-in date to
+ *       - in: query
+ *         name: checkOutFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter check-out date from
+ *       - in: query
+ *         name: checkOutTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter check-out date to
+ *       - in: query
+ *         name: createdFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter bookings created from this date
+ *       - in: query
+ *         name: createdTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter bookings created to this date
+ *       - in: query
+ *         name: dateRange
+ *         schema:
+ *           type: string
+ *           enum: [today, week, month, quarter, year]
+ *         description: Quick date range filter for check-in dates
  *     responses:
  *       200:
  *         description: Bookings fetched successfully
@@ -184,6 +219,11 @@ router.get(
       guestEmail,
       checkInFrom,
       checkInTo,
+      checkOutFrom,
+      checkOutTo,
+      createdFrom,
+      createdTo,
+      dateRange,
     } = parsed;
 
     const whereClause: any = {};
@@ -204,10 +244,78 @@ router.get(
       whereClause.bookingCode = { contains: bookingCode, mode: "insensitive" };
     if (guestEmail)
       whereClause.guestEmail = { contains: guestEmail, mode: "insensitive" };
-    if (checkInFrom || checkInTo) {
-      whereClause.checkInDate = {};
-      if (checkInFrom) whereClause.checkInDate.gte = new Date(checkInFrom);
-      if (checkInTo) whereClause.checkInDate.lte = new Date(checkInTo);
+    // Handle date range quick filter
+    if (dateRange) {
+      const now = new Date();
+      let startDate: Date;
+      let endDate: Date;
+
+      switch (dateRange) {
+        case "today":
+          startDate = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+          );
+          endDate = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() + 1
+          );
+          break;
+        case "week":
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - now.getDay()); // Start of current week
+          startDate = new Date(
+            weekStart.getFullYear(),
+            weekStart.getMonth(),
+            weekStart.getDate()
+          );
+          endDate = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+          break;
+        case "month":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          break;
+        case "quarter":
+          const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+          startDate = new Date(now.getFullYear(), quarterStart, 1);
+          endDate = new Date(now.getFullYear(), quarterStart + 3, 1);
+          break;
+        case "year":
+          startDate = new Date(now.getFullYear(), 0, 1);
+          endDate = new Date(now.getFullYear() + 1, 0, 1);
+          break;
+        default:
+          startDate = new Date();
+          endDate = new Date();
+      }
+
+      whereClause.checkInDate = {
+        gte: startDate,
+        lt: endDate,
+      };
+    } else {
+      // Handle individual date filters
+      if (checkInFrom || checkInTo) {
+        whereClause.checkInDate = {};
+        if (checkInFrom) whereClause.checkInDate.gte = new Date(checkInFrom);
+        if (checkInTo) whereClause.checkInDate.lte = new Date(checkInTo);
+      }
+    }
+
+    // Check-out date filters
+    if (checkOutFrom || checkOutTo) {
+      whereClause.checkOutDate = {};
+      if (checkOutFrom) whereClause.checkOutDate.gte = new Date(checkOutFrom);
+      if (checkOutTo) whereClause.checkOutDate.lte = new Date(checkOutTo);
+    }
+
+    // Created date filters
+    if (createdFrom || createdTo) {
+      whereClause.createdAt = {};
+      if (createdFrom) whereClause.createdAt.gte = new Date(createdFrom);
+      if (createdTo) whereClause.createdAt.lte = new Date(createdTo);
     }
 
     const bookings = await prisma.booking.findMany({
@@ -216,8 +324,6 @@ router.get(
         customer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
             email: true,
             phone: true,
           },
@@ -232,8 +338,6 @@ router.get(
             host: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
                 email: true,
               },
             },
@@ -341,26 +445,26 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/bookings/:id
- * @desc    Get booking details
+ * @route   GET /api/v1/bookings/:bookingCode
+ * @desc    Get booking details by booking code
  * @access  Protected (owner, property host, admin)
  */
 /**
  * @swagger
- * /bookings/{id}:
+ * /bookings/code/{bookingCode}:
  *   get:
- *     summary: Get booking details
- *     description: Get a single booking by ID. Access is restricted to booking owner, property host, or admin.
+ *     summary: Get booking details by booking code
+ *     description: Get a single booking by booking code. Access is restricted to booking owner, property host, or admin.
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: bookingCode
  *         required: true
  *         schema:
  *           type: string
- *         description: Booking ID
+ *         description: Booking Code (e.g., MAR-12345)
  *     responses:
  *       200:
  *         description: Booking found
@@ -379,19 +483,17 @@ router.get(
  *         description: Booking not found
  */
 router.get(
-  "/:id",
+  "/:bookingCode",
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
+      where: { bookingCode: req.params.bookingCode },
       include: {
         property: {
           include: {
             host: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
                 email: true,
                 phone: true,
                 avatar: true,
@@ -402,8 +504,6 @@ router.get(
         customer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
             email: true,
             phone: true,
             avatar: true,
@@ -549,11 +649,7 @@ router.post(
         where: { id: data.propertyId },
         include: {
           host: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
+            select: { email: true },
           },
           bookings: {
             where: {
@@ -587,14 +683,7 @@ router.post(
         throw new AppError("Property is not available for selected dates", 400);
       }
 
-      // Check guest count
-      const totalGuests = data.adults + (data.children || 0);
-      if (totalGuests > property.maxGuests) {
-        throw new AppError(
-          `Property can accommodate maximum ${property.maxGuests} guests`,
-          400
-        );
-      }
+      // Note: No maximum guest restriction as per requirements
 
       // Calculate pricing using booking service (consistent with pricing route)
       const pricing = await bookingService.calculatePricing(
@@ -644,27 +733,18 @@ router.post(
             select: {
               name: true,
               host: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                  email: true,
-                },
+                select: { email: true },
               },
             },
           },
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
+            select: { email: true },
           },
         },
       });
 
-      // Send booking confirmation and approval emails to user
+      // Send single confirmation email (includes approval since booking is auto-approved)
       await emailService.sendBookingConfirmation(data.guestEmail, booking);
-      await emailService.sendBookingApprovedEmail(data.guestEmail, booking);
 
       auditLog(
         "BOOKING_CREATED",
@@ -697,7 +777,576 @@ router.post(
 );
 
 /**
- * @route   PATCH /api/v1/bookings/:id/status
+ * @swagger
+ * /bookings/code/{bookingCode}/edit:
+ *   patch:
+ *     summary: Edit booking details using booking code
+ *     description: Allows customers to edit certain booking details (dates, email, phone) using booking code
+ *     tags:
+ *       - Bookings
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: bookingCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking Code (e.g., MAR-12345)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               checkInDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-09-01"
+ *               checkOutDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-09-05"
+ *               adults:
+ *                 type: integer
+ *                 minimum: 1
+ *                 example: 2
+ *               children:
+ *                 type: integer
+ *                 minimum: 0
+ *                 example: 1
+ *               infants:
+ *                 type: integer
+ *                 minimum: 0
+ *                 example: 0
+ *               guestName:
+ *                 type: string
+ *                 example: "John Doe"
+ *               guestEmail:
+ *                 type: string
+ *                 format: email
+ *                 example: "john@example.com"
+ *               guestPhone:
+ *                 type: string
+ *                 example: "+2348012345678"
+ *               guestAddress:
+ *                 type: string
+ *                 example: "123 Main St, Lagos"
+ *               specialRequests:
+ *                 type: string
+ *                 example: "Late check-in required"
+ *               arrivalTime:
+ *                 type: string
+ *                 example: "18:00"
+ *     responses:
+ *       200:
+ *         description: Booking updated successfully
+ *       400:
+ *         description: Invalid data or booking cannot be edited
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Booking not found
+ */
+router.patch(
+  "/:bookingCode/edit",
+  requireAuth(),
+  [
+    param("bookingCode").isString(),
+    body("checkInDate").optional().isISO8601(),
+    body("checkOutDate").optional().isISO8601(),
+    body("guestEmail").optional().isEmail(),
+    body("guestPhone").optional().isString().trim(),
+  ],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const { bookingCode } = req.params;
+    const updateData = req.body;
+
+    // Get current booking with property details
+    const booking = await prisma.booking.findUnique({
+      where: { bookingCode },
+      include: {
+        property: {
+          select: {
+            id: true,
+            hostId: true,
+            name: true,
+            baseRate: true,
+            weekendPremium: true,
+            monthlyDiscount: true,
+            cleaningFee: true,
+            cautionFee: true,
+            minStay: true,
+            maxStay: true,
+          },
+        },
+        customer: {
+          select: { id: true, email: true },
+        },
+      },
+    });
+
+    if (!booking) throw new AppError("Booking not found", 404);
+
+    // Authorization check - users can edit their own bookings, admins can edit any booking
+    const isCustomer = booking.customerId === req.user.id;
+    const isHost = booking.property.hostId === req.user.id;
+    const isAdmin = req.user.role === "ADMIN";
+
+    if (!isCustomer && !isHost && !isAdmin) {
+      throw new AppError("Not authorized to edit this booking", 403);
+    }
+
+    // Business rules for editing (admins can bypass these restrictions)
+    if (isCustomer && !isAdmin) {
+      // Customers can only edit pending or confirmed bookings
+      if (!["PENDING", "CONFIRMED"].includes(booking.status)) {
+        throw new AppError(
+          "Can only edit bookings that are pending or confirmed",
+          400
+        );
+      }
+
+      // If booking is confirmed and has paid amount, require admin approval for changes
+      if (booking.status === "CONFIRMED" && booking.paidAmount > 0) {
+        throw new AppError(
+          "Cannot edit confirmed bookings with payments. Please contact support.",
+          400
+        );
+      }
+    }
+
+    // Note: Admins can edit any booking regardless of status
+
+    // Validate date changes if provided
+    if (updateData.checkInDate || updateData.checkOutDate) {
+      const checkIn = updateData.checkInDate
+        ? new Date(updateData.checkInDate)
+        : booking.checkInDate;
+      const checkOut = updateData.checkOutDate
+        ? new Date(updateData.checkOutDate)
+        : booking.checkOutDate;
+
+      if (checkIn >= checkOut) {
+        throw new AppError("Check-out date must be after check-in date", 400);
+      }
+
+      const nights = Math.ceil(
+        (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (nights < booking.property.minStay) {
+        throw new AppError(
+          `Minimum stay is ${booking.property.minStay} night(s)`,
+          400
+        );
+      }
+
+      if (nights > booking.property.maxStay) {
+        throw new AppError(
+          `Maximum stay is ${booking.property.maxStay} night(s)`,
+          400
+        );
+      }
+
+      // Check availability for new dates (excluding current booking)
+      const conflictingBookings = await prisma.booking.findMany({
+        where: {
+          propertyId: booking.propertyId,
+          id: { not: booking.id }, // Exclude current booking
+          status: { in: ["CONFIRMED", "APPROVED"] },
+          OR: [
+            {
+              checkInDate: { lt: checkOut },
+              checkOutDate: { gt: checkIn },
+            },
+          ],
+        },
+      });
+
+      if (conflictingBookings.length > 0) {
+        throw new AppError(
+          "Property is not available for the selected dates",
+          400
+        );
+      }
+
+      updateData.nights = nights;
+    }
+
+    // Recalculate pricing if dates or guest count changed
+    let pricingUpdate = {};
+    if (
+      updateData.checkInDate ||
+      updateData.checkOutDate ||
+      updateData.adults ||
+      updateData.children
+    ) {
+      const nights = updateData.nights || booking.nights;
+      const adults = updateData.adults || booking.adults;
+      const children = updateData.children || booking.children;
+
+      // Use booking service to recalculate pricing
+      const pricingResult = await bookingService.calculatePricing(
+        booking.propertyId,
+        updateData.checkInDate || booking.checkInDate.toISOString(),
+        updateData.checkOutDate || booking.checkOutDate.toISOString(),
+        adults
+      );
+
+      pricingUpdate = {
+        baseAmount: pricingResult.baseAmount,
+        cleaningFee: pricingResult.cleaningFee,
+        cautionFee: pricingResult.cautionFee,
+        taxes: pricingResult.taxes,
+        discount: pricingResult.discounts,
+        total: pricingResult.totalAmount,
+      };
+    }
+
+    // Prepare update object
+    const finalUpdateData = {
+      ...updateData,
+      ...pricingUpdate,
+      updatedAt: new Date(),
+    };
+
+    // Update booking
+    const updatedBooking = await prisma.booking.update({
+      where: { bookingCode },
+      data: finalUpdateData,
+      include: {
+        property: {
+          select: { name: true, hostId: true },
+        },
+        customer: {
+          select: { email: true },
+        },
+      },
+    });
+
+    // Send notifications about the booking change
+    if (isCustomer) {
+      // Notify host about customer changes
+      await prisma.notification.create({
+        data: {
+          userId: booking.property.hostId,
+          type: "BOOKING_UPDATED",
+          title: "Booking Updated by Customer",
+          message: `Customer ${req.user.email} updated booking ${booking.bookingCode}`,
+          metadata: {
+            bookingId: booking.id,
+            updatedFields: Object.keys(updateData),
+          },
+        },
+      });
+    } else {
+      // Notify customer about host/admin changes
+      await prisma.notification.create({
+        data: {
+          userId: booking.customerId,
+          type: "BOOKING_UPDATED",
+          title: "Booking Updated",
+          message: `Your booking ${booking.bookingCode} has been updated`,
+          metadata: {
+            bookingId: booking.id,
+            updatedFields: Object.keys(updateData),
+          },
+        },
+      });
+    }
+
+    auditLog(
+      "BOOKING_UPDATED",
+      req.user.id,
+      {
+        bookingId: booking.id,
+        updatedFields: Object.keys(updateData),
+        oldValues: Object.keys(updateData).reduce((acc, key) => {
+          acc[key] = booking[key as keyof typeof booking];
+          return acc;
+        }, {} as any),
+        newValues: updateData,
+      },
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: "Booking updated successfully",
+      data: updatedBooking,
+    });
+  })
+);
+
+// /**
+//  * @swagger
+//  * /bookings/{id}/continue-payment:
+//  *   post:
+//  *     summary: Continue payment for approved booking
+//  *     description: Allows customers to continue payment process for approved bookings with pending payments
+//  *     tags:
+//  *       - Bookings
+//  *     security:
+//  *       - bearerAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: id
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Booking ID
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             required:
+//  *               - paymentMethod
+//  *             properties:
+//  *               paymentMethod:
+//  *                 type: string
+//  *                 enum: [card, bank_transfer, wallet]
+//  *                 example: "card"
+//  *               returnUrl:
+//  *                 type: string
+//  *                 format: uri
+//  *                 example: "https://yourdomain.com/booking/confirmation"
+//  *     responses:
+//  *       200:
+//  *         description: Payment initiation successful
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 success:
+//  *                   type: boolean
+//  *                 message:
+//  *                   type: string
+//  *                 data:
+//  *                   type: object
+//  *                   properties:
+//  *                     paymentUrl:
+//  *                       type: string
+//  *                     reference:
+//  *                       type: string
+//  *                     amount:
+//  *                       type: number
+//  *       400:
+//  *         description: Invalid booking status or payment already completed
+//  *       403:
+//  *         description: Not authorized
+//  *       404:
+//  *         description: Booking not found
+//  */
+// router.post(
+//   "/:id/continue-payment",
+//   requireAuth(),
+//   [
+//     param("id").isString(),
+//     body("paymentMethod").isIn(["card", "bank_transfer", "wallet"]),
+//     body("returnUrl").optional().isURL(),
+//   ],
+//   validate,
+//   asyncHandler(async (req: any, res: any) => {
+//     const { id } = req.params;
+//     const { paymentMethod, returnUrl } = req.body;
+//
+//     // Get booking with customer and property details
+//     const booking = await prisma.booking.findUnique({
+//       where: { id },
+//       include: {
+//         customer: {
+//           select: {
+//             id: true,
+//             email: true,
+//             phone: true,
+//           },
+//         },
+//         property: {
+//           select: {
+//             id: true,
+//             name: true,
+//             hostId: true,
+//           },
+//         },
+//       },
+//     });
+//
+//     if (!booking) throw new AppError("Booking not found", 404);
+//
+//     // Authorization - only booking owner can continue payment
+//     if (booking.customerId !== req.user.id) {
+//       throw new AppError(
+//         "Not authorized to make payment for this booking",
+//         403
+//       );
+//     }
+//
+//     // Check booking status - must be approved
+//     if (booking.status !== "APPROVED") {
+//       throw new AppError("Booking must be approved before making payment", 400);
+//     }
+//
+//     // Check payment status - must be pending or processing
+//     if (!["PENDING", "PROCESSING"].includes(booking.paymentStatus)) {
+//       throw new AppError(
+//         "Payment already completed or failed for this booking",
+//         400
+//       );
+//     }
+//
+//     // Calculate remaining amount to pay
+//     const remainingAmount = booking.total - booking.paidAmount;
+//
+//     if (remainingAmount <= 0) {
+//       throw new AppError("No remaining amount to pay", 400);
+//     }
+//
+//     // Generate payment reference
+//     const paymentReference = `MAR_${booking.bookingCode}_${Date.now()}`;
+//
+//     try {
+//       let paymentData: any = {};
+//
+//       if (paymentMethod === "card") {
+//         // Initialize Paystack payment
+//         const paystackResponse = await fetch(
+//           "https://api.paystack.co/transaction/initialize",
+//           {
+//             method: "POST",
+//             headers: {
+//               Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+//               "Content-Type": "application/json",
+//             },
+//             body: JSON.stringify({
+//               email: booking.customer.email,
+//               amount: remainingAmount * 100, // Paystack expects kobo
+//               reference: paymentReference,
+//               callback_url:
+//                 returnUrl ||
+//                 `${process.env.FRONTEND_URL}/booking/confirmation?bookingId=${id}`,
+//               metadata: {
+//                 bookingId: id,
+//                 bookingCode: booking.bookingCode,
+//                 customerName: booking.guestName || booking.guestEmail,
+//                 propertyName: booking.property.name,
+//                 paymentType: "booking_continuation",
+//               },
+//             }),
+//           }
+//         );
+//
+//         const paystackData = await paystackResponse.json();
+//
+//         if (!paystackData.status) {
+//           throw new AppError("Failed to initialize payment", 500);
+//         }
+//
+//         paymentData = {
+//           paymentUrl: paystackData.data.authorization_url,
+//           reference: paymentReference,
+//           amount: remainingAmount,
+//           provider: "paystack",
+//         };
+//       } else if (paymentMethod === "bank_transfer") {
+//         // For bank transfer, provide bank details and receipt upload info
+//         paymentData = {
+//           bankDetails: {
+//             bankName: "First Bank of Nigeria",
+//             accountNumber: "2034567890", // Your business account
+//             accountName: "MAR ABU PROJECTS SERVICES LLC",
+//             reference: paymentReference,
+//           },
+//           amount: remainingAmount,
+//           instructions:
+//             "After making the transfer, please upload your receipt using the receipt upload feature",
+//           provider: "bank_transfer",
+//         };
+//       } else if (paymentMethod === "wallet") {
+//         // Handle wallet payments (you can integrate with local payment providers)
+//         paymentData = {
+//           walletInstructions:
+//             "Wallet payment coming soon. Please use card or bank transfer.",
+//           amount: remainingAmount,
+//           provider: "wallet",
+//         };
+//       }
+//
+//       // Create payment record
+//       const payment = await prisma.payment.create({
+//         data: {
+//           bookingId: id,
+//           userId: req.user.id,
+//           amount: remainingAmount,
+//           method: paymentMethod.toUpperCase() as any,
+//           reference: paymentReference,
+//           status: paymentMethod === "bank_transfer" ? "PENDING" : "INITIATED",
+//         },
+//       });
+//
+//       // Update booking payment status
+//       if (paymentMethod !== "bank_transfer") {
+//         await prisma.booking.update({
+//           where: { id },
+//           data: {
+//             paymentStatus: "PROCESSING",
+//           },
+//         });
+//       }
+//
+//       // Send notification to host
+//       await prisma.notification.create({
+//         data: {
+//           userId: booking.property.hostId,
+//           type: "PAYMENT_INITIATED",
+//           title: "Payment Continuation Started",
+//           message: `Customer ${req.user.email} has initiated payment continuation for booking ${booking.bookingCode}`,
+//           metadata: {
+//             bookingId: id,
+//             paymentId: payment.id,
+//             amount: remainingAmount,
+//             method: paymentMethod,
+//           },
+//         },
+//       });
+//
+//       auditLog(
+//         "PAYMENT_CONTINUATION_INITIATED",
+//         req.user.id,
+//         {
+//           bookingId: id,
+//           paymentId: payment.id,
+//           amount: remainingAmount,
+//           method: paymentMethod,
+//           reference: paymentReference,
+//         },
+//         req.ip
+//       );
+//
+//       res.json({
+//         success: true,
+//         message: "Payment initiation successful",
+//         data: {
+//           paymentId: payment.id,
+//           reference: paymentReference,
+//           amount: remainingAmount,
+//           ...paymentData,
+//         },
+//       });
+//     } catch (error: any) {
+//       console.error("Payment initialization error:", error);
+//       throw new AppError(error.message || "Failed to initialize payment", 500);
+//     }
+//   })
+// );
+//
+/**
+ * @route   PATCH /api/v1/bookings/:bookingCode/status
  * @desc    Update booking status (approve/reject)
  * @access  Property Host, Admin
  */
@@ -764,10 +1413,10 @@ router.post(
  *         description: Server error
  */
 router.patch(
-  "/:id/status",
+  "/:bookingCode/status",
   requireAuth({ role: UserRole.ADMIN }),
   [
-    param("id").isString(),
+    param("bookingCode").isString(),
     body("status").isIn([
       BookingStatus.APPROVED,
       BookingStatus.REJECTED,
@@ -781,7 +1430,7 @@ router.patch(
 
     // Get booking with property
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
+      where: { bookingCode: req.params.bookingCode },
       include: {
         property: {
           select: {
@@ -790,11 +1439,7 @@ router.patch(
           },
         },
         customer: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+          select: { email: true },
         },
       },
     });
@@ -848,7 +1493,7 @@ router.patch(
 
     // Send email notification
     await emailService.sendBookingConfirmation(booking.customer.email, {
-      customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+      customerName: booking.guestName || booking.guestEmail,
       propertyName: booking.property.name,
       bookingCode: booking.bookingCode,
       status,
@@ -859,7 +1504,7 @@ router.patch(
       "BOOKING_STATUS_UPDATED",
       req.user.id,
       {
-        bookingId: req.params.id,
+        bookingCode: req.params.bookingCode,
         status,
         reason,
       },
@@ -875,13 +1520,13 @@ router.patch(
 );
 
 /**
- * @route   POST /api/v1/bookings/:id/cancel
+ * @route   POST /api/v1/bookings/:bookingCode/cancel
  * @desc    Cancel booking
  * @access  Protected (booking owner)
  */
 /**
  * @swagger
- * /bookings/{id}/cancel:
+ * /bookings/{bookingCode}/cancel:
  *   post:
  *     summary: Cancel a booking
  *     description: Allows a booking owner to cancel a booking if it is still pending or approved.
@@ -891,11 +1536,11 @@ router.patch(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: bookingCode
  *         required: true
  *         schema:
  *           type: string
- *         description: Booking ID to cancel
+ *         description: Booking code to cancel
  *     requestBody:
  *       required: false
  *       content:
@@ -930,16 +1575,29 @@ router.patch(
  *         description: Booking not found
  */
 router.post(
-  "/:id/cancel",
+  "/:bookingCode/cancel",
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
-    const bookingId = req.params.id;
+    const bookingCode = req.params.bookingCode;
     const { reason } = cancelBookingSchema.parse(req.body);
 
     // Fetch booking with payment
     const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-      include: { payment: true, property: true, customer: true },
+      where: { bookingCode: bookingCode },
+      include: {
+        payment: true,
+        property: {
+          include: {
+            host: {
+              select: {
+                id: true,
+                email: true,
+              },
+            },
+          },
+        },
+        customer: true,
+      },
     });
 
     if (!booking) {
@@ -963,8 +1621,8 @@ router.post(
     const payment = booking.payment;
     if (!payment || payment.status !== PaymentStatus.PAID) {
       // Just cancel, no refund
-      await prisma.booking.update({
-        where: { id: bookingId },
+      const cancelledBooking = await prisma.booking.update({
+        where: { bookingCode: bookingCode },
         data: {
           status: BookingStatus.CANCELLED,
           cancellationReason: reason,
@@ -972,7 +1630,43 @@ router.post(
           cancelledBy: req.user.id,
         },
       });
-      auditLog("BOOKING_CANCELLED", req.user.id, { bookingId }, req.ip);
+
+      // Send cancellation email to customer
+      try {
+        await emailService.sendBookingCancelledEmail(
+          booking.customer.email,
+          {
+            ...cancelledBooking,
+            property: booking.property,
+            customer: booking.customer,
+          },
+          reason
+        );
+      } catch (emailError) {
+        console.error(
+          "Failed to send cancellation email to customer:",
+          emailError
+        );
+      }
+
+      // Send cancellation notification to host
+      try {
+        if (booking.property.host?.email) {
+          await emailService.sendBookingCancelledEmail(
+            booking.property.host.email,
+            {
+              ...cancelledBooking,
+              property: booking.property,
+              customer: booking.customer,
+            },
+            reason
+          );
+        }
+      } catch (emailError) {
+        console.error("Failed to send cancellation email to host:", emailError);
+      }
+
+      auditLog("BOOKING_CANCELLED", req.user.id, { bookingCode }, req.ip);
       return res.json({
         success: true,
         message: "Booking cancelled (no refund, not paid)",
@@ -1013,7 +1707,7 @@ router.post(
     // Transaction: mark booking cancelled, create refund request, update payment
     const [cancelledBooking, refund] = await prisma.$transaction([
       prisma.booking.update({
-        where: { id: bookingId },
+        where: { bookingCode: bookingCode },
         data: {
           status: BookingStatus.CANCELLED,
           cancellationReason: reason,
@@ -1041,10 +1735,45 @@ router.post(
       }),
     ]);
 
+    // Send cancellation email to customer
+    try {
+      await emailService.sendBookingCancelledEmail(
+        booking.customer.email,
+        {
+          ...cancelledBooking,
+          property: booking.property,
+          customer: booking.customer,
+        },
+        reason
+      );
+    } catch (emailError) {
+      console.error(
+        "Failed to send cancellation email to customer:",
+        emailError
+      );
+    }
+
+    // Send cancellation notification to host
+    try {
+      if (booking.property.host?.email) {
+        await emailService.sendBookingCancelledEmail(
+          booking.property.host.email,
+          {
+            ...cancelledBooking,
+            property: booking.property,
+            customer: booking.customer,
+          },
+          reason
+        );
+      }
+    } catch (emailError) {
+      console.error("Failed to send cancellation email to host:", emailError);
+    }
+
     auditLog(
       "BOOKING_CANCELLED_REFUND_REQUESTED",
       req.user.id,
-      { bookingId, refundId: refund.id, paymentId: payment.id },
+      { bookingCode, refundId: refund.id, paymentId: payment.id },
       req.ip
     );
 
@@ -1059,13 +1788,13 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/bookings/:id/invoice
+ * @route   GET /api/v1/bookings/:bookingCode/invoice
  * @desc    Get booking invoice
  * @access  Protected (authorized users only)
  */
 /**
  * @swagger
- * /bookings/{id}/invoice:
+ * /bookings/{bookingCode}/invoice:
  *   get:
  *     summary: Get booking invoice
  *     description: Retrieve an invoice for a specific booking. Only the booking owner, the property host, or an admin can access this invoice.
@@ -1075,9 +1804,9 @@ router.post(
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: bookingCode
  *         required: true
- *         description: The ID of the booking
+ *         description: The booking code of the booking
  *         schema:
  *           type: string
  *     responses:
@@ -1135,11 +1864,11 @@ router.post(
  *         description: Booking not found
  */
 router.get(
-  "/:id/invoice",
+  "/:bookingCode/invoice",
   requireAuth(),
   asyncHandler(async (req: any, res: any) => {
     const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
+      where: { bookingCode: req.params.bookingCode },
       include: {
         property: {
           select: {
@@ -1154,12 +1883,7 @@ router.get(
           },
         },
         customer: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-          },
+          select: { email: true, phone: true },
         },
       },
     });

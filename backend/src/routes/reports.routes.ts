@@ -331,21 +331,12 @@ router.get(
               type: true,
               city: true,
               host: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                  email: true,
-                },
+                select: { email: true },
               },
             },
           },
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-              phone: true,
-            },
+            select: { email: true, phone: true },
           },
           payment: {
             select: {
@@ -394,7 +385,7 @@ router.get(
         title: "Booking Report",
         period: { start, end },
         generatedAt: new Date(),
-        generatedBy: `${req.user.firstName} ${req.user.lastName}`,
+        generatedBy: `${req.user.email}`,
         filters: { propertyId, status, hostId },
       },
       summary: {
@@ -408,9 +399,9 @@ router.get(
         propertyName: booking.property.name,
         propertyType: booking.property.type,
         propertyCity: booking.property.city,
-        hostName: `${booking.property.host.firstName} ${booking.property.host.lastName}`,
+        hostName: `${booking.property.host.email}`,
         hostEmail: booking.property.host.email,
-        customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+        customerName: `${booking.customer.email}`,
         customerEmail: booking.customer.email,
         customerPhone: booking.customer.phone,
         checkIn: booking.checkInDate,
@@ -775,10 +766,7 @@ router.get(
           type: true,
           city: true,
           host: {
-            select: {
-              firstName: true,
-              lastName: true,
-            },
+            select: {},
           },
         },
       });
@@ -790,9 +778,7 @@ router.get(
           propertyName: property?.name,
           propertyType: property?.type,
           propertyCity: property?.city,
-          hostName: property
-            ? `${property.host.firstName} ${property.host.lastName}`
-            : null,
+          hostName: property ? `${req.user.email}` : null,
           bookingCount: revenue._count.propertyId,
           totalRevenue: revenue._sum.total,
           propertyRevenue: revenue._sum.baseAmount,
@@ -822,7 +808,7 @@ router.get(
         period: { start, end },
         groupBy,
         generatedAt: new Date(),
-        generatedBy: `${req.user.firstName} ${req.user.lastName}`,
+        generatedBy: `${req.user.email}`,
         filters: { propertyId, hostId },
       },
       summary: {
@@ -1065,11 +1051,7 @@ router.get(
       where: propertyWhere,
       include: {
         host: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+          select: { email: true },
         },
         bookings: {
           where: {
@@ -1162,7 +1144,7 @@ router.get(
         propertyType: property.type,
         city: property.city,
         state: property.state,
-        hostName: `${property.host.firstName} ${property.host.lastName}`,
+        hostName: `${req.user.email}`,
         hostEmail: property.host.email,
         baseRate: property.baseRate,
         maxGuests: property.maxGuests,
@@ -1201,7 +1183,7 @@ router.get(
         title: "Property Performance Report",
         period: { start, end },
         generatedAt: new Date(),
-        generatedBy: `${req.user.firstName} ${req.user.lastName}`,
+        generatedBy: `${req.user.email}`,
         filters: { propertyId, hostId },
       },
       summary: {
@@ -1481,8 +1463,8 @@ router.get(
 
       return {
         customerId: customer.id,
-        firstName: customer.firstName,
-        lastName: customer.lastName,
+        // firstName removed
+        // lastName removed
         email: customer.email,
         phone: customer.phone,
         joinedAt: customer.createdAt,
@@ -1514,7 +1496,7 @@ router.get(
         period: { start, end },
         segment,
         generatedAt: new Date(),
-        generatedBy: `${req.user.firstName} ${req.user.lastName}`,
+        generatedBy: `${req.user.email}`,
       },
       summary: {
         totalCustomers: filteredData.length,

@@ -124,113 +124,79 @@ const validate = (req, res, next) => {
  *                             properties:
  *                               id:
  *                                 type: string
- *                               firstName:
- *                                 type: string
- *                               lastName:
- *                                 type: string
- *                               avatar:
- *                                 type: string
- *                           property:
- *                             type: object
- *                             properties:
- *                               id:
- *                                 type: string
- *                               name:
- *                                 type: string
- *                               type:
- *                                 type: string
- *                               images:
- *                                 type: array
- *                                 items:
- *                                   type: string
- *                           booking:
- *                             type: object
- *                             properties:
- *                               bookingCode:
- *                                 type: string
- *                               checkInDate:
- *                                 type: string
- *                                 format: date
- *                               checkOutDate:
- *                                 type: string
- *                                 format: date
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                         limit:
- *                           type: integer
- *                         total:
- *                           type: integer
- *                         pages:
- *                           type: integer
- */
-router.get('/', (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { page = 1, limit = 20, propertyId, customerId, rating, approved, featured, sortBy = 'createdAt', sortOrder = 'desc', } = req.query;
+ *asyncHandler(async (req: any, res: any) => {
+    const {
+      page = 1,
+      limit = 20,
+      propertyId,
+      customerId,
+      rating,
+      approved,
+      featured,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = req.query
+
     // Build where clause
-    const where = {};
-    if (propertyId)
-        where.propertyId = propertyId;
-    if (customerId)
-        where.customerId = customerId;
-    if (rating)
-        where.rating = parseInt(rating);
-    if (approved !== undefined)
-        where.approved = approved === 'true';
-    if (featured !== undefined)
-        where.featured = featured === 'true';
+    const where: any = {}
+    if (propertyId) where.propertyId = propertyId
+    if (customerId) where.customerId = customerId
+    if (rating) where.rating = parseInt(rating)
+    if (approved !== undefined) where.approved = approved === 'true'
+    if (featured !== undefined) where.featured = featured === 'true'
+
     // For public view, only show approved reviews
-    if (!req.user || req.user.role === client_1.UserRole.CUSTOMER) {
-        where.approved = true;
+    if (!req.user || req.user.role === UserRole.CUSTOMER) {
+      where.approved = true
     }
+
     const [reviews, total] = await Promise.all([
-        server_1.prisma.review.findMany({
-            where,
-            orderBy: { [sortBy]: sortOrder },
-            skip: (parseInt(page) - 1) * parseInt(limit),
-            take: parseInt(limit),
-            include: {
-                customer: {
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        avatar: true,
-                    },
-                },
-                property: {
-                    select: {
-                        id: true,
-                        name: true,
-                        type: true,
-                        images: true,
-                    },
-                },
-                booking: {
-                    select: {
-                        bookingCode: true,
-                        checkInDate: true,
-                        checkOutDate: true,
-                    },
-                },
+      prisma.review.findMany({
+        where,
+        orderBy: { [sortBy]: sortOrder },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit),
+        include: {
+          customer: {
+            select: {
+              id: true,avatar: true,
             },
-        }),
-        server_1.prisma.review.count({ where }),
-    ]);
-    res.json({
-        success: true,
-        data: {
-            reviews,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / parseInt(limit)),
+          },
+          property: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              images: true,
             },
+          },
+          booking: {
+            select: {
+              bookingCode: true,
+              checkInDate: true,
+              checkOutDate: true,
+            },
+          },
         },
-    });
-}));
+      }),
+      prisma.review.count({ where }),
+    ])
+
+    res.json({
+      success: true,
+      data: {
+        reviews,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      },
+    })
+  })
+)
+
 /**
  * @route   GET /reviews/:id
  * @desc    Get review details
@@ -288,113 +254,60 @@ router.get('/', (0, error_middleware_1.asyncHandler)(async (req, res) => {
  *                         id:
  *                           type: string
  *                           example: "user_5678"
- *                         firstName:
- *                           type: string
- *                           example: "John"
- *                         lastName:
- *                           type: string
- *                           example: "Doe"
- *                         avatar:
- *                           type: string
- *                           example: "https://cdn.example.com/avatars/johndoe.png"
- *                     property:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           example: "prop_8901"
- *                         name:
- *                           type: string
- *                           example: "Luxury Villa"
- *                         type:
- *                           type: string
- *                           example: "Apartment"
- *                         images:
- *                           type: array
- *                           items:
- *                             type: string
- *                           example: ["https://cdn.example.com/property/img1.jpg"]
- *                         hostId:
- *                           type: string
- *                           example: "host_123"
- *                     booking:
- *                       type: object
- *                       properties:
- *                         bookingCode:
- *                           type: string
- *                           example: "BK202501"
- *                         checkInDate:
- *                           type: string
- *                           format: date
- *                           example: "2025-08-01"
- *                         checkOutDate:
- *                           type: string
- *                           format: date
- *                           example: "2025-08-05"
- *       404:
- *         description: Review not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Review not found"
- */
-router.get('/:id', (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const review = await server_1.prisma.review.findUnique({
-        where: { id: req.params.id },
-        include: {
-            customer: {
-                select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    avatar: true,
-                },
-            },
-            property: {
-                select: {
-                    id: true,
-                    name: true,
-                    type: true,
-                    images: true,
-                    hostId: true,
-                },
-            },
-            booking: {
-                select: {
-                    bookingCode: true,
-                    checkInDate: true,
-                    checkOutDate: true,
-                },
-            },
+ *asyncHandler(async (req: any, res: any) => {
+    const review = await prisma.review.findUnique({
+      where: { id: req.params.id },
+      include: {
+        customer: {
+          select: {
+            id: true,avatar: true,
+          },
         },
-    });
+        property: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            images: true,
+            hostId: true,
+          },
+        },
+        booking: {
+          select: {
+            bookingCode: true,
+            checkInDate: true,
+            checkOutDate: true,
+          },
+        },
+      },
+    })
+
     if (!review) {
-        throw new error_middleware_2.AppError('Review not found', 404);
+      throw new AppError('Review not found', 404)
     }
+
     // Check if review is approved or user has permission to view
     if (!review.approved) {
-        if (!req.user) {
-            throw new error_middleware_2.AppError('Review not found', 404);
-        }
-        const isOwner = review.customerId === req.user.id;
-        const isHost = review.property.hostId === req.user.id;
-        const isAdmin = req.user.role === client_1.UserRole.ADMIN;
-        if (!isOwner && !isHost && !isAdmin) {
-            throw new error_middleware_2.AppError('Review not found', 404);
-        }
+      if (!req.user) {
+        throw new AppError('Review not found', 404)
+      }
+
+      const isOwner = review.customerId === req.user.id
+      const isHost = review.property.hostId === req.user.id
+      const isAdmin = req.user.role === UserRole.ADMIN
+
+      if (!isOwner && !isHost && !isAdmin) {
+        throw new AppError('Review not found', 404)
+      }
     }
+
     res.json({
-        success: true,
-        data: review,
-    });
-}));
+      success: true,
+      data: review,
+    })
+  })
+)
+
 /**
  * @route   POST /reviews
  * @desc    Create new review
@@ -547,10 +460,7 @@ router.post('/', (0, authservice_1.requireAuth)(), [
                     name: true,
                     hostId: true,
                     host: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                            email: true,
+                        select: { email: true,
                         },
                     },
                 },
@@ -608,7 +518,7 @@ router.post('/', (0, authservice_1.requireAuth)(), [
             userId: booking.property.hostId,
             type: 'REVIEW_RECEIVED',
             title: 'New Review Received',
-            message: `${req.user.firstName} ${req.user.lastName} left a review for ${booking.property.name}`,
+            message: `${req.user.email} left a review for ${booking.property.name}`,
             metadata: {
                 reviewId: review.id,
                 bookingId,
@@ -618,8 +528,8 @@ router.post('/', (0, authservice_1.requireAuth)(), [
     });
     // Send email notification to host
     await emailservice_1.emailService.sendReviewRequestEmail(booking.property.host.email, {
-        hostName: `${booking.property.host.firstName} ${booking.property.host.lastName}`,
-        customerName: `${req.user.firstName} ${req.user.lastName}`,
+        hostName: `${req.user.email}`,
+        customerName: `${req.user.email}`,
         propertyName: booking.property.name,
         rating,
         title,
@@ -918,10 +828,7 @@ router.put("/:id/approve", (0, authservice_1.requireAuth)({ role: client_1.UserR
         where: { id: req.params.id },
         include: {
             customer: {
-                select: {
-                    firstName: true,
-                    lastName: true,
-                    email: true,
+                select: { email: true,
                 },
             },
             property: {
@@ -961,7 +868,7 @@ router.put("/:id/approve", (0, authservice_1.requireAuth)({ role: client_1.UserR
     });
     // Send email notification
     await emailservice_1.emailService.sendReviewStatusUpdate(review.customer.email, {
-        customerName: `${review.customer.firstName} ${review.customer.lastName}`,
+        customerName: `${req.user.email}`,
         propertyName: review.property.name,
         approved,
         adminNotes,
@@ -1049,95 +956,60 @@ router.put("/:id/approve", (0, authservice_1.requireAuth)({ role: client_1.UserR
  *                           customer:
  *                             type: object
  *                             properties:
- *                               firstName:
- *                                 type: string
- *                               lastName:
- *                                 type: string
- *                               email:
- *                                 type: string
- *                               avatar:
- *                                 type: string
- *                           property:
- *                             type: object
- *                             properties:
- *                               name:
- *                                 type: string
- *                               type:
- *                                 type: string
- *                           booking:
- *                             type: object
- *                             properties:
- *                               bookingCode:
- *                                 type: string
- *                               checkInDate:
- *                                 type: string
- *                                 format: date-time
- *                               checkOutDate:
- *                                 type: string
- *                                 format: date-time
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                         limit:
- *                           type: integer
- *                         total:
- *                           type: integer
- *                         pages:
- *                           type: integer
- *       401:
- *         description: Unauthorized - Invalid or missing token
- *       403:
- *         description: Forbidden - Only admins can access pending reviews
- */
-router.get("/pending", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { page = 1, limit = 20, sortBy = "createdAt", sortOrder = "desc", } = req.query;
+ *requireAuth({ role: UserRole.ADMIN }),
+  asyncHandler(async (req: any, res: any) => {
+    const {
+      page = 1,
+      limit = 20,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
     const [reviews, total] = await Promise.all([
-        server_1.prisma.review.findMany({
-            where: { approved: false },
-            orderBy: { [sortBy]: sortOrder },
-            skip: (parseInt(page) - 1) * parseInt(limit),
-            take: parseInt(limit),
-            include: {
-                customer: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                        avatar: true,
-                    },
-                },
-                property: {
-                    select: {
-                        name: true,
-                        type: true,
-                    },
-                },
-                booking: {
-                    select: {
-                        bookingCode: true,
-                        checkInDate: true,
-                        checkOutDate: true,
-                    },
-                },
+      prisma.review.findMany({
+        where: { approved: false },
+        orderBy: { [sortBy]: sortOrder },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit),
+        include: {
+          customer: {
+            select: {email: true,
+              avatar: true,
             },
-        }),
-        server_1.prisma.review.count({ where: { approved: false } }),
-    ]);
-    res.json({
-        success: true,
-        data: {
-            reviews,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / parseInt(limit)),
+          },
+          property: {
+            select: {
+              name: true,
+              type: true,
             },
+          },
+          booking: {
+            select: {
+              bookingCode: true,
+              checkInDate: true,
+              checkOutDate: true,
+            },
+          },
         },
+      }),
+      prisma.review.count({ where: { approved: false } }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        reviews,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      },
     });
-}));
+  })
+);
+
 /**
  * @route   GET /reviews/property/:propertyId/stats
  * @desc    Get review statistics for property

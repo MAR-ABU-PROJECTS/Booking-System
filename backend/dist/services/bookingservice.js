@@ -144,10 +144,10 @@ class BookingService {
         const baseAmount = property.baseRate;
         // Total nightly amount (sum of all nights with weekend premiums)
         const totalNightlyAmount = breakdown.reduce((sum, d) => sum + d.rate, 0);
-        // Calculate standalone fees
-        const cleaningFee = property.cleaningFee || 0;
-        const cautionFee = 100000;
-        const taxes = 0; // Add tax calculation if needed
+        // Calculate standalone fees - REMOVED cleaning fee and taxes per meeting requirements
+        const cleaningFee = 0; // REMOVED: No more cleaning fee
+        const cautionFee = 100000; // Keep service fee
+        const taxes = 0; // REMOVED: No more taxes
         // Calculate discounts
         let discounts = 0;
         if (promoCode) {
@@ -220,8 +220,6 @@ class BookingService {
                     customer: {
                         select: {
                             id: true,
-                            firstName: true,
-                            lastName: true,
                             email: true,
                             phone: true,
                         },
@@ -231,8 +229,6 @@ class BookingService {
                             host: {
                                 select: {
                                     id: true,
-                                    firstName: true,
-                                    lastName: true,
                                     email: true,
                                 },
                             },
@@ -247,9 +243,8 @@ class BookingService {
                 propertyName: booking.property.name,
                 totalAmount: booking.total,
             });
-            // Emails
+            // Send single confirmation email (includes approval since booking is auto-approved)
             await emailservice_1.emailService.sendBookingConfirmation(booking.guestEmail, booking);
-            await emailservice_1.emailService.sendBookingApprovedEmail(booking.guestEmail, booking);
             // Notifications
             await this.sendBookingNotifications(booking, "APPROVED");
             return booking;
@@ -271,8 +266,6 @@ class BookingService {
                 customer: {
                     select: {
                         id: true,
-                        firstName: true,
-                        lastName: true,
                         email: true,
                         phone: true,
                     },
@@ -282,8 +275,6 @@ class BookingService {
                         host: {
                             select: {
                                 id: true,
-                                firstName: true,
-                                lastName: true,
                                 email: true,
                             },
                         },
@@ -379,8 +370,6 @@ class BookingService {
                         customer: {
                             select: {
                                 id: true,
-                                firstName: true,
-                                lastName: true,
                                 email: true,
                                 phone: true,
                             },
@@ -390,8 +379,6 @@ class BookingService {
                                 host: {
                                     select: {
                                         id: true,
-                                        firstName: true,
-                                        lastName: true,
                                         email: true,
                                     },
                                 },
@@ -480,8 +467,6 @@ class BookingService {
                     customer: {
                         select: {
                             id: true,
-                            firstName: true,
-                            lastName: true,
                             email: true,
                             phone: true,
                         },
@@ -491,8 +476,6 @@ class BookingService {
                             host: {
                                 select: {
                                     id: true,
-                                    firstName: true,
-                                    lastName: true,
                                     email: true,
                                 },
                             },
@@ -613,8 +596,6 @@ class BookingService {
                     customer: {
                         select: {
                             id: true,
-                            firstName: true,
-                            lastName: true,
                             email: true,
                             phone: true,
                         },
@@ -624,8 +605,6 @@ class BookingService {
                             host: {
                                 select: {
                                     id: true,
-                                    firstName: true,
-                                    lastName: true,
                                     email: true,
                                 },
                             },

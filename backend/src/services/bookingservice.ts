@@ -126,8 +126,6 @@ export interface BookingWithDetails {
   updatedAt: Date;
   customer: {
     id: string;
-    firstName: string;
-    lastName: string;
     email: string;
     phone: string | null;
   };
@@ -143,8 +141,6 @@ export interface BookingWithDetails {
     checkOutTime: string;
     host: {
       id: string;
-      firstName: string;
-      lastName: string;
       email: string;
     };
     hostId: string;
@@ -304,10 +300,10 @@ export class BookingService {
     // Total nightly amount (sum of all nights with weekend premiums)
     const totalNightlyAmount = breakdown.reduce((sum, d) => sum + d.rate, 0);
 
-    // Calculate standalone fees
-    const cleaningFee = property.cleaningFee || 0;
-    const cautionFee = 100000;
-    const taxes = 0; // Add tax calculation if needed
+    // Calculate standalone fees - REMOVED cleaning fee and taxes per meeting requirements
+    const cleaningFee = 0; // REMOVED: No more cleaning fee
+    const cautionFee = 100000; // Keep service fee
+    const taxes = 0; // REMOVED: No more taxes
 
     // Calculate discounts
     let discounts = 0;
@@ -402,8 +398,6 @@ export class BookingService {
           customer: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
               email: true,
               phone: true,
             },
@@ -413,8 +407,6 @@ export class BookingService {
               host: {
                 select: {
                   id: true,
-                  firstName: true,
-                  lastName: true,
                   email: true,
                 },
               },
@@ -431,9 +423,8 @@ export class BookingService {
         totalAmount: booking.total,
       });
 
-      // Emails
+      // Send single confirmation email (includes approval since booking is auto-approved)
       await emailService.sendBookingConfirmation(booking.guestEmail, booking);
-      await emailService.sendBookingApprovedEmail(booking.guestEmail, booking);
 
       // Notifications
       await this.sendBookingNotifications(booking, "APPROVED");
@@ -463,8 +454,6 @@ export class BookingService {
         customer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
             email: true,
             phone: true,
           },
@@ -474,8 +463,6 @@ export class BookingService {
             host: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
                 email: true,
               },
             },
@@ -593,8 +580,6 @@ export class BookingService {
             customer: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
                 email: true,
                 phone: true,
               },
@@ -604,8 +589,6 @@ export class BookingService {
                 host: {
                   select: {
                     id: true,
-                    firstName: true,
-                    lastName: true,
                     email: true,
                   },
                 },
@@ -726,8 +709,6 @@ export class BookingService {
           customer: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
               email: true,
               phone: true,
             },
@@ -737,8 +718,6 @@ export class BookingService {
               host: {
                 select: {
                   id: true,
-                  firstName: true,
-                  lastName: true,
                   email: true,
                 },
               },
@@ -899,8 +878,6 @@ export class BookingService {
           customer: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
               email: true,
               phone: true,
             },
@@ -910,8 +887,6 @@ export class BookingService {
               host: {
                 select: {
                   id: true,
-                  firstName: true,
-                  lastName: true,
                   email: true,
                 },
               },

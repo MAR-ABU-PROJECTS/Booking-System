@@ -203,6 +203,190 @@ router.post(
 
 /**
  * @swagger
+ * /receipts/booking/{bookingId}/upload:
+ *   post:
+ *     summary: Upload receipt for pending booking payment
+ *     description: Allows customers to upload payment receipts for bookings with pending payment status
+ *     tags:
+ *       - Receipts
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: bookingId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID with pending payment
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - paymentMethod
+ *               - file
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 format: float
+ *                 example: 250000.00
+ *               paymentMethod:
+ *                 type: string
+ *                 example: "bank_transfer"
+ *               bank:
+ *                 type: string
+ *                 example: "First Bank Nigeria"
+ *               transactionRef:
+ *                 type: string
+ *                 example: "TXN123456789"
+ *               transactionDate:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-08-16T10:30:00Z"
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The receipt file (image or PDF)
+ *     responses:
+ *       201:
+ *         description: Receipt uploaded successfully for pending payment
+ *       400:
+ *         description: Invalid booking or payment status
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Booking not found
+ */
+router.post(
+  "/booking/:bookingId/upload",
+  requireAuth(),
+  uploadMiddleware.receipt,
+  [
+    param("bookingId").isString(),
+    body("amount").isFloat({ gt: 0 }),
+    body("paymentMethod").isString(),
+    body("bank").optional().isString(),
+    body("transactionRef").optional().isString(),
+    body("transactionDate").optional().isISO8601(),
+  ],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    if (!req.file) {
+      throw new AppError("Receipt file is required", 400);
+    }
+
+    const { bookingId } = req.params;
+    const { amount, paymentMethod, bank, transactionRef, transactionDate } =
+      req.body;
+
+    // Get booking with payment details
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        property: {
+          select: { hostId: true, name: true },
+        },
+        customer: {
+          select: { email: true },
+        },
+      },
+    });
+
+    if (!booking) throw new AppError("Booking not found", 404);
+
+    // Check authorization - only booking owner can upload
+    if (booking.customerId !== req.user.id) {
+      throw new AppError(
+        "Not authorized to upload receipt for this booking",
+        403
+      );
+    }
+
+    // Check if booking has pending payment status
+    if (booking.paymentStatus !== "PENDING") {
+      throw new AppError(
+        "Can only upload receipts for bookings with pending payment",
+        400
+      );
+    }
+
+    // Check if booking is approved
+    if (booking.status !== "APPROVED") {
+      throw new AppError(
+        "Booking must be approved before uploading payment receipt",
+        400
+      );
+    }
+
+    const receipt = await prisma.receipt.create({
+      data: {
+        fileName: req.file.filename,
+        originalName: req.file.originalname,
+        fileUrl: `/uploads/receipts/${req.file.filename}`,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        amount: parseFloat(amount),
+        paymentMethod,
+        bank,
+        transactionRef,
+        transactionDate: transactionDate
+          ? new Date(transactionDate)
+          : new Date(),
+        bookingId,
+        uploadedBy: req.user.id,
+        status: "PENDING", // Default to pending verification
+      },
+    });
+
+    // Update booking payment status to indicate receipt uploaded
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        paymentStatus: "PROCESSING", // Indicates receipt uploaded, awaiting verification
+      },
+    });
+
+    // Send notification to admin about new receipt
+    await prisma.notification.create({
+      data: {
+        userId: booking.property.hostId, // Notify property host
+        type: "RECEIPT_UPLOADED",
+        title: "New Payment Receipt Uploaded",
+        message: `Customer ${req.user.email} uploaded a payment receipt for booking ${booking.bookingCode}`,
+        metadata: {
+          bookingId: booking.id,
+          receiptId: receipt.id,
+          amount: receipt.amount,
+        },
+      },
+    });
+
+    auditLog(
+      "RECEIPT_UPLOADED_FOR_PENDING_PAYMENT",
+      req.user.id,
+      {
+        receiptId: receipt.id,
+        bookingId,
+        amount: receipt.amount,
+        paymentMethod,
+      },
+      req.ip
+    );
+
+    res.status(201).json({
+      success: true,
+      message:
+        "Receipt uploaded successfully. Payment verification is in progress.",
+      data: receipt,
+    });
+  })
+);
+
+/**
+ * @swagger
  * /receipts/{id}:
  *   get:
  *     summary: Get receipt by ID
