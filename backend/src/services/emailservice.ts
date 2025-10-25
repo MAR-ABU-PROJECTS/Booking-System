@@ -2,7 +2,6 @@
 import { Resend } from "resend";
 import { logger } from "../middlewares/logger.middleware";
 import { APP_CONSTANTS } from "../utils/constants";
-import { prisma } from "../server";
 
 interface EmailAttachment {
   filename: string;
@@ -50,10 +49,7 @@ export class EmailService {
   }
 
   private getBackendBaseUrl(): string {
-    return (process.env.BACKEND_URL || "http://localhost:5050").replace(
-      /\/$/,
-      ""
-    );
+    return (process.env.BACKEND_URL || "http://localhost:5050").replace(/\/$/, "");
   }
 
   private getFrontendBaseUrl(): string {

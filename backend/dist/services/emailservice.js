@@ -5,7 +5,6 @@ exports.emailService = exports.EmailService = void 0;
 const resend_1 = require("resend");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const constants_1 = require("../utils/constants");
-const server_1 = require("../server");
 class EmailService {
     constructor() {
         if (!process.env.RESEND_API_KEY) {

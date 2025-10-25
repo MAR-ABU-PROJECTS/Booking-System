@@ -248,6 +248,23 @@ router.post(
       );
     }
 
+    // Check if the user's role matches the interface they're trying to access
+    if (interfaceType === "admin" && result.user.role !== "ADMIN") {
+      throw new AppError(
+        "Access denied. Admin interface is only accessible to administrators",
+        403,
+        "ROLE_MISMATCH"
+      );
+    }
+
+    if (interfaceType === "customer" && result.user.role !== "CUSTOMER") {
+      throw new AppError(
+        "Access denied. Customer interface is only accessible to customers",
+        403,
+        "ROLE_MISMATCH"
+      );
+    }
+
     auditLog(
       result.isNewUser ? "USER_REGISTERED" : "USER_LOGIN",
       result.user.id,
@@ -416,6 +433,7 @@ router.get(
     }
   })
 );
+
 
 /**
  * @route   POST /api/v1/auth/verify-email/resend

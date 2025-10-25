@@ -107,6 +107,8 @@ router.post("/request-otp", [
     }, req.ip);
     res.json({
         success: true,
+        message: "Registration successful. Please Log In to continue.",
+        data: { user: result.user },
         message: "Verification code sent to your email",
         data: {
             expiresIn: otpservice_1.OTPService.CONSTANTS.EXPIRY_MINUTES * 60,
