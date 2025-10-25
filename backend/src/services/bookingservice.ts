@@ -101,7 +101,7 @@ export interface BookingWithDetails {
   paymentStatus: PaymentStatus;
   baseAmount: number;
   cleaningFee: number;
-  serviceFee: number;
+  cautionFee: number;
   taxes: number;
   discount: number;
   total: number;
@@ -186,7 +186,7 @@ export interface BookingSearchResult {
 export interface BookingPricing {
   baseAmount: number;
   cleaningFee: number;
-  serviceFee: number;
+  cautionFee: number;
   taxes: number;
   discounts: number;
   totalAmount: number;
@@ -232,7 +232,7 @@ export class BookingService {
         baseRate: true,
         weekendPremium: true,
         cleaningFee: true,
-        serviceFee: true,
+        cautionFee: true,
         maxGuests: true,
         status: true,
       },
@@ -306,8 +306,7 @@ export class BookingService {
 
     // Calculate standalone fees
     const cleaningFee = property.cleaningFee || 0;
-    const serviceFeeRate = property.serviceFee || 0.05;
-    const serviceFee = Math.round(totalNightlyAmount * serviceFeeRate);
+    const cautionFee = 100000;
     const taxes = 0; // Add tax calculation if needed
 
     // Calculate discounts
@@ -328,12 +327,12 @@ export class BookingService {
 
     // TOTAL = (Total Nightly Amount) + Cleaning Fee + Service Fee + Taxes - Discounts
     const totalAmount =
-      totalNightlyAmount + cleaningFee + serviceFee + taxes - discounts;
+      totalNightlyAmount + cleaningFee + cautionFee + taxes - discounts;
 
     return {
       baseAmount: Math.round(baseAmount),
       cleaningFee: Math.round(cleaningFee),
-      serviceFee,
+      cautionFee,
       taxes,
       discounts,
       totalAmount: Math.round(totalAmount),
@@ -390,7 +389,7 @@ export class BookingService {
           arrivalTime: validatedData.arrivalTime,
           baseAmount: pricing.baseAmount,
           cleaningFee: pricing.cleaningFee,
-          serviceFee: pricing.serviceFee,
+          cautionFee: pricing.cautionFee,
           taxes: pricing.taxes,
           discount: pricing.discounts,
           total: pricing.totalAmount,
@@ -706,7 +705,7 @@ export class BookingService {
           nights,
           baseAmount: pricing.baseAmount,
           cleaningFee: pricing.cleaningFee,
-          serviceFee: pricing.serviceFee,
+          cautionFee: pricing.cautionFee,
           total: pricing.totalAmount,
         };
       }

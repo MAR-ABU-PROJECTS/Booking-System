@@ -333,7 +333,7 @@ router.get("/public", (0, error_middleware_1.asyncHandler)(async (req, res) => {
  *                 data:
  *                   type: object
  *                   properties:
- *                     defaultServiceFeePercentage:
+ *                     defaultcautionFeePercentage:
  *                       type: number
  *                       example: 10
  *                     maxAdvanceBookingDays:
@@ -359,7 +359,7 @@ router.get("/public", (0, error_middleware_1.asyncHandler)(async (req, res) => {
  * example:
  *   success: true
  *   data:
- *     defaultServiceFeePercentage: 10
+ *     defaultcautionFeePercentage: 10
  *     maxAdvanceBookingDays: 365
  *     minAdvanceBookingHours: 24
  *     cancellationGracePeriodHours: 24
@@ -378,7 +378,7 @@ router.get("/booking", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
     }, {});
     // Set defaults if not found
     const defaultSettings = {
-        defaultServiceFeePercentage: 10,
+        defaultcautionFeePercentage: 10,
         maxAdvanceBookingDays: 365,
         minAdvanceBookingHours: 24,
         cancellationGracePeriodHours: 24,
@@ -415,7 +415,7 @@ router.get("/booking", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
  *           schema:
  *             type: object
  *             properties:
- *               defaultServiceFeePercentage:
+ *               defaultcautionFeePercentage:
  *                 type: number
  *                 minimum: 0
  *                 maximum: 50
@@ -461,7 +461,7 @@ router.get("/booking", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
  *                     $ref: '#/components/schemas/SystemSetting'
  */
 router.put("/booking", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), [
-    (0, express_validator_1.body)("defaultServiceFeePercentage").optional().isFloat({ min: 0, max: 50 }),
+    (0, express_validator_1.body)("defaultcautionFeePercentage").optional().isFloat({ min: 0, max: 50 }),
     (0, express_validator_1.body)("maxAdvanceBookingDays").optional().isInt({ min: 1, max: 730 }),
     (0, express_validator_1.body)("minAdvanceBookingHours").optional().isInt({ min: 0, max: 168 }),
     (0, express_validator_1.body)("cancellationGracePeriodHours").optional().isInt({ min: 0, max: 168 }),

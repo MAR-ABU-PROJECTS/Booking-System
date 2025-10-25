@@ -116,14 +116,8 @@ router.post(
       .normalizeEmail()
       .withMessage("Valid email required"),
     body("password")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-      )
-      .withMessage(
-        "Password must contain uppercase, lowercase, number and special character"
-      ),
+      .isLength({ min: 3 })
+      .withMessage("Password must be at least 3 characters"),
     body("firstName").trim().notEmpty().withMessage("First name required"),
     body("lastName").trim().notEmpty().withMessage("Last name required"),
     body("phone")
@@ -158,7 +152,7 @@ router.post(
     res.status(201).json({
       success: true,
       message:
-        "Registration successful. Please check your email to verify your account.",
+        "Registration successful. Please Log In to continue.",
       data: { user: result.user },
     });
   })
@@ -240,7 +234,28 @@ router.post(
   validate,
   asyncHandler(async (req: any, res: any) => {
     const { email, password } = req.body;
+    // Get the interface type from the request headers or query
+    const interfaceType =
+      req.query.interface || req.headers["x-interface-type"];
+
     const result = await authService.login(email, password);
+
+    // Check if the user's role matches the interface they're trying to access
+    if (interfaceType === "admin" && result.user.role !== "ADMIN") {
+      throw new AppError(
+        "Access denied. Admin interface is only accessible to administrators",
+        403,
+        "ROLE_MISMATCH"
+      );
+    }
+
+    if (interfaceType === "customer" && result.user.role !== "CUSTOMER") {
+      throw new AppError(
+        "Access denied. Customer interface is only accessible to customers",
+        403,
+        "ROLE_MISMATCH"
+      );
+    }
 
     auditLog(
       "USER_LOGIN",
@@ -248,6 +263,7 @@ router.post(
       {
         email: result.user.email,
         role: result.user.role,
+        interfaceType,
       },
       req.ip
     );
@@ -377,6 +393,7 @@ router.post(
  *       500:
  *         description: Internal server error
  */
+// Original route with :token parameter
 router.get(
   "/verify-email/:token",
   asyncHandler(async (req: any, res: any) => {
@@ -405,6 +422,7 @@ router.get(
     }
   })
 );
+
 
 /**
  * @route   POST /api/v1/auth/verify-email/resend

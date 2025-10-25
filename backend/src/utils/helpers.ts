@@ -62,7 +62,7 @@ export const calculatePricing = (
   checkOut: Date,
   baseRate: number,
   cleaningFee: number = 0,
-  serviceFeeRate: number = APP_CONSTANTS.PRICING.SERVICE_FEE_RATE
+  cautionFeeRate: number = APP_CONSTANTS.PRICING.CAUTION_FEE_RATE
 ) => {
   const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
   
@@ -71,20 +71,20 @@ export const calculatePricing = (
   }
   
   const subtotal = nights * baseRate
-  let serviceFee = Math.round(subtotal * serviceFeeRate)
-  
-  // Cap service fee at maximum
-  if (serviceFee > APP_CONSTANTS.PRICING.MAX_SERVICE_FEE) {
-    serviceFee = APP_CONSTANTS.PRICING.MAX_SERVICE_FEE
+  let cautionFee = Math.round(subtotal * cautionFeeRate)
+
+  // Cap caution fee at maximum
+  if (cautionFee > APP_CONSTANTS.PRICING.MAX_CAUTION_FEE) {
+    cautionFee = APP_CONSTANTS.PRICING.MAX_CAUTION_FEE
   }
   
-  const total = subtotal + cleaningFee + serviceFee
+  const total = subtotal + cleaningFee + cautionFee
   
   return {
     nights,
     baseRate,
     subtotal,
-    serviceFee,
+    cautionFee,
     cleaningFee,
     total,
   }

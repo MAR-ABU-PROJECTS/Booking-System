@@ -4,7 +4,7 @@ export const APP_CONSTANTS = {
     NAME: "MAR ABU PROJECTS SERVICES LLC",
     PRIMARY_COLOR: "#F6931B",
     SECONDARY_COLOR: "#000000",
-    EMAIL: "info@marabuprojects.com",
+    EMAIL: "noreply@marabuprojects.com",
     SUPPORT_EMAIL: "support@marabuprojects.com",
     ADDRESS: "Lagos, Nigeria",
   },
@@ -73,8 +73,8 @@ export const APP_CONSTANTS = {
   },
 
   PRICING: {
-    SERVICE_FEE_RATE: 0.05, // 5%
-    MAX_SERVICE_FEE: 50000, // 50,000 NGN
+    CAUTION_FEE_RATE: 100000, // Fixed 100,000 NGN
+    MAX_CAUTION_FEE: 150000, // 150,000 NGN
     DEFAULT_CLEANING_FEE: 15000, // 15,000 NGN
     CURRENCY: "NGN",
     LOCALE: "en-NG",

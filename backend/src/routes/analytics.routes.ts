@@ -731,7 +731,7 @@ router.get(
  *                         cleaningFees:
  *                           type: number
  *                           example: 15000
- *                         serviceFees:
+ *                         cautionFees:
  *                           type: number
  *                           example: 20000
  *                     byProperty:
@@ -833,7 +833,7 @@ router.get(
           total: true,
           baseAmount: true,
           cleaningFee: true,
-          serviceFee: true,
+          cautionFee: true,
         },
         _count: true,
       }),
@@ -844,7 +844,7 @@ router.get(
         _sum: {
           baseAmount: true,
           cleaningFee: true,
-          serviceFee: true,
+          cautionFee: true,
         },
       }),
 
@@ -956,7 +956,7 @@ router.get(
         breakdown: {
           baseAmount: revenueBreakdown._sum.baseAmount || 0,
           cleaningFees: revenueBreakdown._sum.cleaningFee || 0,
-          serviceFees: revenueBreakdown._sum.serviceFee || 0,
+          cautionFees: revenueBreakdown._sum.cautionFee || 0,
         },
         byProperty: revenueByPropertyWithDetails,
         trends: revenueByMonth,
@@ -1373,7 +1373,7 @@ router.get(
             total: true,
             baseAmount: true,
             cleaningFee: true,
-            serviceFee: true,
+            cautionFee: true,
             createdAt: true,
             property: {
               select: { name: true, city: true },

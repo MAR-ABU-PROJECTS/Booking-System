@@ -8,6 +8,7 @@ const express_1 = require("express");
 const express_validator_1 = require("express-validator");
 const authservice_1 = require("../services/authservice");
 const error_middleware_1 = require("../middlewares/error.middleware");
+const error_middleware_2 = require("../middlewares/error.middleware");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
@@ -109,10 +110,8 @@ router.post("/register", [
         .normalizeEmail()
         .withMessage("Valid email required"),
     (0, express_validator_1.body)("password")
-        .isLength({ min: 8 })
-        .withMessage("Password must be at least 8 characters")
-        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-        .withMessage("Password must contain uppercase, lowercase, number and special character"),
+        .isLength({ min: 3 })
+        .withMessage("Password must be at least 3 characters"),
     (0, express_validator_1.body)("firstName").trim().notEmpty().withMessage("First name required"),
     (0, express_validator_1.body)("lastName").trim().notEmpty().withMessage("Last name required"),
     (0, express_validator_1.body)("phone")
@@ -133,7 +132,7 @@ router.post("/register", [
     }, req.ip);
     res.status(201).json({
         success: true,
-        message: "Registration successful. Please check your email to verify your account.",
+        message: "Registration successful. Please Log In to continue.",
         data: { user: result.user },
     });
 }));
@@ -209,10 +208,20 @@ router.post("/login", [
     (0, express_validator_1.body)("password").notEmpty().withMessage("Password required"),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { email, password } = req.body;
+    // Get the interface type from the request headers or query
+    const interfaceType = req.query.interface || req.headers["x-interface-type"];
     const result = await authservice_1.authService.login(email, password);
+    // Check if the user's role matches the interface they're trying to access
+    if (interfaceType === "admin" && result.user.role !== "ADMIN") {
+        throw new error_middleware_2.AppError("Access denied. Admin interface is only accessible to administrators", 403, "ROLE_MISMATCH");
+    }
+    if (interfaceType === "customer" && result.user.role !== "CUSTOMER") {
+        throw new error_middleware_2.AppError("Access denied. Customer interface is only accessible to customers", 403, "ROLE_MISMATCH");
+    }
     (0, logger_middleware_1.auditLog)("USER_LOGIN", result.user.id, {
         email: result.user.email,
         role: result.user.role,
+        interfaceType,
     }, req.ip);
     res.json({
         success: true,
@@ -329,6 +338,7 @@ router.post("/refresh", [(0, express_validator_1.body)("refreshToken").notEmpty(
  *       500:
  *         description: Internal server error
  */
+// Original route with :token parameter
 router.get("/verify-email/:token", (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { token } = req.params;
     try {

@@ -1,17 +1,21 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailService = exports.EmailService = void 0;
-exports.enqueueEmail = enqueueEmail;
-// MAR ABU PROJECTS SERVICES LLC - Email Service (Gmail | Resend)
-const nodemailer_1 = __importDefault(require("nodemailer"));
+// MAR ABU PROJECTS SERVICES LLC - Production Email Service (Resend API Only)
 const resend_1 = require("resend");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const constants_1 = require("../utils/constants");
-const server_1 = require("../server");
 class EmailService {
+    constructor() {
+        if (!process.env.RESEND_API_KEY) {
+            throw new Error("RESEND_API_KEY is required for EmailService");
+        }
+        this.resend = new resend_1.Resend(process.env.RESEND_API_KEY);
+        this.fromEmail = process.env.EMAIL_FROM || "noreply@marabuprojects.com";
+        this.replyToEmail =
+            process.env.EMAIL_REPLY_TO || "support@marabuprojects.com";
+        logger_middleware_1.logger.info("Email service initialized with Resend API");
+    }
     safeBookingProperty(property) {
         return property && typeof property === "object"
             ? property
@@ -22,35 +26,8 @@ class EmailService {
                 host: { firstName: "Host", lastName: "", phone: "" },
             };
     }
-    constructor() {
-        this.driver = process.env.EMAIL_DRIVER || "gmail";
-        if (this.driver === "gmail") {
-            if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-                logger_middleware_1.logger.error("Gmail SMTP credentials missing");
-            }
-            this.transporter = nodemailer_1.default.createTransport({
-                host: process.env.SMTP_HOST || "smtp.gmail.com",
-                port: Number(process.env.SMTP_PORT || 587),
-                secure: false,
-                auth: {
-                    user: process.env.SMTP_USER,
-                    pass: process.env.SMTP_PASS,
-                },
-            });
-            logger_middleware_1.logger.info("Gmail SMTP transporter initialized");
-        }
-        else if (this.driver === "resend") {
-            if (!process.env.RESEND_API_KEY) {
-                logger_middleware_1.logger.error("Resend API key missing");
-            }
-            this.resend = new resend_1.Resend(process.env.RESEND_API_KEY);
-            logger_middleware_1.logger.info("Resend email driver initialized");
-        }
-        logger_middleware_1.logger.info(`Email driver active: ${this.driver}`);
-    }
     buildFrom() {
-        const fromEmail = process.env.EMAIL_FROM || "no-reply@local.test";
-        return `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <${fromEmail}>`;
+        return `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <${this.fromEmail}>`;
     }
     getBackendBaseUrl() {
         return (process.env.BACKEND_URL || "http://localhost:5050").replace(/\/$/, "");
@@ -60,52 +37,66 @@ class EmailService {
         const clean = path.startsWith("/") ? path : `/${path}`;
         return `${this.getBackendBaseUrl()}${prefix}${clean}`;
     }
+    validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
     async sendEmail(options) {
         try {
-            if (this.driver === "gmail") {
-                if (!this.transporter)
-                    throw new Error("SMTP transporter not ready");
-                await this.transporter.sendMail({
-                    from: this.buildFrom(),
-                    to: options.to,
-                    subject: options.subject,
-                    html: options.html,
-                    attachments: options.attachments?.map((a) => ({
-                        filename: a.filename,
-                        content: a.content,
-                    })),
-                });
-                logger_middleware_1.logger.info("Email sent (Gmail)", { to: options.to });
-                return true;
+            if (!this.validateEmail(options.to)) {
+                logger_middleware_1.logger.error("Invalid email address", { email: options.to });
+                return false;
             }
-            if (this.driver === "resend") {
-                if (!this.resend)
-                    throw new Error("Resend client not initialized");
-                const response = await this.resend.emails.send({
-                    from: this.buildFrom(),
-                    to: options.to,
-                    subject: options.subject,
-                    html: options.html,
-                    attachments: options.attachments?.map((att) => ({
-                        filename: att.filename,
-                        content: Buffer.isBuffer(att.content)
-                            ? att.content.toString("base64")
-                            : Buffer.from(att.content).toString("base64"),
-                    })),
-                });
-                logger_middleware_1.logger.info("Email sent (Resend)", {
-                    to: options.to,
-                    id: response?.data?.id,
-                });
-                return true;
+            const emailData = {
+                from: this.buildFrom(),
+                to: options.to,
+                subject: options.subject,
+                html: options.html,
+                reply_to: this.replyToEmail,
+            };
+            if (options.attachments?.length) {
+                emailData.attachments = options.attachments.map((att) => ({
+                    filename: att.filename,
+                    content: Buffer.isBuffer(att.content)
+                        ? att.content.toString("base64")
+                        : Buffer.from(att.content).toString("base64"),
+                }));
             }
-            throw new Error("No valid email driver configured");
+            const response = await this.resend.emails.send(emailData);
+            if (response.error) {
+                if (response.error.message?.includes("domain is not verified")) {
+                    logger_middleware_1.logger.warn("Domain not verified, retrying with fallback domain...", {
+                        from: this.fromEmail,
+                    });
+                    const fallbackData = {
+                        ...emailData,
+                        from: `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <noreply@marabuprojects.com>`,
+                    };
+                    const retryResponse = await this.resend.emails.send(fallbackData);
+                    if (retryResponse.error) {
+                        throw new Error(`Resend API fallback error: ${retryResponse.error.message}`);
+                    }
+                    logger_middleware_1.logger.info("✅ Email sent successfully (fallback domain)", {
+                        to: options.to,
+                        id: retryResponse.data?.id,
+                    });
+                    return true;
+                }
+                throw new Error(`Resend API error: ${response.error.message}`);
+            }
+            logger_middleware_1.logger.info("✅ Email sent successfully via API", {
+                to: options.to,
+                id: response.data?.id,
+                subject: options.subject,
+            });
+            return true;
         }
         catch (err) {
-            logger_middleware_1.logger.error("Email send failed", {
-                driver: this.driver,
+            logger_middleware_1.logger.error("❌ Email send failed", {
                 to: options.to,
                 error: err?.message,
+                from: this.fromEmail,
+                method: "API",
             });
             return false;
         }
@@ -650,23 +641,3 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
 }
 exports.EmailService = EmailService;
 exports.emailService = new EmailService();
-async function enqueueEmail(options, type, scheduledAt) {
-    await server_1.prisma.emailQueue.create({
-        data: {
-            to: options.to,
-            subject: options.subject,
-            html: options.html,
-            type,
-            scheduledAt: scheduledAt ?? new Date(),
-        },
-    });
-}
-// Usage example in your password reset flow:
-// await enqueueEmail(
-//   {
-//     to: user.email,
-//     subject: "Password Reset",
-//     html: resetHtml,
-//   },
-//   "passwordReset"
-// );

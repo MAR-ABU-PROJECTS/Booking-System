@@ -150,7 +150,7 @@ class AuthService {
                 where: { email: validatedCredentials.email },
             });
             if (!user) {
-                throw new Error("Invalid email or password");
+                throw new Error("No user found");
             }
             // Check user status
             if (user.status === client_1.UserStatus.SUSPENDED) {

@@ -33,7 +33,7 @@ export const createPropertySchema = z.object({
   monthlyDiscount: z.number().min(0).max(50).default(0),
   cleaningFee: z.number().min(0).default(0),
   securityDeposit: z.number().min(0).default(0),
-  serviceFee: z.number().min(0).max(1).default(0.05),
+  cautionFee: z.number().min(0).max(1).default(0.05),
   minStay: z.number().int().min(1).default(1),
   maxStay: z.number().int().max(365).default(90),
   checkInTime: z
@@ -123,7 +123,7 @@ export interface PropertyWithDetails {
   monthlyDiscount: number | null;
   cleaningFee: number | null;
   securityDeposit: number | null;
-  serviceFee: number | null;
+  cautionFee: number | null;
   currency: string | null;
   minStay: number;
   maxStay: number;

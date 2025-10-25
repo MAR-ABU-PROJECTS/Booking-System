@@ -645,7 +645,7 @@ router.get("/bookings", (0, authservice_1.requireAuth)({ role: client_1.UserRole
  *                         cleaningFees:
  *                           type: number
  *                           example: 15000
- *                         serviceFees:
+ *                         cautionFees:
  *                           type: number
  *                           example: 20000
  *                     byProperty:
@@ -730,7 +730,7 @@ router.get("/revenue", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
                 total: true,
                 baseAmount: true,
                 cleaningFee: true,
-                serviceFee: true,
+                cautionFee: true,
             },
             _count: true,
         }),
@@ -740,7 +740,7 @@ router.get("/revenue", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
             _sum: {
                 baseAmount: true,
                 cleaningFee: true,
-                serviceFee: true,
+                cautionFee: true,
             },
         }),
         // Revenue by property
@@ -839,7 +839,7 @@ router.get("/revenue", (0, authservice_1.requireAuth)({ role: client_1.UserRole.
             breakdown: {
                 baseAmount: revenueBreakdown._sum.baseAmount || 0,
                 cleaningFees: revenueBreakdown._sum.cleaningFee || 0,
-                serviceFees: revenueBreakdown._sum.serviceFee || 0,
+                cautionFees: revenueBreakdown._sum.cautionFee || 0,
             },
             byProperty: revenueByPropertyWithDetails,
             trends: revenueByMonth,
@@ -1215,7 +1215,7 @@ router.get("/export", (0, authservice_1.requireAuth)({ role: client_1.UserRole.A
                     total: true,
                     baseAmount: true,
                     cleaningFee: true,
-                    serviceFee: true,
+                    cautionFee: true,
                     createdAt: true,
                     property: {
                         select: { name: true, city: true },
