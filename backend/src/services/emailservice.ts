@@ -1,8 +1,8 @@
 // MAR ABU PROJECTS SERVICES LLC - Production Email Service (Resend API Only)
 import { Resend } from "resend";
+import { PrismaClient } from "@prisma/client";
 import { logger } from "../middlewares/logger.middleware";
 import { APP_CONSTANTS } from "../utils/constants";
-import { prisma } from "../server";
 
 interface EmailAttachment {
   filename: string;
@@ -20,6 +20,7 @@ export class EmailService {
   private resend: Resend;
   private fromEmail: string;
   private replyToEmail: string;
+  private prisma: PrismaClient;
 
   constructor() {
     if (!process.env.RESEND_API_KEY) {
@@ -30,6 +31,7 @@ export class EmailService {
     this.fromEmail = process.env.EMAIL_FROM || "noreply@marabuprojects.com";
     this.replyToEmail =
       process.env.EMAIL_REPLY_TO || "noreply@marabuprojects.com";
+    this.prisma = new PrismaClient();
 
     logger.info("Email service initialized with Resend API");
   }
@@ -84,7 +86,7 @@ export class EmailService {
     type: string
   ): Promise<string> {
     try {
-      const queued = await prisma.emailQueue.create({
+      const queued = await this.prisma.emailQueue.create({
         data: {
           to: options.to,
           subject: options.subject,
@@ -106,7 +108,7 @@ export class EmailService {
     error?: string
   ): Promise<void> {
     try {
-      await prisma.emailQueue.update({
+      await this.prisma.emailQueue.update({
         where: { id: queueId },
         data: {
           status,
