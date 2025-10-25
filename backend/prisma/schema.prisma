@@ -18,9 +18,6 @@ datasource db {
 model User {
   id               String     @id @default(cuid())
   email            String     @unique
-  firstName        String
-  lastName         String
-  password         String
   phone            String?
   avatar           String?
   bio              String? // NEW: Added bio field
@@ -30,20 +27,21 @@ model User {
   state            String?
   country          String?    @default("Nigeria")
   role             UserRole   @default(CUSTOMER)
-  status           UserStatus @default(PENDING_VERIFICATION)
+  status           UserStatus @default(ACTIVE) // Changed: No verification needed for passwordless
   emailVerified    DateTime?
   phoneVerified    DateTime?
   identityVerified DateTime?
   idType           String?
   idNumber         String?
 
-  // NEW: Added missing fields
-  resetToken              String?
-  resetTokenExpiry        DateTime?
+  // OTP Authentication fields
+  otpCode     String? // Current OTP code
+  otpExpiry   DateTime? // OTP expiration time
+  otpAttempts Int       @default(0) // Failed attempts counter
+  otpLastSent DateTime? // Last OTP sent time
+
   notificationPreferences Json? // NEW: Notification preferences as JSON
   deletedAt               DateTime? // NEW: Soft delete field
-  verificationToken       String?
-  verificationTokenExpiry DateTime?
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -64,8 +62,7 @@ model User {
   savedSearches     SavedSearch[] // <-- Added savedSearches relation
 
   @@index([email])
-  @@index([resetToken])
-  @@index([verificationToken])
+  @@index([otpCode])
   @@index([status])
   @@index([deletedAt])
   @@map("users")
@@ -104,14 +101,14 @@ model Property {
   monthlyDiscount Float? @default(0)
   cleaningFee     Float? @default(0)
   securityDeposit Float? @default(0)
-  cautionFee      Int? @default(100000)
+  cautionFee      Int?   @default(100000)
   currency        String @default("NGN")
 
   // Booking rules
   minStay            Int     @default(1)
   maxStay            Int     @default(90)
-  checkInTime        String  @default("15:00")
-  checkOutTime       String  @default("11:00")
+  checkInTime        String  @default("14:00")
+  checkOutTime       String  @default("12:00")
   cancellationPolicy String?
   houseRules         String?
 
@@ -168,7 +165,7 @@ model Booking {
   // Pricing breakdown
   baseAmount  Float
   cleaningFee Float  @default(0)
-  cautionFee  Int  @default(100000)
+  cautionFee  Int    @default(100000)
   taxes       Float  @default(0) // Renamed from taxes
   discount    Float  @default(0) // Renamed from discounts
   total       Float // Renamed from totalAmount
@@ -687,6 +684,7 @@ enum BookingStatus {
 enum PaymentStatus {
   PENDING
   PROCESSING // NEW
+  INITIATED // NEW - for payment initiation
   PAID
   FAILED
   REFUNDED
@@ -710,9 +708,13 @@ enum NotificationType {
   BOOKING_APPROVED
   BOOKING_REJECTED // NEW
   BOOKING_CANCELLED
+  BOOKING_UPDATED // NEW - for booking edits
+  BOOKING_AUTO_CANCELLED // NEW - for auto-cancellations
   PAYMENT_RECEIVED
   PAYMENT_FAILED // NEW
+  PAYMENT_INITIATED // NEW - for payment continuation
   RECEIPT_VERIFIED
+  RECEIPT_UPLOADED // NEW - for receipt uploads
   REVIEW_RECEIVED // NEW
   REVIEW_RESPONSE // NEW
   REVIEW_REQUEST

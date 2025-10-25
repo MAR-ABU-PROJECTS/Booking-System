@@ -13,6 +13,7 @@ import { AppError } from "../middlewares/error.middleware";
 import { prisma } from "../server";
 import { auditLog } from "../middlewares/logger.middleware";
 import { dbQueries } from "../config/database";
+import { schedulerService } from "../services/schedulerservice";
 import bcryptjs from "bcryptjs";
 
 const router = Router();
@@ -187,11 +188,7 @@ router.get(
             select: { name: true },
           },
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
+            select: { email: true },
           },
         },
       }),
@@ -327,8 +324,6 @@ router.get(
         take: parseInt(limit),
         select: {
           id: true,
-          firstName: true,
-          lastName: true,
           email: true,
           role: true,
           status: true,
@@ -946,11 +941,7 @@ router.get(
         take: parseInt(limit),
         include: {
           host: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
+            select: { email: true },
           },
           _count: {
             select: {
@@ -1075,11 +1066,7 @@ router.put(
       },
       include: {
         host: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+          select: { email: true },
         },
       },
     });
@@ -1235,11 +1222,7 @@ router.get(
             },
           },
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
+            select: { email: true },
           },
         },
       }),
@@ -1423,6 +1406,277 @@ router.put(
     res.json({
       success: true,
       message: "Settings updated successfully",
+    });
+  })
+);
+
+// ===============================
+// SCHEDULER MANAGEMENT
+// ===============================
+
+/**
+ * @route   GET /api/v1/admin/scheduler/upcoming-cancellations
+ * @desc    Get upcoming auto-cancellations for unpaid bookings
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/scheduler/upcoming-cancellations:
+ *   get:
+ *     summary: Get upcoming auto-cancellations
+ *     description: Shows approved bookings that will be auto-cancelled if payment is not completed within 1 hour
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Upcoming cancellations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     count:
+ *                       type: integer
+ *                       example: 3
+ *                     bookings:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           bookingCode:
+ *                             type: string
+ *                             example: "MAB-2025-001"
+ *                           customerName:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           propertyName:
+ *                             type: string
+ *                             example: "Luxury Villa"
+ *                           approvedAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-08-16T14:30:00Z"
+ *                           timeUntilCancellation:
+ *                             type: integer
+ *                             description: Minutes until auto-cancellation
+ *                             example: 35
+ */
+router.get(
+  "/scheduler/upcoming-cancellations",
+  asyncHandler(async (req: any, res: any) => {
+    const upcomingCancellations =
+      await schedulerService.getUpcomingCancellations();
+
+    res.json({
+      success: true,
+      data: upcomingCancellations,
+    });
+  })
+);
+
+/**
+ * @route   POST /api/v1/admin/scheduler/trigger-cancellation
+ * @desc    Manually trigger auto-cancellation process
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/scheduler/trigger-cancellation:
+ *   post:
+ *     summary: Manually trigger auto-cancellation process
+ *     description: Immediately runs the auto-cancellation process for unpaid bookings (useful for testing or manual cleanup)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Auto-cancellation process triggered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Auto-cancellation process completed"
+ */
+router.post(
+  "/scheduler/trigger-cancellation",
+  asyncHandler(async (req: any, res: any) => {
+    await schedulerService.triggerUnpaidBookingCancellation();
+
+    auditLog(
+      "MANUAL_CANCELLATION_TRIGGER",
+      req.user.id,
+      { triggeredBy: req.user.email },
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: "Auto-cancellation process completed",
+    });
+  })
+);
+
+// ===============================
+// EMAIL QUEUE MANAGEMENT
+// ===============================
+
+/**
+ * @route   GET /api/v1/admin/email-queue
+ * @desc    Get email queue with filters
+ * @access  Admin
+ */
+router.get(
+  "/email-queue",
+  [
+    query("status")
+      .optional()
+      .isIn(["pending", "processing", "sent", "failed"]),
+    query("type").optional().isString(),
+    query("page").optional().isInt({ min: 1 }),
+    query("limit").optional().isInt({ min: 1, max: 100 }),
+  ],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const { status, type, page = 1, limit = 20 } = req.query;
+
+    const whereClause: any = {};
+    if (status) whereClause.status = status;
+    if (type) whereClause.type = type;
+
+    const emails = await prisma.emailQueue.findMany({
+      where: whereClause,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    const total = await prisma.emailQueue.count({ where: whereClause });
+
+    res.json({
+      success: true,
+      data: emails,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  })
+);
+
+/**
+ * @route   POST /api/v1/admin/email-queue/:id/resend
+ * @desc    Resend failed email
+ * @access  Admin
+ */
+router.post(
+  "/email-queue/:id/resend",
+  [param("id").isString()],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const emailQueue = await prisma.emailQueue.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!emailQueue) {
+      throw new AppError("Email not found in queue", 404);
+    }
+
+    try {
+      // Import emailService here to avoid circular dependency
+      const { emailService } = await import("../services/emailservice");
+
+      const success = await emailService.sendEmail({
+        to: emailQueue.to,
+        subject: emailQueue.subject,
+        html: emailQueue.html,
+      });
+
+      if (success) {
+        await prisma.emailQueue.update({
+          where: { id: req.params.id },
+          data: {
+            status: "sent",
+            attempts: emailQueue.attempts + 1,
+            updatedAt: new Date(),
+          },
+        });
+
+        auditLog(
+          "EMAIL_RESENT",
+          req.user.id,
+          { emailId: req.params.id, recipient: emailQueue.to },
+          req.ip
+        );
+
+        res.json({
+          success: true,
+          message: "Email resent successfully",
+        });
+      } else {
+        throw new AppError("Failed to resend email", 500);
+      }
+    } catch (error) {
+      await prisma.emailQueue.update({
+        where: { id: req.params.id },
+        data: {
+          attempts: emailQueue.attempts + 1,
+          error: error instanceof Error ? error.message : "Unknown error",
+          updatedAt: new Date(),
+        },
+      });
+
+      throw new AppError("Failed to resend email", 500);
+    }
+  })
+);
+
+/**
+ * @route   DELETE /api/v1/admin/email-queue/:id
+ * @desc    Delete email from queue
+ * @access  Admin
+ */
+router.delete(
+  "/email-queue/:id",
+  [param("id").isString()],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const emailQueue = await prisma.emailQueue.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!emailQueue) {
+      throw new AppError("Email not found in queue", 404);
+    }
+
+    await prisma.emailQueue.delete({
+      where: { id: req.params.id },
+    });
+
+    auditLog(
+      "EMAIL_QUEUE_DELETED",
+      req.user.id,
+      { emailId: req.params.id, recipient: emailQueue.to },
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: "Email removed from queue",
     });
   })
 );

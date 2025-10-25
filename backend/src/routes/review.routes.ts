@@ -126,51 +126,7 @@ const validate = (req: any, res: any, next: any) => {
  *                             properties:
  *                               id:
  *                                 type: string
- *                               firstName:
- *                                 type: string
- *                               lastName:
- *                                 type: string
- *                               avatar:
- *                                 type: string
- *                           property:
- *                             type: object
- *                             properties:
- *                               id:
- *                                 type: string
- *                               name:
- *                                 type: string
- *                               type:
- *                                 type: string
- *                               images:
- *                                 type: array
- *                                 items:
- *                                   type: string
- *                           booking:
- *                             type: object
- *                             properties:
- *                               bookingCode:
- *                                 type: string
- *                               checkInDate:
- *                                 type: string
- *                                 format: date
- *                               checkOutDate:
- *                                 type: string
- *                                 format: date
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                         limit:
- *                           type: integer
- *                         total:
- *                           type: integer
- *                         pages:
- *                           type: integer
- */
-router.get(
-  '/',
-  asyncHandler(async (req: any, res: any) => {
+ *asyncHandler(async (req: any, res: any) => {
     const {
       page = 1,
       limit = 20,
@@ -205,10 +161,7 @@ router.get(
         include: {
           customer: {
             select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              avatar: true,
+              id: true,avatar: true,
             },
           },
           property: {
@@ -303,75 +256,13 @@ router.get(
  *                         id:
  *                           type: string
  *                           example: "user_5678"
- *                         firstName:
- *                           type: string
- *                           example: "John"
- *                         lastName:
- *                           type: string
- *                           example: "Doe"
- *                         avatar:
- *                           type: string
- *                           example: "https://cdn.example.com/avatars/johndoe.png"
- *                     property:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           example: "prop_8901"
- *                         name:
- *                           type: string
- *                           example: "Luxury Villa"
- *                         type:
- *                           type: string
- *                           example: "Apartment"
- *                         images:
- *                           type: array
- *                           items:
- *                             type: string
- *                           example: ["https://cdn.example.com/property/img1.jpg"]
- *                         hostId:
- *                           type: string
- *                           example: "host_123"
- *                     booking:
- *                       type: object
- *                       properties:
- *                         bookingCode:
- *                           type: string
- *                           example: "BK202501"
- *                         checkInDate:
- *                           type: string
- *                           format: date
- *                           example: "2025-08-01"
- *                         checkOutDate:
- *                           type: string
- *                           format: date
- *                           example: "2025-08-05"
- *       404:
- *         description: Review not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Review not found"
- */
-router.get(
-  '/:id',
-  asyncHandler(async (req: any, res: any) => {
+ *asyncHandler(async (req: any, res: any) => {
     const review = await prisma.review.findUnique({
       where: { id: req.params.id },
       include: {
         customer: {
           select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
+            id: true,avatar: true,
           },
         },
         property: {
@@ -588,10 +479,7 @@ router.post(
             name: true,
             hostId: true,
             host: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
+              select: {email: true,
               },
             },
           },
@@ -656,7 +544,7 @@ router.post(
         userId: booking.property.hostId,
         type: 'REVIEW_RECEIVED',
         title: 'New Review Received',
-        message: `${req.user.firstName} ${req.user.lastName} left a review for ${booking.property.name}`,
+        message: `${req.user.email} left a review for ${booking.property.name}`,
         metadata: {
           reviewId: review.id,
           bookingId,
@@ -669,8 +557,8 @@ router.post(
     await emailService.sendReviewRequestEmail(
       booking.property.host.email,
       {
-        hostName: `${booking.property.host.firstName} ${booking.property.host.lastName}`,
-        customerName: `${req.user.firstName} ${req.user.lastName}`,
+        hostName: `${req.user.email}`,
+        customerName: `${req.user.email}`,
         propertyName: booking.property.name,
         rating,
         title,
@@ -1005,10 +893,7 @@ router.put(
       where: { id: req.params.id },
       include: {
         customer: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
+          select: {email: true,
           },
         },
         property: {
@@ -1052,7 +937,7 @@ router.put(
 
     // Send email notification
     await emailService.sendReviewStatusUpdate(review.customer.email, {
-      customerName: `${review.customer.firstName} ${review.customer.lastName}`,
+      customerName: `${req.user.email}`,
       propertyName: review.property.name,
       approved,
       adminNotes,
@@ -1149,51 +1034,7 @@ router.put(
  *                           customer:
  *                             type: object
  *                             properties:
- *                               firstName:
- *                                 type: string
- *                               lastName:
- *                                 type: string
- *                               email:
- *                                 type: string
- *                               avatar:
- *                                 type: string
- *                           property:
- *                             type: object
- *                             properties:
- *                               name:
- *                                 type: string
- *                               type:
- *                                 type: string
- *                           booking:
- *                             type: object
- *                             properties:
- *                               bookingCode:
- *                                 type: string
- *                               checkInDate:
- *                                 type: string
- *                                 format: date-time
- *                               checkOutDate:
- *                                 type: string
- *                                 format: date-time
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                         limit:
- *                           type: integer
- *                         total:
- *                           type: integer
- *                         pages:
- *                           type: integer
- *       401:
- *         description: Unauthorized - Invalid or missing token
- *       403:
- *         description: Forbidden - Only admins can access pending reviews
- */
-router.get(
-  "/pending",
-  requireAuth({ role: UserRole.ADMIN }),
+ *requireAuth({ role: UserRole.ADMIN }),
   asyncHandler(async (req: any, res: any) => {
     const {
       page = 1,
@@ -1210,10 +1051,7 @@ router.get(
         take: parseInt(limit),
         include: {
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
+            select: {email: true,
               avatar: true,
             },
           },

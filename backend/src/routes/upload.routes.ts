@@ -918,10 +918,7 @@ router.get(
         take: parseInt(limit),
         include: {
           uploader: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
+            select: {email: true,
             },
           },
         },

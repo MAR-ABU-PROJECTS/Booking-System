@@ -1,5 +1,5 @@
 import { UserStatus } from "@prisma/client";
-// MAR ABU PROJECTS SERVICES LLC - Authentication Routes
+// MAR ABU PROJECTS SERVICES LLC - Passwordless Authentication Routes
 import { Router } from "express";
 import { body, validationResult } from "express-validator";
 import {
@@ -11,6 +11,7 @@ import { asyncHandler } from "../middlewares/error.middleware";
 import { AppError } from "../middlewares/error.middleware";
 import { auditLog } from "../middlewares/logger.middleware";
 import { emailService } from "../services/emailservice";
+import { OTPService } from "../services/otpservice";
 import jwt from "jsonwebtoken";
 
 const router = Router();
@@ -33,15 +34,15 @@ const validate = (req: any, res: any, next: any) => {
 // ===============================
 
 /**
- * @route   POST /api/v1/auth/register
- * @desc    Register new user
+ * @route   POST /api/v1/auth/request-otp
+ * @desc    Request OTP for signup or login
  * @access  Public
  */
 /**
  * @swagger
- * /auth/register:
+ * /auth/request-otp:
  *   post:
- *     summary: Register a new user
+ *     summary: Request OTP for signup or login
  *     tags:
  *       - Auth
  *     requestBody:
@@ -52,34 +53,19 @@ const validate = (req: any, res: any, next: any) => {
  *             type: object
  *             required:
  *               - email
- *               - password
- *               - firstName
- *               - lastName
+ *               - purpose
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
  *                 example: user@example.com
- *               password:
+ *               purpose:
  *                 type: string
- *                 minLength: 8
- *                 example: Passw0rd!
- *               firstName:
- *                 type: string
- *                 example: John
- *               lastName:
- *                 type: string
- *                 example: Doe
- *               phone:
- *                 type: string
- *                 example: "+1234567890"
- *               role:
- *                 type: string
- *                 enum: [CUSTOMER, ADMIN]
- *                 example: CUSTOMER
+ *                 enum: [signup, login]
+ *                 example: login
  *     responses:
- *       201:
- *         description: Registration successful
+ *       200:
+ *         description: OTP sent successfully
  *         content:
  *           application/json:
  *             schema:
@@ -90,84 +76,72 @@ const validate = (req: any, res: any, next: any) => {
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Registration successful. Please check your email to verify your account.
+ *                   example: Verification code sent to your email
  *                 data:
  *                   type: object
  *                   properties:
- *                     user:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                         email:
- *                           type: string
- *                         role:
- *                           type: string
+ *                     expiresIn:
+ *                       type: number
+ *                       example: 600
+ *                     cooldownSeconds:
+ *                       type: number
+ *                       example: 300
  *       400:
- *         description: Validation errors
+ *         description: Validation errors or email not found (for login)
+ *       429:
+ *         description: Too many attempts or in cooldown period
  *       500:
  *         description: Server error
  */
 router.post(
-  "/register",
+  "/request-otp",
   [
     body("email")
       .isEmail()
       .normalizeEmail()
       .withMessage("Valid email required"),
-    body("password")
-      .isLength({ min: 3 })
-      .withMessage("Password must be at least 3 characters"),
-    body("firstName").trim().notEmpty().withMessage("First name required"),
-    body("lastName").trim().notEmpty().withMessage("Last name required"),
-    body("phone")
-      .optional()
-      .isMobilePhone("any")
-      .withMessage("Valid phone number required"),
-    body("role")
-      .optional()
-      .isIn(["CUSTOMER", "ADMIN"])
-      .withMessage("Invalid role"),
+    body("purpose")
+      .isIn(["signup", "login"])
+      .withMessage("Purpose must be 'signup' or 'login'"),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const result = await authService.register(req.body);
+    const { email, purpose } = req.body;
 
-    // Send verification email
-    await emailService.sendEmailVerification(
-      result.user.email,
-      result.verificationToken
-    );
+    const result = await authService.requestOTP(email, purpose);
 
     auditLog(
-      "USER_REGISTERED",
-      result.user.id,
+      "OTP_REQUESTED",
+      result.userId || "anonymous",
       {
-        email: result.user.email,
-        role: result.user.role,
+        email,
+        purpose,
+        ip: req.ip,
       },
       req.ip
     );
 
-    res.status(201).json({
+    res.json({
       success: true,
-      message:
-        "Registration successful. Please Log In to continue.",
-      data: { user: result.user },
+      message: "Verification code sent to your email",
+      data: {
+        expiresIn: OTPService.CONSTANTS.EXPIRY_MINUTES * 60,
+        cooldownSeconds: OTPService.CONSTANTS.COOLDOWN_MINUTES * 60,
+      },
     });
   })
 );
 
 /**
- * @route   POST /api/v1/auth/login
- * @desc    Login user
+ * @route   POST /api/v1/auth/verify-otp
+ * @desc    Verify OTP and authenticate user (signup or login)
  * @access  Public
  */
 /**
  * @swagger
- * /auth/login:
+ * /auth/verify-otp:
  *   post:
- *     summary: Log in a user
+ *     summary: Verify OTP and authenticate user
  *     tags:
  *       - Auth
  *     requestBody:
@@ -178,18 +152,24 @@ router.post(
  *             type: object
  *             required:
  *               - email
- *               - password
+ *               - otpCode
+ *               - purpose
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
  *                 example: user@example.com
- *               password:
+ *               otpCode:
  *                 type: string
- *                 example: Passw0rd!
+ *                 pattern: '^[0-9]{6}$'
+ *                 example: "123456"
+ *               purpose:
+ *                 type: string
+ *                 enum: [signup, login]
+ *                 example: login
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Authentication successful
  *         content:
  *           application/json:
  *             schema:
@@ -217,28 +197,39 @@ router.post(
  *                       type: string
  *                     refreshToken:
  *                       type: string
+ *                     isNewUser:
+ *                       type: boolean
+ *                       example: false
  *       400:
- *         description: Validation error or invalid credentials
+ *         description: Invalid OTP or validation error
+ *       429:
+ *         description: Too many failed attempts
  *       500:
  *         description: Server error
  */
 router.post(
-  "/login",
+  "/verify-otp",
   [
     body("email")
       .isEmail()
       .normalizeEmail()
       .withMessage("Valid email required"),
-    body("password").notEmpty().withMessage("Password required"),
+    body("otpCode")
+      .matches(/^\d{6}$/)
+      .withMessage("OTP must be 6 digits"),
+    body("purpose")
+      .isIn(["signup", "login"])
+      .withMessage("Purpose must be 'signup' or 'login'"),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { email, password } = req.body;
+    const { email, otpCode, purpose } = req.body;
+
     // Get the interface type from the request headers or query
     const interfaceType =
       req.query.interface || req.headers["x-interface-type"];
 
-    const result = await authService.login(email, password);
+    const result = await authService.verifyOTP(email, otpCode, purpose);
 
     // Check if the user's role matches the interface they're trying to access
     if (interfaceType === "admin" && result.user.role !== "ADMIN") {
@@ -258,19 +249,22 @@ router.post(
     }
 
     auditLog(
-      "USER_LOGIN",
+      result.isNewUser ? "USER_REGISTERED" : "USER_LOGIN",
       result.user.id,
       {
         email: result.user.email,
         role: result.user.role,
         interfaceType,
+        authMethod: "OTP",
       },
       req.ip
     );
 
     res.json({
       success: true,
-      message: "Login successful",
+      message: result.isNewUser
+        ? "Account created successfully"
+        : "Login successful",
       data: result,
     });
   })
@@ -407,7 +401,7 @@ router.get(
           errors: null,
         });
       }
-      await emailService.sendWelcomeEmail(user.email, user.firstName);
+      await emailService.sendWelcomeEmail(user.email);
       return res.json({
         success: true,
         message: "Email verified successfully. You can now log in.",
@@ -422,7 +416,6 @@ router.get(
     }
   })
 );
-
 
 /**
  * @route   POST /api/v1/auth/verify-email/resend
@@ -469,38 +462,7 @@ router.post(
  */
 /**
  * @swagger
- * /auth/forgot-password:
- *   post:
- *     summary: Request password reset
- *     tags:
- *       - Auth
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: user@example.com
- *     responses:
- *       200:
- *         description: Password reset request acknowledged
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: If an account exists with this email, you will receive password reset instructions.
+ * /auth/forgot-you will receive password reset instructions.
  *       400:
  *         description: Invalid input
  *       500:
@@ -545,51 +507,7 @@ router.post(
  */
 /**
  * @swagger
- * /auth/reset-password:
- *   post:
- *     summary: Reset password with token
- *     tags:
- *       - Auth
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - token
- *               - password
- *             properties:
- *               token:
- *                 type: string
- *                 example: abc123resetToken
- *               password:
- *                 type: string
- *                 format: password
- *                 example: StrongP@ssword1
- *     responses:
- *       200:
- *         description: Password reset successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Password reset successful. Please login with your new password.
- *       400:
- *         description: Validation error or invalid token
- *       500:
- *         description: Server error
- */
-
-router.post(
-  "/reset-password",
-  [
+ * /auth/reset-[
     body("token").notEmpty().withMessage("Reset token required"),
     body("password")
       .isLength({ min: 8 })
@@ -685,7 +603,7 @@ router.post(
       ? new Date(payload.exp * 1000)
       : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await blacklistToken(token, expiresAt, req.user?.id);
+    await blacklistToken(token);
 
     res.json({ success: true, message: "Logged out and token blacklisted" });
   })
@@ -871,51 +789,7 @@ router.put(
  */
 /**
  * @swagger
- * /auth/change-password:
- *   put:
- *     summary: Change user password
- *     tags:
- *       - Auth
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - currentPassword
- *               - newPassword
- *             properties:
- *               currentPassword:
- *                 type: string
- *                 example: OldPassword123!
- *               newPassword:
- *                 type: string
- *                 example: NewPassword123!
- *     responses:
- *       200:
- *         description: Password changed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Password changed successfully
- *       400:
- *         description: Validation error or incorrect current password
- *       401:
- *         description: Unauthorized
- */
-router.put(
-  "/change-password",
-  requireAuth(),
+ * /auth/change-requireAuth(),
   [
     body("currentPassword").notEmpty().withMessage("Current password required"),
     body("newPassword")
@@ -1045,10 +919,8 @@ router.post(
         .json({ success: false, message: "User not found" });
 
     try {
-      const newRefreshToken = await authService.rotateRefreshToken(
-        refreshToken,
-        user.id
-      );
+      const newRefreshToken =
+        await authService.rotateRefreshToken(refreshToken);
       const newAccessToken = authService.issueAccessToken(user);
 
       res.json({

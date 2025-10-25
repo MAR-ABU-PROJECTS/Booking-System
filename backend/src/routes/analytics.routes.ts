@@ -1354,7 +1354,7 @@ router.get(
               select: { name: true, type: true, city: true },
             },
             customer: {
-              select: { firstName: true, lastName: true, email: true },
+              select: {email: true },
             },
           },
         });

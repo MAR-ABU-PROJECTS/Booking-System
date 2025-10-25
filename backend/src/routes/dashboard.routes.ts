@@ -167,10 +167,7 @@ router.get(
               city: true,
               images: true,
               host: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                  phone: true,
+                select: {phone: true,
                 },
               },
             },
@@ -471,10 +468,7 @@ router.get(
             select: { name: true },
           },
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
+            select: {email: true,
             },
           },
         },
@@ -492,10 +486,7 @@ router.get(
             select: { name: true },
           },
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-            },
+            select: {},
           },
         },
       }),
@@ -535,10 +526,7 @@ router.get(
             select: { name: true },
           },
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-              phone: true,
+            select: {phone: true,
               email: true,
             },
           },
@@ -555,10 +543,7 @@ router.get(
         take: 5,
         include: {
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-            },
+            select: {},
           },
           property: {
             select: { name: true },
@@ -944,10 +929,7 @@ router.get(
         city: true,
         type: true,
         host: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
+          select: {},
         },
       },
     });

@@ -158,121 +158,114 @@ const validate = (req, res, next) => {
  *                               id:
  *                                 type: string
  *                                 example: host_67890
- *                               firstName:
- *                                 type: string
- *                                 example: John
- *                               lastName:
- *                                 type: string
- *                                 example: Doe
- *                               avatar:
- *                                 type: string
- *                                 example: https://example.com/avatar.jpg
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                           example: 1
- *                         limit:
- *                           type: integer
- *                           example: 20
- *                         total:
- *                           type: integer
- *                           example: 100
- *                         totalPages:
- *                           type: integer
- *                           example: 5
- *       500:
- *         description: Server error
- */
-router.get("/", (0, authservice_1.optionalAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { page = 1, limit = 20, city, type, minPrice, maxPrice, bedrooms, bathrooms, maxGuests, amenities, sortBy = "createdAt", order = "desc", } = req.query;
-    const { page: validPage, limit: validLimit } = (0, helpers_1.validatePagination)(page, limit);
+ *optionalAuth(),
+  asyncHandler(async (req: any, res: any) => {
+    const {
+      page = 1,
+      limit = 20,
+      city,
+      type,
+      minPrice,
+      maxPrice,
+      bedrooms,
+      bathrooms,
+      maxGuests,
+      amenities,
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
+
+    const { page: validPage, limit: validLimit } = validatePagination(
+      page,
+      limit
+    );
+
     // Build where clause
-    const where = {
-        status: client_1.PropertyStatus.ACTIVE,
+    const where: any = {
+      status: PropertyStatus.ACTIVE,
     };
-    if (city)
-        where.city = { contains: city, mode: "insensitive" };
-    if (type)
-        where.type = type;
-    if (bedrooms)
-        where.bedrooms = { gte: parseInt(bedrooms) };
-    if (bathrooms)
-        where.bathrooms = { gte: parseInt(bathrooms) };
-    if (maxGuests)
-        where.maxGuests = { gte: parseInt(maxGuests) };
+
+    if (city) where.city = { contains: city, mode: "insensitive" };
+    if (type) where.type = type;
+    if (bedrooms) where.bedrooms = { gte: parseInt(bedrooms) };
+    if (bathrooms) where.bathrooms = { gte: parseInt(bathrooms) };
+    if (maxGuests) where.maxGuests = { gte: parseInt(maxGuests) };
     if (minPrice || maxPrice) {
-        where.baseRate = {};
-        if (minPrice)
-            where.baseRate.gte = parseFloat(minPrice);
-        if (maxPrice)
-            where.baseRate.lte = parseFloat(maxPrice);
+      where.baseRate = {};
+      if (minPrice) where.baseRate.gte = parseFloat(minPrice);
+      if (maxPrice) where.baseRate.lte = parseFloat(maxPrice);
     }
+
     // Handle amenities filter
     if (amenities) {
-        const amenityList = Array.isArray(amenities) ? amenities : [amenities];
-        where.amenities = {
-            hasEvery: amenityList,
-        };
+      const amenityList = Array.isArray(amenities) ? amenities : [amenities];
+      where.amenities = {
+        hasEvery: amenityList,
+      };
     }
+
     // Build order by clause
-    const orderBy = {};
+    const orderBy: any = {};
     orderBy[sortBy] = order;
+
     const [properties, total] = await Promise.all([
-        server_1.prisma.property.findMany({
-            where,
-            orderBy,
-            skip: (validPage - 1) * validLimit,
-            take: validLimit,
-            include: {
-                host: {
-                    select: {
-                        id: true,
-                        firstName: true,
-                        lastName: true,
-                        avatar: true,
-                    },
-                },
-                reviews: {
-                    where: { approved: true },
-                    select: {
-                        rating: true,
-                    },
-                },
-                _count: {
-                    select: {
-                        reviews: true,
-                        bookings: true,
-                    },
-                },
+      prisma.property.findMany({
+        where,
+        orderBy,
+        skip: (validPage - 1) * validLimit,
+        take: validLimit,
+        include: {
+          host: {
+            select: {
+              id: true,avatar: true,
             },
-        }),
-        server_1.prisma.property.count({ where }),
+          },
+          reviews: {
+            where: { approved: true },
+            select: {
+              rating: true,
+            },
+          },
+          _count: {
+            select: {
+              reviews: true,
+              bookings: true,
+            },
+          },
+        },
+      }),
+      prisma.property.count({ where }),
     ]);
+
     // Calculate average ratings
     const propertiesWithRatings = properties.map((property) => {
-        const ratings = property.reviews.map((r) => r.rating);
-        const averageRating = ratings.length > 0
-            ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
-            : 0;
-        return {
-            ...property,
-            averageRating: Math.round(averageRating * 10) / 10,
-            reviewCount: property._count.reviews,
-            bookingCount: property._count.bookings,
-            reviews: undefined, // Remove reviews array from response
-        };
+      const ratings = property.reviews.map((r) => r.rating);
+      const averageRating =
+        ratings.length > 0
+          ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+          : 0;
+
+      return {
+        ...property,
+        averageRating: Math.round(averageRating * 10) / 10,
+        reviewCount: property._count.reviews,
+        bookingCount: property._count.bookings,
+        reviews: undefined, // Remove reviews array from response
+      };
     });
-    const pagination = (0, helpers_1.calculatePagination)(validPage, validLimit, total);
+
+    const pagination = calculatePagination(validPage, validLimit, total);
+
     res.json({
-        success: true,
-        data: {
-            properties: propertiesWithRatings,
-            pagination,
-        },
+      success: true,
+      data: {
+        properties: propertiesWithRatings,
+        pagination,
+      },
     });
-}));
+  })
+);
+
 /**
  * @route   GET /api/v1/properties/:id
  * @desc    Get property details
@@ -363,123 +356,78 @@ router.get("/", (0, authservice_1.optionalAuth)(), (0, error_middleware_1.asyncH
  *                         id:
  *                           type: string
  *                           example: host_67890
- *                         firstName:
- *                           type: string
- *                           example: John
- *                         lastName:
- *                           type: string
- *                           example: Doe
- *                         avatar:
- *                           type: string
- *                           example: https://example.com/avatar.jpg
- *                         createdAt:
- *                           type: string
- *                           format: date-time
- *                           example: 2024-05-01T10:00:00Z
- *                         hostedProperties:
- *                           type: integer
- *                           example: 5
- *                     reviews:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           rating:
- *                             type: integer
- *                             example: 5
- *                           comment:
- *                             type: string
- *                             example: Great place to stay!
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                             example: 2025-07-15T14:30:00Z
- *                           customer:
- *                             type: object
- *                             properties:
- *                               firstName:
- *                                 type: string
- *                                 example: Jane
- *                               lastName:
- *                                 type: string
- *                                 example: Smith
- *                               avatar:
- *                                 type: string
- *                                 example: https://example.com/customer.jpg
- *       404:
- *         description: Property not found
- *       500:
- *         description: Server error
- */
-router.get("/:id", (0, authservice_1.optionalAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const property = await server_1.prisma.property.findUnique({
-        where: { id: req.params.id },
-        include: {
-            host: {
-                select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    avatar: true,
-                    createdAt: true,
-                    _count: {
-                        select: {
-                            hostedProperties: true,
-                        },
-                    },
-                },
+ *optionalAuth(),
+  asyncHandler(async (req: any, res: any) => {
+    const property = await prisma.property.findUnique({
+      where: { id: req.params.id },
+      include: {
+        host: {
+          select: {
+            id: true,avatar: true,
+            createdAt: true,
+            _count: {
+              select: {
+                hostedProperties: true,
+              },
             },
-            reviews: {
-                where: { approved: true },
-                orderBy: { createdAt: "desc" },
-                include: {
-                    customer: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                            avatar: true,
-                        },
-                    },
-                },
-            },
-            bookings: {
-                where: {
-                    status: {
-                        in: ["APPROVED", "PENDING"],
-                    },
-                },
-                select: {
-                    checkInDate: true,
-                    checkOutDate: true,
-                },
-            },
+          },
         },
+        reviews: {
+          where: { approved: true },
+          orderBy: { createdAt: "desc" },
+          include: {
+            customer: {
+              select: {avatar: true,
+              },
+            },
+          },
+        },
+        bookings: {
+          where: {
+            status: {
+              in: ["APPROVED", "PENDING"],
+            },
+          },
+          select: {
+            checkInDate: true,
+            checkOutDate: true,
+          },
+        },
+      },
     });
+
     if (!property) {
-        throw new error_middleware_2.AppError("Property not found", 404);
+      throw new AppError("Property not found", 404);
     }
+
     // Calculate average rating
     const ratings = property.reviews.map((r) => r.rating);
-    const averageRating = ratings.length > 0
+    const averageRating =
+      ratings.length > 0
         ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
         : 0;
+
     // Get unavailable dates
     const unavailableDates = property.bookings.map((booking) => ({
-        checkIn: booking.checkInDate,
-        checkOut: booking.checkOutDate,
+      checkIn: booking.checkInDate,
+      checkOut: booking.checkOutDate,
     }));
+
     const responseData = {
-        ...property,
-        averageRating: Math.round(averageRating * 10) / 10,
-        reviewCount: property.reviews.length,
-        unavailableDates,
-        hostPropertyCount: property.host._count.hostedProperties,
+      ...property,
+      averageRating: Math.round(averageRating * 10) / 10,
+      reviewCount: property.reviews.length,
+      unavailableDates,
+      hostPropertyCount: property.host._count.hostedProperties,
     };
+
     res.json({
-        success: true,
-        data: responseData,
+      success: true,
+      data: responseData,
     });
-}));
+  })
+);
+
 /**
  * @route   GET /api/v1/properties/:id/availability
  * @desc    Check property availability for dates
@@ -589,6 +537,95 @@ router.get("/:id/availability", [
             checkIn,
             checkOut,
             propertyId: req.params.id,
+        },
+    });
+}));
+/**
+ * @route   GET /api/v1/properties/:id/booked-dates
+ * @desc    Get all booked dates for a property
+ * @access  Public
+ */
+/**
+ * @swagger
+ * /properties/{id}/booked-dates:
+ *   get:
+ *     summary: Get all booked dates for a property
+ *     description: Returns all booked date ranges for a property to help frontend disable unavailable dates
+ *     tags:
+ *       - Properties
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved booked dates
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     propertyId:
+ *                       type: string
+ *                     bookedDateRanges:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           checkIn:
+ *                             type: string
+ *                             format: date
+ *                           checkOut:
+ *                             type: string
+ *                             format: date
+ *                           status:
+ *                             type: string
+ *       404:
+ *         description: Property not found
+ */
+router.get("/:id/booked-dates", [(0, express_validator_1.param)("id").isString()], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const property = await server_1.prisma.property.findUnique({
+        where: { id: req.params.id },
+    });
+    if (!property) {
+        throw new error_middleware_2.AppError("Property not found", 404);
+    }
+    // Get all approved and pending bookings for this property
+    const bookedDates = await server_1.prisma.booking.findMany({
+        where: {
+            propertyId: req.params.id,
+            status: {
+                in: ["PENDING", "APPROVED", "CONFIRMED", "CHECKED_IN"],
+            },
+        },
+        select: {
+            checkInDate: true,
+            checkOutDate: true,
+            status: true,
+        },
+        orderBy: {
+            checkInDate: "asc",
+        },
+    });
+    const bookedDateRanges = bookedDates.map((booking) => ({
+        checkIn: booking.checkInDate.toISOString().split("T")[0],
+        checkOut: booking.checkOutDate.toISOString().split("T")[0],
+        status: booking.status,
+    }));
+    res.json({
+        success: true,
+        data: {
+            propertyId: req.params.id,
+            bookedDateRanges,
         },
     });
 }));
@@ -883,91 +920,87 @@ router.get("/my-properties", (0, authservice_1.requireAuth)({ role: client_1.Use
  *                     host:
  *                       type: object
  *                       properties:
- *                         firstName:
- *                           type: string
- *                           example: "John"
- *                         lastName:
- *                           type: string
- *                           example: "Doe"
- *                         email:
- *                           type: string
- *                           example: "john.doe@example.com"
- *       400:
- *         description: Bad request — validation errors
- *       401:
- *         description: Unauthorized — missing or invalid token
- *       403:
- *         description: Forbidden — user does not have the required role
- */
-router.post("/", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), [
-    (0, express_validator_1.body)("name").trim().notEmpty().withMessage("Property name required"),
-    (0, express_validator_1.body)("description").trim().notEmpty().withMessage("Description required"),
-    (0, express_validator_1.body)("type")
-        .isIn(Object.values(client_1.PropertyType))
-        .withMessage("Invalid property type"),
-    (0, express_validator_1.body)("address").trim().notEmpty().withMessage("Address required"),
-    (0, express_validator_1.body)("city").trim().notEmpty().withMessage("City required"),
-    (0, express_validator_1.body)("state").trim().notEmpty().withMessage("State required"),
-    (0, express_validator_1.body)("zipCode").trim().notEmpty().withMessage("Zip code required"),
-    (0, express_validator_1.body)("country").trim().notEmpty().withMessage("Country required"),
-    (0, express_validator_1.body)("latitude").isFloat().withMessage("Valid latitude required"),
-    (0, express_validator_1.body)("longitude").isFloat().withMessage("Valid longitude required"),
-    (0, express_validator_1.body)("bedrooms")
-        .isInt({ min: 0 })
-        .withMessage("Valid bedroom count required"),
-    (0, express_validator_1.body)("bathrooms")
-        .isInt({ min: 0 })
-        .withMessage("Valid bathroom count required"),
-    (0, express_validator_1.body)("maxGuests")
-        .isInt({ min: 1 })
-        .withMessage("Valid guest count required"),
-    (0, express_validator_1.body)("baseRate")
-        .isFloat({ min: 0 })
-        .withMessage("Valid base rate required"),
-    (0, express_validator_1.body)("cleaningFee").optional().isFloat({ min: 0 }),
-    (0, express_validator_1.body)("amenities").isArray().withMessage("Amenities must be an array"),
-    (0, express_validator_1.body)("houseRules").optional().isArray(),
-    (0, express_validator_1.body)("images").isArray().withMessage("Images must be an array"),
-], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+ *requireAuth({ role: UserRole.ADMIN }),
+  [
+    body("name").trim().notEmpty().withMessage("Property name required"),
+    body("description").trim().notEmpty().withMessage("Description required"),
+    body("type")
+      .isIn(Object.values(PropertyType))
+      .withMessage("Invalid property type"),
+    body("address").trim().notEmpty().withMessage("Address required"),
+    body("city").trim().notEmpty().withMessage("City required"),
+    body("state").trim().notEmpty().withMessage("State required"),
+    body("zipCode").trim().notEmpty().withMessage("Zip code required"),
+    body("country").trim().notEmpty().withMessage("Country required"),
+    body("latitude").isFloat().withMessage("Valid latitude required"),
+    body("longitude").isFloat().withMessage("Valid longitude required"),
+    body("bedrooms")
+      .isInt({ min: 0 })
+      .withMessage("Valid bedroom count required"),
+    body("bathrooms")
+      .isInt({ min: 0 })
+      .withMessage("Valid bathroom count required"),
+    body("maxGuests")
+      .isInt({ min: 1 })
+      .withMessage("Valid guest count required"),
+    body("baseRate")
+      .isFloat({ min: 0 })
+      .withMessage("Valid base rate required"),
+    body("cleaningFee").optional().isFloat({ min: 0 }),
+    body("amenities").isArray().withMessage("Amenities must be an array"),
+    body("houseRules").optional().isArray(),
+    body("images").isArray().withMessage("Images must be an array"),
+  ],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
     const propertyData = {
-        ...req.body,
-        hostId: req.user.id,
-        status: client_1.PropertyStatus.PENDING, // Requires admin approval
+      ...req.body,
+      hostId: req.user.id,
+      status: PropertyStatus.PENDING, // Requires admin approval
     };
-    const property = await server_1.prisma.property.create({
-        data: propertyData,
-        include: {
-            host: {
-                select: {
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                },
-            },
+
+    const property = await prisma.property.create({
+      data: propertyData,
+      include: {
+        host: {
+          select: {email: true,
+          },
         },
+      },
     });
+
     // Create notification for admin
-    await server_1.prisma.notification.create({
-        data: {
-            userId: req.user.id, // This would be admin ID in real implementation
-            type: "PROPERTY_SUBMITTED",
-            title: "New Property Submitted",
-            message: `${property.host.firstName} ${property.host.lastName} submitted a new property: ${property.name}`,
-            metadata: {
-                propertyId: property.id,
-            },
+    await prisma.notification.create({
+      data: {
+        userId: req.user.id, // This would be admin ID in real implementation
+        type: "PROPERTY_SUBMITTED",
+        title: "New Property Submitted",
+        message: `${user.email} ${user.email} submitted a new property: ${property.name}`,
+        metadata: {
+          propertyId: property.id,
         },
+      },
     });
-    (0, logger_middleware_1.auditLog)("PROPERTY_CREATED", req.user.id, {
+
+    auditLog(
+      "PROPERTY_CREATED",
+      req.user.id,
+      {
         propertyId: property.id,
         propertyName: property.name,
-    }, req.ip);
+      },
+      req.ip
+    );
+
     res.status(201).json({
-        success: true,
-        message: "Property created successfully. It will be reviewed by our team.",
-        data: property,
+      success: true,
+      message:
+        "Property created successfully. It will be reviewed by our team.",
+      data: property,
     });
-}));
+  })
+);
+
 /**
  * @route   PUT /api/v1/properties/:id
  * @desc    Update property
@@ -1278,42 +1311,23 @@ router.delete("/:id", (0, authservice_1.requireAuth)({ role: client_1.UserRole.A
  *                           customer:
  *                             type: object
  *                             properties:
- *                               firstName:
+ *                               id:
  *                                 type: string
- *                                 example: "Jane"
- *                               lastName:
- *                                 type: string
- *                                 example: "Smith"
  *                               email:
  *                                 type: string
- *                                 example: "jane.smith@example.com"
- *                               phone:
- *                                 type: string
- *                                 example: "+1234567890"
- *                               avatar:
- *                                 type: string
- *                                 example: "https://example.com/avatar.jpg"
  *                     pagination:
  *                       type: object
  *                       properties:
- *                         total:
+ *                         totalItems:
  *                           type: integer
- *                           example: 25
  *                         totalPages:
  *                           type: integer
- *                           example: 2
  *                         currentPage:
  *                           type: integer
- *                           example: 1
- *                         limit:
- *                           type: integer
- *                           example: 20
- *       401:
- *         description: Unauthorized — missing or invalid token
- *       403:
- *         description: Forbidden — not authorized to view these bookings
  *       404:
  *         description: Property not found
+ *       403:
+ *         description: Not authorized to view these bookings
  */
 router.get("/:id/bookings", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const property = await server_1.prisma.property.findUnique({
@@ -1343,13 +1357,7 @@ router.get("/:id/bookings", (0, authservice_1.requireAuth)({ role: client_1.User
             take: validLimit,
             include: {
                 customer: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                        phone: true,
-                        avatar: true,
-                    },
+                    select: { email: true, phone: true, avatar: true },
                 },
             },
         }),

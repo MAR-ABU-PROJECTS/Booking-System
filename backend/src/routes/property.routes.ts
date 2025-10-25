@@ -160,37 +160,7 @@ const validate = (req: any, res: any, next: any) => {
  *                               id:
  *                                 type: string
  *                                 example: host_67890
- *                               firstName:
- *                                 type: string
- *                                 example: John
- *                               lastName:
- *                                 type: string
- *                                 example: Doe
- *                               avatar:
- *                                 type: string
- *                                 example: https://example.com/avatar.jpg
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         page:
- *                           type: integer
- *                           example: 1
- *                         limit:
- *                           type: integer
- *                           example: 20
- *                         total:
- *                           type: integer
- *                           example: 100
- *                         totalPages:
- *                           type: integer
- *                           example: 5
- *       500:
- *         description: Server error
- */
-
-router.get(
-  "/",
-  optionalAuth(),
+ *optionalAuth(),
   asyncHandler(async (req: any, res: any) => {
     const {
       page = 1,
@@ -249,10 +219,7 @@ router.get(
         include: {
           host: {
             select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              avatar: true,
+              id: true,avatar: true,
             },
           },
           reviews: {
@@ -391,67 +358,14 @@ router.get(
  *                         id:
  *                           type: string
  *                           example: host_67890
- *                         firstName:
- *                           type: string
- *                           example: John
- *                         lastName:
- *                           type: string
- *                           example: Doe
- *                         avatar:
- *                           type: string
- *                           example: https://example.com/avatar.jpg
- *                         createdAt:
- *                           type: string
- *                           format: date-time
- *                           example: 2024-05-01T10:00:00Z
- *                         hostedProperties:
- *                           type: integer
- *                           example: 5
- *                     reviews:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           rating:
- *                             type: integer
- *                             example: 5
- *                           comment:
- *                             type: string
- *                             example: Great place to stay!
- *                           createdAt:
- *                             type: string
- *                             format: date-time
- *                             example: 2025-07-15T14:30:00Z
- *                           customer:
- *                             type: object
- *                             properties:
- *                               firstName:
- *                                 type: string
- *                                 example: Jane
- *                               lastName:
- *                                 type: string
- *                                 example: Smith
- *                               avatar:
- *                                 type: string
- *                                 example: https://example.com/customer.jpg
- *       404:
- *         description: Property not found
- *       500:
- *         description: Server error
- */
-router.get(
-  "/:id",
-  optionalAuth(),
+ *optionalAuth(),
   asyncHandler(async (req: any, res: any) => {
     const property = await prisma.property.findUnique({
       where: { id: req.params.id },
       include: {
         host: {
           select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
+            id: true,avatar: true,
             createdAt: true,
             _count: {
               select: {
@@ -465,10 +379,7 @@ router.get(
           orderBy: { createdAt: "desc" },
           include: {
             customer: {
-              select: {
-                firstName: true,
-                lastName: true,
-                avatar: true,
+              select: {avatar: true,
               },
             },
           },
@@ -637,6 +548,105 @@ router.get(
         checkIn,
         checkOut,
         propertyId: req.params.id,
+      },
+    });
+  })
+);
+
+/**
+ * @route   GET /api/v1/properties/:id/booked-dates
+ * @desc    Get all booked dates for a property
+ * @access  Public
+ */
+/**
+ * @swagger
+ * /properties/{id}/booked-dates:
+ *   get:
+ *     summary: Get all booked dates for a property
+ *     description: Returns all booked date ranges for a property to help frontend disable unavailable dates
+ *     tags:
+ *       - Properties
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved booked dates
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     propertyId:
+ *                       type: string
+ *                     bookedDateRanges:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           checkIn:
+ *                             type: string
+ *                             format: date
+ *                           checkOut:
+ *                             type: string
+ *                             format: date
+ *                           status:
+ *                             type: string
+ *       404:
+ *         description: Property not found
+ */
+router.get(
+  "/:id/booked-dates",
+  [param("id").isString()],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const property = await prisma.property.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!property) {
+      throw new AppError("Property not found", 404);
+    }
+
+    // Get all approved and pending bookings for this property
+    const bookedDates = await prisma.booking.findMany({
+      where: {
+        propertyId: req.params.id,
+        status: {
+          in: ["PENDING", "APPROVED", "CONFIRMED", "CHECKED_IN"],
+        },
+      },
+      select: {
+        checkInDate: true,
+        checkOutDate: true,
+        status: true,
+      },
+      orderBy: {
+        checkInDate: "asc",
+      },
+    });
+
+    const bookedDateRanges = bookedDates.map((booking) => ({
+      checkIn: booking.checkInDate.toISOString().split("T")[0],
+      checkOut: booking.checkOutDate.toISOString().split("T")[0],
+      status: booking.status,
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        propertyId: req.params.id,
+        bookedDateRanges,
       },
     });
   })
@@ -956,25 +966,7 @@ router.get(
  *                     host:
  *                       type: object
  *                       properties:
- *                         firstName:
- *                           type: string
- *                           example: "John"
- *                         lastName:
- *                           type: string
- *                           example: "Doe"
- *                         email:
- *                           type: string
- *                           example: "john.doe@example.com"
- *       400:
- *         description: Bad request — validation errors
- *       401:
- *         description: Unauthorized — missing or invalid token
- *       403:
- *         description: Forbidden — user does not have the required role
- */
-router.post(
-  "/",
-  requireAuth({ role: UserRole.ADMIN }),
+ *requireAuth({ role: UserRole.ADMIN }),
   [
     body("name").trim().notEmpty().withMessage("Property name required"),
     body("description").trim().notEmpty().withMessage("Description required"),
@@ -1017,10 +1009,7 @@ router.post(
       data: propertyData,
       include: {
         host: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
+          select: {email: true,
           },
         },
       },
@@ -1032,7 +1021,7 @@ router.post(
         userId: req.user.id, // This would be admin ID in real implementation
         type: "PROPERTY_SUBMITTED",
         title: "New Property Submitted",
-        message: `${property.host.firstName} ${property.host.lastName} submitted a new property: ${property.name}`,
+        message: `${user.email} ${user.email} submitted a new property: ${property.name}`,
         metadata: {
           propertyId: property.id,
         },
@@ -1403,42 +1392,23 @@ router.delete(
  *                           customer:
  *                             type: object
  *                             properties:
- *                               firstName:
+ *                               id:
  *                                 type: string
- *                                 example: "Jane"
- *                               lastName:
- *                                 type: string
- *                                 example: "Smith"
  *                               email:
  *                                 type: string
- *                                 example: "jane.smith@example.com"
- *                               phone:
- *                                 type: string
- *                                 example: "+1234567890"
- *                               avatar:
- *                                 type: string
- *                                 example: "https://example.com/avatar.jpg"
  *                     pagination:
  *                       type: object
  *                       properties:
- *                         total:
+ *                         totalItems:
  *                           type: integer
- *                           example: 25
  *                         totalPages:
  *                           type: integer
- *                           example: 2
  *                         currentPage:
  *                           type: integer
- *                           example: 1
- *                         limit:
- *                           type: integer
- *                           example: 20
- *       401:
- *         description: Unauthorized — missing or invalid token
- *       403:
- *         description: Forbidden — not authorized to view these bookings
  *       404:
  *         description: Property not found
+ *       403:
+ *         description: Not authorized to view these bookings
  */
 router.get(
   "/:id/bookings",
@@ -1487,13 +1457,7 @@ router.get(
         take: validLimit,
         include: {
           customer: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
-              phone: true,
-              avatar: true,
-            },
+            select: { email: true, phone: true, avatar: true },
           },
         },
       }),

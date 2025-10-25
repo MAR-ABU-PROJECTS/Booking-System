@@ -361,7 +361,7 @@ router.post("/:id/upload-receipt", (0, authservice_1.requireAuth)(), upload.sing
         // Send notification to admin
         console.log("DEBUG: About to send admin notification email");
         try {
-            await emailservice_1.emailService.sendAdminReceiptUploadNotification(process.env.ADMIN_EMAIL || "admin@marabu.com", updatedPayment, payment.booking, req.file.filename);
+            await emailservice_1.emailService.sendAdminReceiptUploadNotification(process.env.ADMIN_EMAIL || "marabuprojects@yahoo.com", updatedPayment, payment.booking, req.file.filename);
             console.log("DEBUG: Admin notification email sent successfully");
         }
         catch (emailError) {
@@ -614,7 +614,7 @@ router.post("/:id/verify-manual", (0, authservice_1.requireAuth)(), async (req, 
                     subject: "Payment Verification Failed",
                     html: `
             <h2>Payment Verification Failed</h2>
-            <p>Dear ${payment.booking.customer.firstName},</p>
+            <p>Dear ${payment.booking.guestName || payment.booking.guestEmail},</p>
             <p>Unfortunately, we could not verify your payment receipt. Your booking has been cancelled.</p>
             
             <h3>Details:</h3>
@@ -825,7 +825,7 @@ router.post("/:id/reject-manual", (0, authservice_1.requireAuth)(), async (req, 
                 subject: "Payment Rejected - Refund Will Be Processed",
                 html: `
             <h2>Payment Rejected</h2>
-            <p>Dear ${payment.booking.customer.firstName},</p>
+            <p>Dear ${payment.booking.guestName || payment.booking.guestEmail},</p>
             <p>Your payment receipt for booking <strong>${payment.booking.bookingCode || payment.booking.id}</strong> was rejected because the amount sent did not match the expected total.</p>
             <div class="info-box">
               <p><strong>Property:</strong> ${payment.booking.property.name}</p>
@@ -1030,8 +1030,6 @@ router.get("/pending-verification", (0, authservice_1.requireAuth)(), async (req
                         customer: {
                             select: {
                                 id: true,
-                                firstName: true,
-                                lastName: true,
                                 email: true,
                                 phone: true,
                             },
@@ -1407,7 +1405,7 @@ router.post("/:id/refund/approve", (0, authservice_1.requireAuth)(), (0, error_m
             to: payment.booking.customer.email,
             subject: "Refund Approved",
             html: `
-          <p>Dear ${payment.booking.customer.firstName},</p>
+          <p>Dear ${payment.booking.guestName || payment.booking.guestEmail},</p>
           <p>Your refund for booking <strong>${payment.booking.bookingCode || payment.booking.id}</strong> has been approved.</p>
           <p>Amount: ₦${(updatedPayment.refundAmount || refund.amount).toLocaleString()}</p>
           <p>This was a manual refund for a bank transfer payment.</p>
@@ -1550,7 +1548,7 @@ router.post("/:id/refund/reject", (0, authservice_1.requireAuth)(), (0, error_mi
             to: payment.booking.customer.email,
             subject: "Refund Rejected",
             html: `
-          <p>Dear ${payment.booking.customer.firstName},</p>
+          <p>Dear ${payment.booking.guestName || payment.booking.guestEmail},</p>
           <p>Your refund request for booking <strong>${payment.booking.bookingCode || payment.booking.id}</strong> was rejected.</p>
           <p>Reason: ${reason}</p>
         `,
@@ -1700,7 +1698,7 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
         include: {
             property: { select: { name: true, hostId: true, type: true } },
             customer: {
-                select: { firstName: true, lastName: true, email: true, phone: true },
+                select: { email: true, phone: true },
             },
         },
     });
@@ -1722,7 +1720,7 @@ router.post("/initialize", (0, authservice_1.requireAuth)(), [
     const paymentReference = `MAR_${bookingId}_${Date.now()}`;
     // Common gateway metadata
     const gatewayMeta = {
-        customerName: `${booking.customer.firstName} ${booking.customer.lastName}`,
+        customerName: booking.guestName || booking.guestEmail,
         customerEmail: booking.customer.email,
         propertyName: booking.property.name,
         bookingCode: booking.bookingCode,
@@ -2104,19 +2102,13 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
                             name: true,
                             hostId: true,
                             host: {
-                                select: {
-                                    firstName: true,
-                                    lastName: true,
-                                    email: true,
-                                },
+                                select: { email: true },
                             },
                         },
                     },
                     customer: {
                         select: {
                             id: true,
-                            firstName: true,
-                            lastName: true,
                             email: true,
                         },
                     },
@@ -2210,15 +2202,15 @@ router.post("/verify/:reference", (0, authservice_1.requireAuth)(), (0, error_mi
             // Send email confirmations
             await Promise.all([
                 emailservice_1.emailService.sendPaymentConfirmation(payment.booking.customer.email, {
-                    customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
+                    customerName: payment.booking.guestName || payment.booking.guestEmail,
                     bookingCode: payment.booking.bookingCode,
                     propertyName: payment.booking.property.name,
                     amount: payment.amount,
                     paymentReference: reference,
                 }),
                 emailservice_1.emailService.sendPaymentNotificationToHost(payment.booking.property.host.email, {
-                    hostName: `${payment.booking.property.host.firstName} ${payment.booking.property.host.lastName}`,
-                    customerName: `${payment.booking.customer.firstName} ${payment.booking.customer.lastName}`,
+                    hostName: payment.booking.property.host.email,
+                    customerName: payment.booking.guestName || payment.booking.guestEmail,
                     bookingCode: payment.booking.bookingCode,
                     propertyName: payment.booking.property.name,
                     amount: payment.amount,
@@ -2797,11 +2789,7 @@ router.get("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHa
                             },
                         },
                         customer: {
-                            select: {
-                                firstName: true,
-                                lastName: true,
-                                email: true,
-                            },
+                            select: { email: true },
                         },
                     },
                 },
@@ -2928,7 +2916,7 @@ router.get("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyn
                         select: { name: true, hostId: true },
                     },
                     customer: {
-                        select: { firstName: true, lastName: true, email: true },
+                        select: { email: true },
                     },
                     customerId: true,
                 },
@@ -3151,7 +3139,7 @@ router.post("/:id/refund", (0, authservice_1.requireAuth)({ role: client_1.UserR
             booking: {
                 include: {
                     customer: {
-                        select: { firstName: true, lastName: true, email: true },
+                        select: { email: true },
                     },
                 },
             },

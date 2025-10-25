@@ -143,10 +143,7 @@ router.get("/customer", (0, authservice_1.requireAuth)({ role: client_1.UserRole
                         city: true,
                         images: true,
                         host: {
-                            select: {
-                                firstName: true,
-                                lastName: true,
-                                phone: true,
+                            select: { phone: true,
                             },
                         },
                     },
@@ -413,10 +410,7 @@ router.get("/host", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
                     select: { name: true },
                 },
                 customer: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        email: true,
+                    select: { email: true,
                     },
                 },
             },
@@ -433,10 +427,7 @@ router.get("/host", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
                     select: { name: true },
                 },
                 customer: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                    },
+                    select: {},
                 },
             },
         }),
@@ -473,10 +464,7 @@ router.get("/host", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
                     select: { name: true },
                 },
                 customer: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        phone: true,
+                    select: { phone: true,
                         email: true,
                     },
                 },
@@ -492,10 +480,7 @@ router.get("/host", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADM
             take: 5,
             include: {
                 customer: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                    },
+                    select: {},
                 },
                 property: {
                     select: { name: true },
@@ -839,10 +824,7 @@ router.get("/admin", (0, authservice_1.requireAuth)({ role: client_1.UserRole.AD
             city: true,
             type: true,
             host: {
-                select: {
-                    firstName: true,
-                    lastName: true,
-                },
+                select: {},
             },
         },
     });

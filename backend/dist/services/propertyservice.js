@@ -108,8 +108,6 @@ class PropertyService {
                     host: {
                         select: {
                             id: true,
-                            firstName: true,
-                            lastName: true,
                             email: true,
                         },
                     },
@@ -146,8 +144,6 @@ class PropertyService {
                 host: {
                     select: {
                         id: true,
-                        firstName: true,
-                        lastName: true,
                         email: true,
                     },
                 },
@@ -208,8 +204,6 @@ class PropertyService {
                     host: {
                         select: {
                             id: true,
-                            firstName: true,
-                            lastName: true,
                             email: true,
                         },
                     },
@@ -371,8 +365,6 @@ class PropertyService {
                         host: {
                             select: {
                                 id: true,
-                                firstName: true,
-                                lastName: true,
                                 email: true,
                             },
                         },
@@ -434,8 +426,6 @@ class PropertyService {
                 host: {
                     select: {
                         id: true,
-                        firstName: true,
-                        lastName: true,
                         email: true,
                     },
                 },
