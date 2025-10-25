@@ -34,10 +34,10 @@ function main() {
         const hashedPassword = yield bcryptjs_1.default.hash("admin123", 12);
         // Create Super Admin
         const superAdmin = yield prisma.user.upsert({
-            where: { email: "admin@marabuprojects.com" },
+            where: { email: "marabuprojects@yahoo.com" },
             update: {},
             create: {
-                email: "admin@marabuprojects.com",
+                email: "marabuprojects@yahoo.com",
                 firstName: "MAR",
                 lastName: "ABU",
                 phone: "(+234) 803 619 4871",

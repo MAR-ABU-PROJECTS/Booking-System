@@ -36,6 +36,8 @@ const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
 const error_middleware_1 = require("./middlewares/error.middleware");
 const notfound_middleware_1 = require("./middlewares/notfound.middleware");
 const logger_middleware_1 = require("./middlewares/logger.middleware");
+// Import services
+const schedulerservice_1 = require("./services/schedulerservice");
 // Initialize Prisma
 exports.prisma = new client_1.PrismaClient({
     log: process.env.NODE_ENV === "development"
@@ -156,6 +158,8 @@ const startServer = async () => {
             console.log(`Environment: ${process.env.NODE_ENV}`);
             console.log(`Primary Color: ${process.env.PRIMARY_COLOR}`);
             console.log(`Secondary Color: ${process.env.SECONDARY_COLOR}`);
+            // Start the booking scheduler service
+            schedulerservice_1.schedulerService.start();
         });
     }
     catch (error) {
@@ -166,11 +170,13 @@ const startServer = async () => {
 // Graceful shutdown
 process.on("SIGTERM", async () => {
     console.log("SIGTERM received, shutting down gracefully...");
+    schedulerservice_1.schedulerService.stop();
     await exports.prisma.$disconnect();
     process.exit(0);
 });
 process.on("SIGINT", async () => {
     console.log("SIGINT received, shutting down gracefully...");
+    schedulerservice_1.schedulerService.stop();
     await exports.prisma.$disconnect();
     process.exit(0);
 });

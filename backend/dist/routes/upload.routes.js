@@ -816,10 +816,7 @@ router.get("/media", (0, authservice_1.requireAuth)(), [
             take: parseInt(limit),
             include: {
                 uploader: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        email: true,
+                    select: { email: true,
                     },
                 },
             },

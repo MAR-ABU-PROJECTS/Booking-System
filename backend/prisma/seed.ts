@@ -22,16 +22,26 @@ async function main() {
     update: {},
     create: {
       email: "marabuprojects@yahoo.com",
-      firstName: "MAR",
-      lastName: "ABU",
       phone: "(+234) 803 619 4871",
       role: UserRole.ADMIN,
       status: "ACTIVE",
-      password: hashedPassword,
       emailVerified: new Date(),
     },
   });
   console.log(`✅ Admin created: ${superAdmin.email}`);
+
+  const Admin = await prisma.user.upsert({
+    where: { email: "soputa42@gmail.com" },
+    update: {},
+    create: {
+      email: "soputa42@gmail.com",
+      phone: "(+234) 803 619 4871",
+      role: UserRole.ADMIN,
+      status: "ACTIVE",
+      emailVerified: new Date(),
+    },
+  });
+  console.log(`✅ Admin created: ${Admin.email}`);
 
   const properties = [
     {
@@ -45,11 +55,10 @@ async function main() {
       state: "Lagos",
       bedrooms: 2,
       bathrooms: 3, // 2 bathrooms + guest toilet
-      maxGuests: 4,
+      maxGuests: 6, // No restrictions but need a reasonable default
       size: 200.0,
       baseRate: 320000,
       weekendPremium: 0,
-      cleaningFee: 20000,
       securityDeposit: 75000,
       amenities: [
         "Washing Machine",
@@ -78,11 +87,10 @@ async function main() {
       state: "Lagos",
       bedrooms: 4,
       bathrooms: 5, // 4 toilets plus visitor's toilet
-      maxGuests: 8,
+      maxGuests: 10, // No restrictions but need a reasonable default
       size: 185.5,
       baseRate: 160000,
       weekendPremium: 0,
-      cleaningFee: 18000,
       securityDeposit: 60000,
       amenities: [
         "Microwave",
@@ -113,11 +121,10 @@ async function main() {
       state: "Lagos",
       bedrooms: 2,
       bathrooms: 2,
-      maxGuests: 4,
+      maxGuests: 6, // No restrictions but need a reasonable default
       size: 250.0,
       baseRate: 350000,
       weekendPremium: 0,
-      cleaningFee: 35000,
       securityDeposit: 150000,
       amenities: [
         "Outer Lounge Area",
@@ -144,11 +151,10 @@ async function main() {
       state: "Lagos",
       bedrooms: 2,
       bathrooms: 2,
-      maxGuests: 4,
+      maxGuests: 6, // No restrictions but need a reasonable default
       size: 180.0,
       baseRate: 200000,
       weekendPremium: 0,
-      cleaningFee: 25000,
       securityDeposit: 100000,
       amenities: [
         "Contemporary Bedrooms",
@@ -206,8 +212,8 @@ async function main() {
     { key: "MIN_BOOKING_DAYS", value: "1", category: "Booking" },
     { key: "MAX_BOOKING_DAYS", value: "90", category: "Booking" },
     { key: "BOOKING_PREFIX", value: "MAR", category: "Booking" },
-    { key: "DEFAULT_CHECK_IN_TIME", value: "15:00", category: "Booking" },
-    { key: "DEFAULT_CHECK_OUT_TIME", value: "11:00", category: "Booking" },
+    { key: "DEFAULT_CHECK_IN_TIME", value: "14:00", category: "Booking" },
+    { key: "DEFAULT_CHECK_OUT_TIME", value: "12:00", category: "Booking" },
   ];
 
   for (const setting of systemSettings) {

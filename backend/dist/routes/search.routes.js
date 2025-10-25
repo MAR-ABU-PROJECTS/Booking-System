@@ -246,7 +246,7 @@ const validate = (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-router.get("/properties", (0, authservice_1.optionalAuth)(), [
+router.get("/properties", authservice_1.optionalAuth, [
     (0, express_validator_1.query)("q")
         .optional()
         .isString()
@@ -388,8 +388,6 @@ router.get("/properties", (0, authservice_1.optionalAuth)(), [
                 host: {
                     select: {
                         id: true,
-                        firstName: true,
-                        lastName: true,
                         avatar: true,
                         createdAt: true,
                     },
@@ -1332,7 +1330,7 @@ router.get("/saved", (0, authservice_1.requireAuth)(), (0, error_middleware_1.as
     }
     const savedSearches = await server_1.prisma.savedSearch.findMany({
         where: { userId: req.user.id },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
     });
     res.json({
         success: true,

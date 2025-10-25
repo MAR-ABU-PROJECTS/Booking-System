@@ -13,7 +13,6 @@ const error_middleware_2 = require("../middlewares/error.middleware");
 const server_1 = require("../server");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
-const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const uuid_1 = require("uuid");
@@ -22,7 +21,7 @@ const router = (0, express_1.Router)();
 // Configure multer for avatar uploads
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/avatars');
+        cb(null, "uploads/avatars");
     },
     filename: (req, file, cb) => {
         const uniqueName = `avatar-${(0, uuid_1.v4)()}${path_1.default.extname(file.originalname)}`;
@@ -35,11 +34,11 @@ const upload = (0, multer_1.default)({
         fileSize: constants_1.APP_CONSTANTS.UPLOAD.MAX_IMAGE_SIZE,
     },
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
+        if (file.mimetype.startsWith("image/")) {
             cb(null, true);
         }
         else {
-            cb(new Error('Only image files are allowed'));
+            cb(new Error("Only image files are allowed"));
         }
     },
 });
@@ -49,7 +48,7 @@ const validate = (req, res, next) => {
     if (!errors.isEmpty()) {
         return res.status(400).json({
             success: false,
-            message: 'Validation failed',
+            message: "Validation failed",
             errors: errors.array(),
         });
     }
@@ -146,14 +145,12 @@ const validate = (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-router.get('/profile', (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.get("/profile", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const user = await server_1.prisma.user.findUnique({
         where: { id: req.user.id },
         select: {
             id: true,
             email: true,
-            firstName: true,
-            lastName: true,
             phone: true,
             avatar: true,
             role: true,
@@ -172,7 +169,7 @@ router.get('/profile', (0, authservice_1.requireAuth)(), (0, error_middleware_1.
         },
     });
     if (!user) {
-        throw new error_middleware_2.AppError('User not found', 404);
+        throw new error_middleware_2.AppError("User not found", 404);
     }
     res.json({
         success: true,
@@ -286,19 +283,46 @@ router.get('/profile', (0, authservice_1.requireAuth)(), (0, error_middleware_1.
  *       500:
  *         description: Internal server error
  */
-router.put('/profile', (0, authservice_1.requireAuth)(), [
-    (0, express_validator_1.body)('firstName').optional().trim().notEmpty().withMessage('First name cannot be empty'),
-    (0, express_validator_1.body)('lastName').optional().trim().notEmpty().withMessage('Last name cannot be empty'),
-    (0, express_validator_1.body)('phone').optional().isMobilePhone('any').withMessage('Valid phone number required'),
-    (0, express_validator_1.body)('bio').optional().isString().isLength({ max: 500 }).withMessage('Bio must be less than 500 characters'),
-    (0, express_validator_1.body)('dateOfBirth').optional().isISO8601().withMessage('Valid date of birth required'),
-    (0, express_validator_1.body)('address').optional().isString(),
-    (0, express_validator_1.body)('city').optional().isString(),
-    (0, express_validator_1.body)('country').optional().isString(),
+router.put("/profile", (0, authservice_1.requireAuth)(), [
+    (0, express_validator_1.body)("firstName")
+        .optional()
+        .trim()
+        .notEmpty()
+        .withMessage("First name cannot be empty"),
+    (0, express_validator_1.body)("lastName")
+        .optional()
+        .trim()
+        .notEmpty()
+        .withMessage("Last name cannot be empty"),
+    (0, express_validator_1.body)("phone")
+        .optional()
+        .isMobilePhone("any")
+        .withMessage("Valid phone number required"),
+    (0, express_validator_1.body)("bio")
+        .optional()
+        .isString()
+        .isLength({ max: 500 })
+        .withMessage("Bio must be less than 500 characters"),
+    (0, express_validator_1.body)("dateOfBirth")
+        .optional()
+        .isISO8601()
+        .withMessage("Valid date of birth required"),
+    (0, express_validator_1.body)("address").optional().isString(),
+    (0, express_validator_1.body)("city").optional().isString(),
+    (0, express_validator_1.body)("country").optional().isString(),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const allowedFields = ['firstName', 'lastName', 'phone', 'bio', 'dateOfBirth', 'address', 'city', 'country'];
+    const allowedFields = [
+        "firstName",
+        "lastName",
+        "phone",
+        "bio",
+        "dateOfBirth",
+        "address",
+        "city",
+        "country",
+    ];
     const updateData = Object.keys(req.body)
-        .filter(key => allowedFields.includes(key))
+        .filter((key) => allowedFields.includes(key))
         .reduce((obj, key) => {
         obj[key] = req.body[key];
         return obj;
@@ -309,8 +333,6 @@ router.put('/profile', (0, authservice_1.requireAuth)(), [
         select: {
             id: true,
             email: true,
-            firstName: true,
-            lastName: true,
             phone: true,
             avatar: true,
             bio: true,
@@ -320,12 +342,12 @@ router.put('/profile', (0, authservice_1.requireAuth)(), [
             country: true,
         },
     });
-    (0, logger_middleware_1.auditLog)('PROFILE_UPDATED', req.user.id, {
+    (0, logger_middleware_1.auditLog)("PROFILE_UPDATED", req.user.id, {
         changes: updateData,
     }, req.ip);
     res.json({
         success: true,
-        message: 'Profile updated successfully',
+        message: "Profile updated successfully",
         data: user,
     });
 }));
@@ -391,9 +413,9 @@ router.put('/profile', (0, authservice_1.requireAuth)(), [
  *       500:
  *         description: Internal server error
  */
-router.post('/avatar', (0, authservice_1.requireAuth)(), upload.single('avatar'), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.post("/avatar", (0, authservice_1.requireAuth)(), upload.single("avatar"), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     if (!req.file) {
-        throw new error_middleware_2.AppError('Avatar image is required', 400);
+        throw new error_middleware_2.AppError("Avatar image is required", 400);
     }
     // Delete old avatar if exists
     const currentUser = await server_1.prisma.user.findUnique({
@@ -401,13 +423,13 @@ router.post('/avatar', (0, authservice_1.requireAuth)(), upload.single('avatar')
         select: { avatar: true },
     });
     if (currentUser?.avatar) {
-        const fs = require('fs').promises;
-        const oldAvatarPath = path_1.default.join('uploads/avatars', path_1.default.basename(currentUser.avatar));
+        const fs = require("fs").promises;
+        const oldAvatarPath = path_1.default.join("uploads/avatars", path_1.default.basename(currentUser.avatar));
         try {
             await fs.unlink(oldAvatarPath);
         }
         catch (error) {
-            console.error('Failed to delete old avatar:', error);
+            console.error("Failed to delete old avatar:", error);
         }
     }
     // Update user with new avatar
@@ -417,17 +439,15 @@ router.post('/avatar', (0, authservice_1.requireAuth)(), upload.single('avatar')
         data: { avatar: avatarUrl },
         select: {
             id: true,
-            firstName: true,
-            lastName: true,
             avatar: true,
         },
     });
-    (0, logger_middleware_1.auditLog)('AVATAR_UPDATED', req.user.id, {
+    (0, logger_middleware_1.auditLog)("AVATAR_UPDATED", req.user.id, {
         avatarUrl,
     }, req.ip);
     res.json({
         success: true,
-        message: 'Avatar updated successfully',
+        message: "Avatar updated successfully",
         data: user,
     });
 }));
@@ -465,31 +485,31 @@ router.post('/avatar', (0, authservice_1.requireAuth)(), upload.single('avatar')
  *       500:
  *         description: Internal server error
  */
-router.delete('/avatar', (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.delete("/avatar", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const user = await server_1.prisma.user.findUnique({
         where: { id: req.user.id },
         select: { avatar: true },
     });
     if (user?.avatar) {
         // Delete file from filesystem
-        const fs = require('fs').promises;
-        const avatarPath = path_1.default.join('uploads/avatars', path_1.default.basename(user.avatar));
+        const fs = require("fs").promises;
+        const avatarPath = path_1.default.join("uploads/avatars", path_1.default.basename(user.avatar));
         try {
             await fs.unlink(avatarPath);
         }
         catch (error) {
-            console.error('Failed to delete avatar file:', error);
+            console.error("Failed to delete avatar file:", error);
         }
         // Update user record
         await server_1.prisma.user.update({
             where: { id: req.user.id },
             data: { avatar: null },
         });
-        (0, logger_middleware_1.auditLog)('AVATAR_DELETED', req.user.id, {}, req.ip);
+        (0, logger_middleware_1.auditLog)("AVATAR_DELETED", req.user.id, {}, req.ip);
     }
     res.json({
         success: true,
-        message: 'Avatar deleted successfully',
+        message: "Avatar deleted successfully",
     });
 }));
 /**
@@ -499,100 +519,43 @@ router.delete('/avatar', (0, authservice_1.requireAuth)(), (0, error_middleware_
  */
 /**
  * @swagger
- * /users/password:
- *   put:
- *     summary: Change user password
- *     description: Allows the currently authenticated user to update their password after verifying the current password.
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - currentPassword
- *               - newPassword
- *               - confirmPassword
- *             properties:
- *               currentPassword:
- *                 type: string
- *                 example: "OldPassword123!"
- *               newPassword:
- *                 type: string
- *                 example: "NewStrongPassword@123"
- *               confirmPassword:
- *                 type: string
- *                 example: "NewStrongPassword@123"
- *     responses:
- *       200:
- *         description: Password changed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Password changed successfully"
- *       400:
- *         description: Invalid current password or validation failed
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: User not found
- *       500:
- *         description: Internal server error
- */
-router.put('/password', (0, authservice_1.requireAuth)(), [
-    (0, express_validator_1.body)('currentPassword').notEmpty().withMessage('Current password required'),
-    (0, express_validator_1.body)('newPassword')
-        .isLength({ min: 8 })
-        .withMessage('Password must be at least 8 characters')
-        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-        .withMessage('Password must contain uppercase, lowercase, number and special character'),
-    (0, express_validator_1.body)('confirmPassword').custom((value, { req }) => {
-        if (value !== req.body.newPassword) {
-            throw new Error('Password confirmation does not match');
-        }
-        return true;
+ * /users/requireAuth(),
+  [
+    body('currentPassword').notEmpty().withMessage('Current password required'),
+    body('newPassword')
+      .isLength({ min: 8 })
+      .withMessage('Password must be at least 8 characters')
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+      .withMessage('Password must contain uppercase, lowercase, number and special character'),
+    body('confirmPassword').custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error('Password confirmation does not match')
+      }
+      return true
     }),
-], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
+  ],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const { currentPassword, newPassword } = req.body
+
     // Get current user with password
-    const user = await server_1.prisma.user.findUnique({
-        where: { id: req.user.id },
-        select: { id: true, password: true, email: true },
-    });
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true,email: true },
+    })
+
     if (!user) {
-        throw new error_middleware_2.AppError('User not found', 404);
+      throw new AppError('User not found', 404)
     }
-    // Verify current password
-    const isValidPassword = await bcryptjs_1.default.compare(currentPassword, user.password);
-    if (!isValidPassword) {
-        throw new error_middleware_2.AppError('Current password is incorrect', 400);
-    }
-    // Hash new password
-    const hashedPassword = await bcryptjs_1.default.hash(newPassword, 12);
-    // Update password
-    await server_1.prisma.user.update({
-        where: { id: req.user.id },
-        data: { password: hashedPassword },
+
+    // Password functionality removed in passwordless authentication
+    res.status(400).json({
+      success: false,
+      message: 'Password functionality is not available in passwordless authentication',
     });
-    // Send email notification
-    await emailservice_1.emailService.sendPasswordChangeNotification(user.email);
-    (0, logger_middleware_1.auditLog)('PASSWORD_CHANGED', req.user.id, {}, req.ip);
-    res.json({
-        success: true,
-        message: 'Password changed successfully',
-    });
-}));
+  })
+);
+
 /**
  * @route   GET /users/dashboard
  * @desc    Get user dashboard data
@@ -713,7 +676,7 @@ router.put('/password', (0, authservice_1.requireAuth)(), [
  *       500:
  *         description: Internal server error
  */
-router.get('/dashboard', (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.get("/dashboard", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
     if (userRole === client_1.UserRole.CUSTOMER) {
@@ -721,7 +684,7 @@ router.get('/dashboard', (0, authservice_1.requireAuth)(), (0, error_middleware_
         const [bookings, upcomingBookings, reviews, favoriteProperties] = await Promise.all([
             server_1.prisma.booking.findMany({
                 where: { customerId: userId },
-                orderBy: { createdAt: 'desc' },
+                orderBy: { createdAt: "desc" },
                 take: 5,
                 include: {
                     property: {
@@ -738,10 +701,10 @@ router.get('/dashboard', (0, authservice_1.requireAuth)(), (0, error_middleware_
             server_1.prisma.booking.findMany({
                 where: {
                     customerId: userId,
-                    status: 'APPROVED',
+                    status: "APPROVED",
                     checkInDate: { gte: new Date() },
                 },
-                orderBy: { checkInDate: 'asc' },
+                orderBy: { checkInDate: "asc" },
                 take: 3,
                 include: {
                     property: {
@@ -804,25 +767,21 @@ router.get('/dashboard', (0, authservice_1.requireAuth)(), (0, error_middleware_
                 where: {
                     property: { hostId: userId },
                 },
-                orderBy: { createdAt: 'desc' },
+                orderBy: { createdAt: "desc" },
                 take: 10,
                 include: {
                     property: {
                         select: { name: true },
                     },
                     customer: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                            email: true,
-                        },
+                        select: { email: true },
                     },
                 },
             }),
             server_1.prisma.booking.aggregate({
                 where: {
                     property: { hostId: userId },
-                    paymentStatus: 'PAID',
+                    paymentStatus: "PAID",
                 },
                 _sum: { total: true },
             }),
@@ -831,14 +790,11 @@ router.get('/dashboard', (0, authservice_1.requireAuth)(), (0, error_middleware_
                     property: { hostId: userId },
                     approved: true,
                 },
-                orderBy: { createdAt: 'desc' },
+                orderBy: { createdAt: "desc" },
                 take: 5,
                 include: {
                     customer: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                        },
+                        select: {},
                     },
                     property: {
                         select: { name: true },
@@ -851,13 +807,13 @@ router.get('/dashboard', (0, authservice_1.requireAuth)(), (0, error_middleware_
             data: {
                 properties: {
                     total: properties.length,
-                    active: properties.filter(p => p.status === 'ACTIVE').length,
-                    pending: properties.filter(p => p.status === 'PENDING').length,
+                    active: properties.filter((p) => p.status === "ACTIVE").length,
+                    pending: properties.filter((p) => p.status === "PENDING").length,
                 },
                 bookings: {
                     recent: bookings,
                     total: bookings.length,
-                    pending: bookings.filter(b => b.status === 'PENDING').length,
+                    pending: bookings.filter((b) => b.status === "PENDING").length,
                 },
                 earnings: {
                     total: earnings._sum.total || 0,
@@ -916,14 +872,14 @@ router.get('/dashboard', (0, authservice_1.requireAuth)(), (0, error_middleware_
  *       500:
  *         description: Internal server error
  */
-router.post('/favorites/:propertyId', (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.post("/favorites/:propertyId", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { propertyId } = req.params;
     // Check if property exists
     const property = await server_1.prisma.property.findUnique({
         where: { id: propertyId },
     });
     if (!property) {
-        throw new error_middleware_2.AppError('Property not found', 404);
+        throw new error_middleware_2.AppError("Property not found", 404);
     }
     // Check if already favorited
     const existing = await server_1.prisma.favorite.findUnique({
@@ -935,7 +891,7 @@ router.post('/favorites/:propertyId', (0, authservice_1.requireAuth)(), (0, erro
         },
     });
     if (existing) {
-        throw new error_middleware_2.AppError('Property already in favorites', 400);
+        throw new error_middleware_2.AppError("Property already in favorites", 400);
     }
     // Add to favorites
     await server_1.prisma.favorite.create({
@@ -946,7 +902,7 @@ router.post('/favorites/:propertyId', (0, authservice_1.requireAuth)(), (0, erro
     });
     res.json({
         success: true,
-        message: 'Property added to favorites',
+        message: "Property added to favorites",
     });
 }));
 /**
@@ -992,7 +948,7 @@ router.post('/favorites/:propertyId', (0, authservice_1.requireAuth)(), (0, erro
  *       500:
  *         description: Internal server error
  */
-router.delete('/favorites/:propertyId', (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.delete("/favorites/:propertyId", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { propertyId } = req.params;
     await server_1.prisma.favorite.delete({
         where: {
@@ -1004,7 +960,7 @@ router.delete('/favorites/:propertyId', (0, authservice_1.requireAuth)(), (0, er
     });
     res.json({
         success: true,
-        message: 'Property removed from favorites',
+        message: "Property removed from favorites",
     });
 }));
 /**
@@ -1090,22 +1046,19 @@ router.delete('/favorites/:propertyId', (0, authservice_1.requireAuth)(), (0, er
  *       500:
  *         description: Internal server error
  */
-router.get('/favorites', (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { page = 1, limit = 20, } = req.query;
+router.get("/favorites", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { page = 1, limit = 20 } = req.query;
     const [favorites, total] = await Promise.all([
         server_1.prisma.favorite.findMany({
             where: { userId: req.user.id },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
             skip: (parseInt(page) - 1) * parseInt(limit),
             take: parseInt(limit),
             include: {
                 property: {
                     include: {
                         host: {
-                            select: {
-                                firstName: true,
-                                lastName: true,
-                            },
+                            select: {},
                         },
                         reviews: {
                             where: { approved: true },
@@ -1120,8 +1073,8 @@ router.get('/favorites', (0, authservice_1.requireAuth)(), (0, error_middleware_
         }),
     ]);
     // Calculate average ratings
-    const favoritesWithRatings = favorites.map(fav => {
-        const ratings = fav.property.reviews.map(r => r.rating);
+    const favoritesWithRatings = favorites.map((fav) => {
+        const ratings = fav.property.reviews.map((r) => r.rating);
         const averageRating = ratings.length > 0
             ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
             : 0;
@@ -1175,37 +1128,24 @@ router.get('/favorites', (0, authservice_1.requireAuth)(), (0, error_middleware_
  *             properties:
  *               password:
  *                 type: string
- *                 description: User's current password
  *               confirmDelete:
  *                 type: string
  *                 enum: [DELETE]
- *                 description: Must confirm deletion by typing "DELETE"
  *     responses:
  *       200:
  *         description: Account deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Account deleted successfully
  *       400:
- *         description: Invalid password or active bookings prevent deletion
- *       401:
- *         description: Unauthorized
+ *         description: Invalid password or active bookings exist
  *       404:
  *         description: User not found
- *       500:
- *         description: Internal server error
  */
-router.delete('/account', (0, authservice_1.requireAuth)(), [
-    (0, express_validator_1.body)('password').notEmpty().withMessage('Password required for account deletion'),
-    (0, express_validator_1.body)('confirmDelete').equals('DELETE').withMessage('Must confirm deletion by typing DELETE'),
+router.delete("/account", (0, authservice_1.requireAuth)(), [
+    (0, express_validator_1.body)("password")
+        .notEmpty()
+        .withMessage("Password required for account deletion"),
+    (0, express_validator_1.body)("confirmDelete")
+        .equals("DELETE")
+        .withMessage("Must confirm deletion by typing DELETE"),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { password } = req.body;
     // Get user with password
@@ -1213,31 +1153,28 @@ router.delete('/account', (0, authservice_1.requireAuth)(), [
         where: { id: req.user.id },
         select: {
             id: true,
-            password: true,
             email: true,
-            firstName: true,
-            lastName: true,
         },
     });
     if (!user) {
-        throw new error_middleware_2.AppError('User not found', 404);
+        throw new error_middleware_2.AppError("User not found", 404);
     }
     // Verify password
-    const isValidPassword = await bcryptjs_1.default.compare(password, user.password);
+    const isValidPassword = false; /* password check removed */
     if (!isValidPassword) {
-        throw new error_middleware_2.AppError('Invalid password', 400);
+        throw new error_middleware_2.AppError("Invalid password", 400);
     }
     // Check for active bookings
     const activeBookings = await server_1.prisma.booking.count({
         where: {
             customerId: req.user.id,
             status: {
-                in: ['PENDING', 'APPROVED'],
+                in: ["PENDING", "APPROVED"],
             },
         },
     });
     if (activeBookings > 0) {
-        throw new error_middleware_2.AppError('Cannot delete account with active bookings', 400);
+        throw new error_middleware_2.AppError("Cannot delete account with active bookings", 400);
     }
     // Soft delete - mark as deleted instead of actually deleting
     await server_1.prisma.user.update({
@@ -1249,13 +1186,13 @@ router.delete('/account', (0, authservice_1.requireAuth)(), [
         },
     });
     // Send confirmation email
-    await emailservice_1.emailService.sendAccountDeletionConfirmation(user.email, `${user.firstName} ${user.lastName}`);
-    (0, logger_middleware_1.auditLog)('ACCOUNT_DELETED', req.user.id, {
+    await emailservice_1.emailService.sendAccountDeletionConfirmation(user.email, user.email);
+    (0, logger_middleware_1.auditLog)("ACCOUNT_DELETED", req.user.id, {
         email: user.email,
     }, req.ip);
     res.json({
         success: true,
-        message: 'Account deleted successfully',
+        message: "Account deleted successfully",
     });
 }));
 exports.default = router;

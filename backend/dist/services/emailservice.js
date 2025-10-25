@@ -5,6 +5,7 @@ exports.emailService = exports.EmailService = void 0;
 const resend_1 = require("resend");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const constants_1 = require("../utils/constants");
+const server_1 = require("../server");
 class EmailService {
     constructor() {
         if (!process.env.RESEND_API_KEY) {
@@ -13,7 +14,7 @@ class EmailService {
         this.resend = new resend_1.Resend(process.env.RESEND_API_KEY);
         this.fromEmail = process.env.EMAIL_FROM || "noreply@marabuprojects.com";
         this.replyToEmail =
-            process.env.EMAIL_REPLY_TO || "support@marabuprojects.com";
+            process.env.EMAIL_REPLY_TO || "noreply@marabuprojects.com";
         logger_middleware_1.logger.info("Email service initialized with Resend API");
     }
     safeBookingProperty(property) {
@@ -32,21 +33,64 @@ class EmailService {
     getBackendBaseUrl() {
         return (process.env.BACKEND_URL || "http://localhost:5050").replace(/\/$/, "");
     }
+    getFrontendBaseUrl() {
+        return (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
+    }
     apiUrl(path) {
         const prefix = process.env.API_PREFIX || "/api/v1";
         const clean = path.startsWith("/") ? path : `/${path}`;
         return `${this.getBackendBaseUrl()}${prefix}${clean}`;
     }
+    frontendUrl(path) {
+        const clean = path.startsWith("/") ? path : `/${path}`;
+        return `${this.getFrontendBaseUrl()}${clean}`;
+    }
     validateEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     }
+    async queueEmail(options, type) {
+        try {
+            const queued = await server_1.prisma.emailQueue.create({
+                data: {
+                    to: options.to,
+                    subject: options.subject,
+                    html: options.html,
+                    type,
+                    status: "processing",
+                },
+            });
+            return queued.id;
+        }
+        catch (error) {
+            logger_middleware_1.logger.error("Failed to queue email:", error);
+            throw error;
+        }
+    }
+    async updateEmailQueueStatus(queueId, status, error) {
+        try {
+            await server_1.prisma.emailQueue.update({
+                where: { id: queueId },
+                data: {
+                    status,
+                    error: error || null,
+                    updatedAt: new Date(),
+                },
+            });
+        }
+        catch (updateError) {
+            logger_middleware_1.logger.error("Failed to update email queue status:", updateError);
+        }
+    }
     async sendEmail(options) {
+        let queueId;
         try {
             if (!this.validateEmail(options.to)) {
                 logger_middleware_1.logger.error("Invalid email address", { email: options.to });
                 return false;
             }
+            // Queue the email first
+            queueId = await this.queueEmail(options, "general");
             const emailData = {
                 from: this.buildFrom(),
                 to: options.to,
@@ -64,26 +108,11 @@ class EmailService {
             }
             const response = await this.resend.emails.send(emailData);
             if (response.error) {
-                if (response.error.message?.includes("domain is not verified")) {
-                    logger_middleware_1.logger.warn("Domain not verified, retrying with fallback domain...", {
-                        from: this.fromEmail,
-                    });
-                    const fallbackData = {
-                        ...emailData,
-                        from: `"${constants_1.APP_CONSTANTS.COMPANY.NAME}" <noreply@marabuprojects.com>`,
-                    };
-                    const retryResponse = await this.resend.emails.send(fallbackData);
-                    if (retryResponse.error) {
-                        throw new Error(`Resend API fallback error: ${retryResponse.error.message}`);
-                    }
-                    logger_middleware_1.logger.info("✅ Email sent successfully (fallback domain)", {
-                        to: options.to,
-                        id: retryResponse.data?.id,
-                    });
-                    return true;
-                }
+                await this.updateEmailQueueStatus(queueId, "failed", response.error.message);
                 throw new Error(`Resend API error: ${response.error.message}`);
             }
+            // Update queue status to sent
+            await this.updateEmailQueueStatus(queueId, "sent");
             logger_middleware_1.logger.info("✅ Email sent successfully via API", {
                 to: options.to,
                 id: response.data?.id,
@@ -92,6 +121,10 @@ class EmailService {
             return true;
         }
         catch (err) {
+            // Update queue status to failed if queueId exists
+            if (queueId) {
+                await this.updateEmailQueueStatus(queueId, "failed", err?.message);
+            }
             logger_middleware_1.logger.error("❌ Email send failed", {
                 to: options.to,
                 error: err?.message,
@@ -124,20 +157,54 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
 </div></div></body></html>`;
     }
     /**
+     * Send OTP verification email
+     */
+    async sendOTPEmail(email, otpCode, purpose = "login") {
+        const actionText = purpose === "signup" ? "create your account" : "sign in";
+        const titleText = purpose === "signup" ? "Complete Your Registration" : "Your Login Code";
+        const content = `
+      <h2 style="color: #007bff;">🔐 ${titleText}</h2>
+      <p>Please use the verification code below to ${actionText}:</p>
+      
+      <div class="info-box" style="border-left: 4px solid #007bff; text-align: center; padding: 30px 20px;">
+        <h1 style="font-size: 48px; margin: 0; letter-spacing: 8px; color: #007bff; font-family: 'Courier New', monospace;">
+          ${otpCode}
+        </h1>
+        <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">Verification Code</p>
+      </div>
+      
+      <div class="info-box" style="border-left: 4px solid #f0ad4e; background-color: #fef5e7;">
+        <h3>⏰ Important Security Information</h3>
+        <div class="detail-row"><span class="detail-label">Code Expires:</span><span><strong>10 minutes</strong></span></div>
+        <div class="detail-row"><span class="detail-label">One-time Use:</span><span>Code becomes invalid after use</span></div>
+        <div class="detail-row"><span class="detail-label">Security:</span><span>Never share this code with anyone</span></div>
+      </div>
+      
+      <p>If you didn't request this code, please ignore this email. Your account remains secure.</p>
+    `;
+        return this.sendEmail({
+            to: email,
+            subject: `${constants_1.APP_CONSTANTS.COMPANY.NAME} - Your Login Code: ${otpCode}`,
+            html: this.getBaseTemplate(content),
+        });
+    }
+    /**
      * Send welcome email
      */
-    async sendWelcomeEmail(email, firstName) {
+    async sendWelcomeEmail(email) {
         const content = `
-      <h2>Welcome to ${constants_1.APP_CONSTANTS.COMPANY.NAME}, ${firstName}!</h2>
-      <p>We're excited to have you join our community of property hosts and travelers.</p>
-      <p>Here's what you can do next:</p>
-      <ul>
-        <li>Complete your profile to build trust with other users</li>
-        <li>Browse available properties for your next stay</li>
-        <li>List your property if you're a host</li>
-      </ul>
-      <a href="${this.apiUrl("/dashboard")}" class="button">Go to Dashboard</a>
-      <p>If you have any questions, don't hesitate to reach out to our support team.</p>
+      <h2 style="color: #28a745;">🎉 Welcome to ${constants_1.APP_CONSTANTS.COMPANY.NAME}!</h2>
+      <p>Your account has been created successfully. We're excited to have you join our community!</p>
+      
+      <div class="info-box" style="border-left: 4px solid #28a745;">
+        <h3>🚀 What's Next?</h3>
+        <div class="detail-row"><span class="detail-label">✅ Account:</span><span>Created & Ready</span></div>
+        <div class="detail-row"><span class="detail-label">🏠 Browse:</span><span>Explore amazing properties</span></div>
+        <div class="detail-row"><span class="detail-label">📋 Book:</span><span>Make your first reservation</span></div>
+      </div>
+      
+      <p>Experience seamless booking with our passwordless login system - just your email and verification code!</p>
+      <a href="${this.frontendUrl("/properties")}" class="button">Explore Properties</a>
     `;
         return this.sendEmail({
             to: email,
@@ -151,17 +218,22 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
     async sendBookingConfirmation(email, booking) {
         const property = this.safeBookingProperty(booking.property);
         const content = `
-      <h2>Booking Confirmation</h2>
-      <p>Your booking has been confirmed!</p>
+      <h2>🎉 Booking Confirmation</h2>
+      <p>Great news! Your booking has been confirmed.</p>
+      
       <div class="info-box">
-        <h3>Booking Details</h3>
+        <h3>📋 Booking Details</h3>
         <div class="detail-row"><span class="detail-label">Booking Code:</span><span>${booking.bookingCode || "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Property:</span><span>${property.name}</span></div>
+        <div class="detail-row"><span class="detail-label">Location:</span><span>${property.address || property.city}</span></div>
         <div class="detail-row"><span class="detail-label">Check-in:</span><span>${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Check-out:</span><span>${booking.checkOutDate ? new Date(booking.checkOutDate).toLocaleDateString() : "N/A"}</span></div>
-        <div class="detail-row"><span class="detail-label">Total Amount:</span><span>${booking.currency || "NGN"} ${(booking.total || 0).toLocaleString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Guests:</span><span>${booking.adults || 1} adult(s)${booking.children ? `, ${booking.children} children` : ""}</span></div>
+        <div class="detail-row"><span class="detail-label">Total Amount:</span><span><strong>${booking.currency || "NGN"} ${(booking.total || 0).toLocaleString()}</strong></span></div>
       </div>
-      <a href="${this.apiUrl(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">View Booking</a>
+      
+      <p>We're excited to host you! If you have any questions, feel free to reach out.</p>
+      <a href="${this.frontendUrl(`/booking/${booking.bookingCode || booking.id || ""}`)}" class="button">View Booking Details</a>
     `;
         return this.sendEmail({
             to: email,
@@ -217,7 +289,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
       </div>
       <p>Our team will verify the receipt within 24 hours.</p>
-      <a href="${this.apiUrl(`/bookings/${booking.id}`)}" class="button">View Booking</a>
+      <a href="${this.frontendUrl(`/booking/${booking.bookingCode || booking.id}`)}" class="button">View Booking</a>
     `;
         return this.sendEmail({
             to: email,
@@ -238,7 +310,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Check-out:</strong> ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
       </div>
       <p>You're all set for your stay!</p>
-      <a href="${this.apiUrl(`/bookings/${booking.id}`)}" class="button">View Booking Details</a>
+      <a href="${this.frontendUrl(`/booking/${booking.bookingCode || booking.id}`)}" class="button">View Booking Details</a>
     `;
         return this.sendEmail({
             to: email,
@@ -261,7 +333,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Total Amount:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
       </div>
       <p>Please complete your payment within 24 hours to secure your booking.</p>
-      <a href="${this.apiUrl(`/bookings/${booking.id}/payment`)}" class="button">Make Payment</a>
+      <a href="${this.frontendUrl(`/booking/${booking.bookingCode || booking.id}/payment`)}" class="button">Make Payment</a>
     `;
         return this.sendEmail({
             to: email,
@@ -286,7 +358,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
       </div>
       ${booking.refundAmount ? `<p>A refund of ${booking.currency || "NGN"} ${(booking.refundAmount || 0).toLocaleString()} will be processed within 5-7 business days.</p>` : ""}
       <p>If you have any questions, please contact our support team.</p>
-      <a href="${this.apiUrl("/support")}" class="button">Contact Support</a>
+      <a href="${this.frontendUrl("/support")}" class="button">Contact Support</a>
     `;
         return this.sendEmail({
             to: email,
@@ -299,16 +371,20 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
      */
     async sendPropertyApprovedEmail(email, property) {
         const content = `
-      <h2>Property Approved!</h2>
-      <p>Congratulations! Your property listing has been approved.</p>
-      <div class="info-box">
-        <h3>Property Details</h3>
-        <p><strong>Name:</strong> ${property.name}</p>
-        <p><strong>Location:</strong> ${property.city}, ${property.state}</p>
-        <p><strong>Type:</strong> ${property.type}</p>
+      <h2 style="color: #28a745;">🎉 Property Approved!</h2>
+      <p>Congratulations! Your property listing has been approved and is now live.</p>
+      
+      <div class="info-box" style="border-left: 4px solid #28a745;">
+        <h3>🏠 Property Details</h3>
+        <div class="detail-row"><span class="detail-label">Name:</span><span><strong>${property.name}</strong></span></div>
+        <div class="detail-row"><span class="detail-label">Location:</span><span>${property.city}, ${property.state}</span></div>
+        <div class="detail-row"><span class="detail-label">Type:</span><span>${property.type}</span></div>
+        <div class="detail-row"><span class="detail-label">Status:</span><span style="color: #28a745;">✅ Live & Bookable</span></div>
+        <div class="detail-row"><span class="detail-label">Approved Date:</span><span>${new Date().toLocaleDateString()}</span></div>
       </div>
-      <p>Your property is now live and available for bookings!</p>
-      <a href="${this.apiUrl(`/properties/${property.id}`)}" class="button">View Property</a>
+      
+      <p>Your property is now available for bookings! Guests can now discover and book your space.</p>
+      <a href="${this.frontendUrl(`/property/${property.id}`)}" class="button">View Property Listing</a>
     `;
         return this.sendEmail({
             to: email,
@@ -321,15 +397,23 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
      */
     async sendPropertyRejectedEmail(email, property, reason) {
         const content = `
-      <h2>Property Listing Update</h2>
-      <p>Your property listing has not been approved at this time.</p>
-      <div class="info-box">
-        <h3>Property Details</h3>
-        <p><strong>Name:</strong> ${property.name}</p>
-        <p><strong>Reason:</strong> ${reason}</p>
+      <h2 style="color: #dc3545;">📝 Property Review Update</h2>
+      <p>Thank you for submitting your property. Unfortunately, it requires some revisions before approval.</p>
+      
+      <div class="info-box" style="border-left: 4px solid #dc3545;">
+        <h3>🏠 Property Details</h3>
+        <div class="detail-row"><span class="detail-label">Name:</span><span><strong>${property.name}</strong></span></div>
+        <div class="detail-row"><span class="detail-label">Status:</span><span style="color: #dc3545;">❌ Needs Revision</span></div>
+        <div class="detail-row"><span class="detail-label">Review Date:</span><span>${new Date().toLocaleDateString()}</span></div>
       </div>
-      <p>Please address the issues mentioned and resubmit your property for review.</p>
-      <a href="${this.apiUrl(`/properties/${property.id}/edit`)}" class="button">Edit Property</a>
+      
+      <div class="info-box" style="border-left: 4px solid #f0ad4e; background-color: #fef5e7;">
+        <h3>⚠️ Required Changes</h3>
+        <div class="detail-row"><span class="detail-label">Feedback:</span><span>${reason}</span></div>
+      </div>
+      
+      <p>Please address the feedback above and resubmit your property. Our team will review it promptly.</p>
+      <a href="${this.frontendUrl(`/dashboard/properties/${property.id}/edit`)}" class="button">Edit & Resubmit Property</a>
     `;
         return this.sendEmail({
             to: email,
@@ -342,14 +426,21 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
      */
     async sendReviewRequestEmail(email, booking) {
         const content = `
-      <h2>How was your stay?</h2>
-      <p>We hope you enjoyed your stay at ${booking.property.name}!</p>
-      <p>Your feedback helps other travelers and helps hosts improve.</p>
-      <div class="info-box">
-        <p><strong>Property:</strong> ${booking.property.name}</p>
-        <p><strong>Stay Dates:</strong> ${new Date(booking.checkInDate).toLocaleDateString()} - ${new Date(booking.checkOutDate).toLocaleDateString()}</p>
+      <h2 style="color: #007bff;">⭐ How was your stay?</h2>
+      <p>We hope you had a wonderful experience at ${booking.property.name}!</p>
+      <p>Your feedback helps other travelers make informed decisions and helps hosts improve their service.</p>
+      
+      <div class="info-box" style="border-left: 4px solid #007bff;">
+        <h3>🏠 Stay Summary</h3>
+        <div class="detail-row"><span class="detail-label">Property:</span><span><strong>${booking.property.name}</strong></span></div>
+        <div class="detail-row"><span class="detail-label">Check-in:</span><span>${new Date(booking.checkInDate).toLocaleDateString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Check-out:</span><span>${new Date(booking.checkOutDate).toLocaleDateString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Duration:</span><span>${Math.ceil((new Date(booking.checkOutDate).getTime() - new Date(booking.checkInDate).getTime()) / (1000 * 3600 * 24))} nights</span></div>
+        <div class="detail-row"><span class="detail-label">Booking ID:</span><span>#${booking.id}</span></div>
       </div>
-      <a href="${this.apiUrl(`/bookings/${booking.id}/review`)}" class="button">Write a Review</a>
+      
+      <p>Share your experience and help our community thrive!</p>
+      <a href="${this.frontendUrl(`/booking/${booking.bookingCode || booking.id}/review`)}" class="button">Write Your Review ⭐</a>
     `;
         return this.sendEmail({
             to: email,
@@ -362,14 +453,23 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
      */
     async sendPasswordChangeNotification(email) {
         const content = `
-      <h2>Password Changed Successfully</h2>
-      <p>Your password has been changed.</p>
-      <div class="info-box">
-        <p><strong>Changed at:</strong> ${new Date().toLocaleString()}</p>
-        <p><strong>IP Address:</strong> ${process.env.NODE_ENV === "production" ? "Hidden for security" : "Local development"}</p>
+      <h2 style="color: #28a745;">🔒 Password Changed Successfully</h2>
+      <p>Your account password has been updated successfully.</p>
+      
+      <div class="info-box" style="border-left: 4px solid #28a745;">
+        <h3>🔐 Security Details</h3>
+        <div class="detail-row"><span class="detail-label">Changed On:</span><span>${new Date().toLocaleString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Environment:</span><span>${process.env.NODE_ENV === "production" ? "Production Server" : "Development Mode"}</span></div>
+        <div class="detail-row"><span class="detail-label">Security Status:</span><span style="color: #28a745;">✅ Secure</span></div>
       </div>
-      <p>If this wasn't you, contact support immediately.</p>
-      <a href="${this.apiUrl("/support")}" class="button">Contact Support</a>
+      
+      <div class="info-box" style="border-left: 4px solid #f0ad4e; background-color: #fef5e7;">
+        <h3>⚠️ Security Notice</h3>
+        <p>If you did not make this change, your account may have been compromised. Please contact our support team immediately.</p>
+      </div>
+      
+      <p>Your account security is important to us. If this change was not made by you, please take action immediately.</p>
+      <a href="${this.frontendUrl("/support")}" class="button">Contact Support Team</a>
     `;
         return this.sendEmail({
             to: email,
@@ -418,7 +518,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Total Amount:</strong> ${booking.currency || "NGN"} ${(booking.total || 0).toLocaleString()}</p>
       </div>
       <p>Please review and respond within 24 hours.</p>
-      <a href="${this.apiUrl(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">Review Booking</a>
+      <a href="${this.frontendUrl(`/dashboard/bookings/${booking.bookingCode || booking.id || ""}`)}" class="button">Review Booking</a>
     `;
         return this.sendEmail({
             to: email,
@@ -438,7 +538,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Amount Due:</strong> ${booking.currency} ${booking.total.toLocaleString()}</p>
       </div>
       <p>Please complete payment soon.</p>
-      <a href="${this.apiUrl(`/bookings/${booking.id}/payment`)}" class="button">Make Payment</a>
+      <a href="${this.frontendUrl(`/booking/${booking.bookingCode || booking.id}/payment`)}" class="button">Make Payment</a>
     `;
         return this.sendEmail({
             to: email,
@@ -453,18 +553,23 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         const property = this.safeBookingProperty(booking.property);
         const content = `
       <h2>Check-in Reminder</h2>
-      <p>Your check-in at ${property.name} is tomorrow.</p>
+      <p>Your check-in at <strong>${property.name}</strong> is tomorrow!</p>
+      
       <div class="info-box">
-        <p><strong>Date:</strong> ${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</p>
-        <p><strong>Time:</strong> After ${constants_1.APP_CONSTANTS.BOOKING.CHECKIN_TIME}</p>
-        <p><strong>Address:</strong> ${property.address}, ${property.city}</p>
+        <h3>📍 Check-in Details</h3>
+        <div class="detail-row"><span class="detail-label">Date:</span><span>${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</span></div>
+        <div class="detail-row"><span class="detail-label">Time:</span><span>After 3:00 PM</span></div>
+        <div class="detail-row"><span class="detail-label">Address:</span><span>${property.address}, ${property.city}</span></div>
       </div>
+      
       <div class="info-box">
-        <p><strong>Host:</strong> ${property.host.firstName} ${property.host.lastName}</p>
-        <p><strong>Phone:</strong> ${property.host.phone || "Available in app"}</p>
+        <h3>👤 Host Information</h3>
+        <div class="detail-row"><span class="detail-label">Host:</span><span>${property.host.firstName} ${property.host.lastName}</span></div>
+        <div class="detail-row"><span class="detail-label">Phone:</span><span>${property.host.phone || "Available in app"}</span></div>
       </div>
+      
       <p>Have a wonderful stay!</p>
-      <a href="${this.apiUrl(`/bookings/${booking.id || booking.bookingCode || ""}`)}" class="button">View Booking Details</a>
+      <a href="${this.frontendUrl(`/booking/${booking.bookingCode || booking.id || ""}`)}" class="button">View Booking Details</a>
     `;
         return this.sendEmail({
             to: email,
@@ -485,8 +590,8 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <p>${data.approved ? "Your review is now publicly visible." : "Please consider submitting a revised review."}</p>
       </div>
       ${data.approved
-            ? `<a href="${this.apiUrl(`/properties/${data.propertyName}`)}" class="button">View Property</a>`
-            : `<a href="${this.apiUrl("/support")}" class="button">Contact Support</a>`}
+            ? `<a href="${this.frontendUrl(`/property/${data.propertyName}`)}" class="button">View Property</a>`
+            : `<a href="${this.frontendUrl("/support")}" class="button">Contact Support</a>`}
       <p>Thank you for sharing your feedback with the ${constants_1.APP_CONSTANTS.COMPANY.NAME} community.</p>
     `;
         return this.sendEmail({
@@ -500,15 +605,20 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
      */
     async sendPaymentConfirmation(email, data) {
         const content = `
-      <h2>Payment Confirmed</h2>
-      <p>Dear ${data.customerName},</p>
-      <p>Your payment for booking <strong>${data.bookingCode}</strong> at <strong>${data.propertyName}</strong> has been received.</p>
-      <div class="info-box">
-        <p><strong>Amount Paid:</strong> ${data.amount.toLocaleString()}</p>
-        <p><strong>Payment Reference:</strong> ${data.paymentReference}</p>
+      <h2 style="color: #28a745;">💳 Payment Confirmed</h2>
+      <p>Dear <strong>${data.customerName}</strong>,</p>
+      <p>Your payment for booking <strong>${data.bookingCode}</strong> at <strong>${data.propertyName}</strong> has been successfully received.</p>
+      
+      <div class="info-box" style="border-left: 4px solid #28a745;">
+        <h3>💰 Payment Details</h3>
+        <div class="detail-row"><span class="detail-label">Amount Paid:</span><span><strong>₦${data.amount.toLocaleString()}</strong></span></div>
+        <div class="detail-row"><span class="detail-label">Payment Reference:</span><span>${data.paymentReference}</span></div>
+        <div class="detail-row"><span class="detail-label">Payment Date:</span><span>${new Date().toLocaleDateString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Status:</span><span style="color: #28a745;">✅ Confirmed</span></div>
       </div>
-      <p>Thank you. We look forward to hosting you!</p>
-      <a href="${this.apiUrl(`/bookings/${data.bookingCode}`)}" class="button">View Booking</a>
+      
+      <p>Your booking is now fully confirmed. We look forward to hosting you!</p>
+      <a href="${this.frontendUrl(`/booking/${data.bookingCode}`)}" class="button">View Booking Details</a>
     `;
         return this.sendEmail({
             to: email,
@@ -529,7 +639,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <p><strong>Amount Paid:</strong> ${data.amount.toLocaleString()}</p>
       </div>
       <p>View the booking details in your dashboard.</p>
-      <a href="${this.apiUrl(`/bookings/${data.bookingCode}`)}" class="button">View Booking</a>
+      <a href="${this.frontendUrl(`/dashboard/bookings/${data.bookingCode}`)}" class="button">View Booking</a>
     `;
         return this.sendEmail({
             to: email,
@@ -551,7 +661,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
       ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ""}
     </div>
     <p>The refunded amount should reflect in your account within a few business days.</p>
-    <a href="${this.apiUrl(`/bookings/${booking.id}`)}" class="button">View Booking</a>
+    <a href="${this.frontendUrl(`/booking/${booking.bookingCode || booking.id}`)}" class="button">View Booking</a>
   `;
         return this.sendEmail({
             to: email,
@@ -564,7 +674,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
      */
     async sendBookingCancellationWithRefund(email, booking) {
         const property = this.safeBookingProperty(booking.property);
-        const refundLink = this.apiUrl(`/:id/refund`);
+        const refundLink = this.frontendUrl(`/booking/${booking.bookingCode || booking.id}/refund`);
         const content = `
     <h2>Booking Cancelled</h2>
     <p>Dear ${booking.customer.firstName || "Customer"},</p>
@@ -579,7 +689,7 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
       <p>The refund reason is optional. If you leave it blank, it will default to the cancellation reason.</p>
     </div>
     <p>If you have any questions, please contact our support team.</p>
-    <a href="${this.apiUrl("/support")}" class="button">Contact Support</a>
+    <a href="${this.frontendUrl("/support")}" class="button">Contact Support</a>
   `;
         return this.sendEmail({
             to: email,
@@ -592,14 +702,19 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
      */
     async sendTestEmail(email, data) {
         const content = `
-      <h2>Email Test Successful</h2>
+      <h2 style="color: #28a745;">✅ Email Test Successful</h2>
       <p>Hello${data?.recipientName ? ` ${data.recipientName}` : ""},</p>
-      <p>This is a test email from ${data?.systemName || constants_1.APP_CONSTANTS.COMPANY.NAME}.</p>
-      <div class="info-box">
-        <p><strong>Sent at:</strong> ${data?.testDate || new Date().toLocaleString()}</p>
-        <p><strong>Recipient:</strong> ${email}</p>
+      <p>This is a test email from ${data?.systemName || constants_1.APP_CONSTANTS.COMPANY.NAME} to verify email functionality.</p>
+      
+      <div class="info-box" style="border-left: 4px solid #28a745;">
+        <h3>📧 Test Details</h3>
+        <div class="detail-row"><span class="detail-label">Sent At:</span><span>${data?.testDate || new Date().toLocaleString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Recipient:</span><span>${email}</span></div>
+        <div class="detail-row"><span class="detail-label">System:</span><span>${data?.systemName || constants_1.APP_CONSTANTS.COMPANY.NAME}</span></div>
+        <div class="detail-row"><span class="detail-label">Status:</span><span style="color: #28a745;">✅ Configuration Working</span></div>
       </div>
-      <p>If you received this email, your email configuration is working correctly!</p>
+      
+      <p>Congratulations! If you're reading this, your email configuration is working perfectly.</p>
     `;
         return this.sendEmail({
             to: email,
@@ -635,6 +750,76 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         return this.sendEmail({
             to: adminEmail,
             subject: `New Payment Receipt Uploaded - ${booking.bookingCode}`,
+            html: this.getBaseTemplate(content),
+        });
+    }
+    /**
+     * Send auto-cancellation email to customer
+     */
+    async sendBookingAutoCancelledToCustomer({ customerName, customerEmail, bookingCode, propertyName, checkInDate, checkOutDate, cancellationTimeoutHours, }) {
+        const content = `
+      <h2 style="color: #dc3545;">Booking Automatically Cancelled</h2>
+      <p>Dear <strong>${customerName}</strong>,</p>
+      
+      <p>Your booking <strong>${bookingCode}</strong> for <strong>${propertyName}</strong> has been automatically cancelled because payment was not completed within ${cancellationTimeoutHours} hour(s) of approval.</p>
+      
+      <div class="info-box" style="border-left: 4px solid #dc3545;">
+        <h3>📋 Booking Details</h3>
+        <div class="detail-row"><span class="detail-label">Booking Code:</span><span>${bookingCode}</span></div>
+        <div class="detail-row"><span class="detail-label">Property:</span><span>${propertyName}</span></div>
+        <div class="detail-row"><span class="detail-label">Check-in:</span><span>${checkInDate.toLocaleDateString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Check-out:</span><span>${checkOutDate.toLocaleDateString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Cancellation Time:</span><span>${new Date().toLocaleString()}</span></div>
+      </div>
+
+      <h3>🔄 What happens now?</h3>
+      <ul>
+        <li>The booking has been cancelled and the dates are now available for other guests</li>
+        <li>You can create a new booking if the property is still available</li>
+        <li>For future bookings, please complete payment within ${cancellationTimeoutHours} hour(s) of approval</li>
+        <li>No charges have been made to your account</li>
+      </ul>
+
+      <p>If you have any questions about this cancellation or need assistance with a new booking, please contact our support team.</p>
+      <a href="${this.frontendUrl("/support")}" class="button">Contact Support</a>
+    `;
+        await this.sendEmail({
+            to: customerEmail,
+            subject: "Booking Cancelled - Payment Timeout",
+            html: this.getBaseTemplate(content),
+        });
+    }
+    /**
+     * Send auto-cancellation notification to host
+     */
+    async sendBookingAutoCancelledToHost({ hostName, hostEmail, bookingCode, propertyName, customerName, checkInDate, checkOutDate, }) {
+        const content = `
+      <h2 style="color: #ffc107;">Booking Auto-Cancelled</h2>
+      <p>Dear <strong>${hostName}</strong>,</p>
+      
+      <p>A booking for your property <strong>${propertyName}</strong> has been automatically cancelled due to non-payment within the required timeframe.</p>
+      
+      <div class="info-box" style="border-left: 4px solid #ffc107;">
+        <h3>📋 Cancelled Booking Details</h3>
+        <div class="detail-row"><span class="detail-label">Booking Code:</span><span>${bookingCode}</span></div>
+        <div class="detail-row"><span class="detail-label">Guest:</span><span>${customerName}</span></div>
+        <div class="detail-row"><span class="detail-label">Property:</span><span>${propertyName}</span></div>
+        <div class="detail-row"><span class="detail-label">Check-in:</span><span>${checkInDate.toLocaleDateString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Check-out:</span><span>${checkOutDate.toLocaleDateString()}</span></div>
+        <div class="detail-row"><span class="detail-label">Cancellation Time:</span><span>${new Date().toLocaleString()}</span></div>
+      </div>
+
+      <div class="info-box" style="background: #d4edda; border-left: 4px solid #28a745;">
+        <h3>✅ Property Availability Restored</h3>
+        <p>The dates are now available for new bookings. Your property calendar has been automatically updated.</p>
+      </div>
+
+      <p>This automatic cancellation helps ensure that approved bookings are backed by confirmed payments, maintaining the integrity of the booking system.</p>
+      <a href="${this.frontendUrl("/dashboard")}" class="button">View Dashboard</a>
+    `;
+        await this.sendEmail({
+            to: hostEmail,
+            subject: "Booking Auto-Cancelled - Payment Timeout",
             html: this.getBaseTemplate(content),
         });
     }

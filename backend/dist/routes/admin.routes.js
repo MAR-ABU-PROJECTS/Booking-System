@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 // MAR ABU PROJECTS SERVICES LLC - Admin Routes
 const express_1 = require("express");
@@ -10,6 +43,7 @@ const error_middleware_2 = require("../middlewares/error.middleware");
 const server_1 = require("../server");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const database_1 = require("../config/database");
+const schedulerservice_1 = require("../services/schedulerservice");
 const router = (0, express_1.Router)();
 // All routes require admin role
 router.use((0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }));
@@ -164,11 +198,7 @@ router.get("/dashboard", (0, error_middleware_1.asyncHandler)(async (req, res) =
                     select: { name: true },
                 },
                 customer: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                    },
+                    select: { email: true },
                 },
             },
         }),
@@ -282,8 +312,6 @@ router.get("/users", (0, error_middleware_1.asyncHandler)(async (req, res) => {
             take: parseInt(limit),
             select: {
                 id: true,
-                firstName: true,
-                lastName: true,
                 email: true,
                 role: true,
                 status: true,
@@ -851,11 +879,7 @@ router.get("/properties", (0, error_middleware_1.asyncHandler)(async (req, res) 
             take: parseInt(limit),
             include: {
                 host: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                    },
+                    select: { email: true },
                 },
                 _count: {
                     select: {
@@ -972,11 +996,7 @@ router.put("/properties/:id/status", [
         },
         include: {
             host: {
-                select: {
-                    firstName: true,
-                    lastName: true,
-                    email: true,
-                },
+                select: { email: true },
             },
         },
     });
@@ -1111,11 +1131,7 @@ router.get("/bookings", (0, error_middleware_1.asyncHandler)(async (req, res) =>
                     },
                 },
                 customer: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        email: true,
-                    },
+                    select: { email: true },
                 },
             },
         }),
@@ -1270,6 +1286,219 @@ router.put("/settings", (0, authservice_1.requireAuth)({ role: client_1.UserRole
     res.json({
         success: true,
         message: "Settings updated successfully",
+    });
+}));
+// ===============================
+// SCHEDULER MANAGEMENT
+// ===============================
+/**
+ * @route   GET /api/v1/admin/scheduler/upcoming-cancellations
+ * @desc    Get upcoming auto-cancellations for unpaid bookings
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/scheduler/upcoming-cancellations:
+ *   get:
+ *     summary: Get upcoming auto-cancellations
+ *     description: Shows approved bookings that will be auto-cancelled if payment is not completed within 1 hour
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Upcoming cancellations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     count:
+ *                       type: integer
+ *                       example: 3
+ *                     bookings:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           bookingCode:
+ *                             type: string
+ *                             example: "MAB-2025-001"
+ *                           customerName:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           propertyName:
+ *                             type: string
+ *                             example: "Luxury Villa"
+ *                           approvedAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-08-16T14:30:00Z"
+ *                           timeUntilCancellation:
+ *                             type: integer
+ *                             description: Minutes until auto-cancellation
+ *                             example: 35
+ */
+router.get("/scheduler/upcoming-cancellations", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const upcomingCancellations = await schedulerservice_1.schedulerService.getUpcomingCancellations();
+    res.json({
+        success: true,
+        data: upcomingCancellations,
+    });
+}));
+/**
+ * @route   POST /api/v1/admin/scheduler/trigger-cancellation
+ * @desc    Manually trigger auto-cancellation process
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/scheduler/trigger-cancellation:
+ *   post:
+ *     summary: Manually trigger auto-cancellation process
+ *     description: Immediately runs the auto-cancellation process for unpaid bookings (useful for testing or manual cleanup)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Auto-cancellation process triggered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Auto-cancellation process completed"
+ */
+router.post("/scheduler/trigger-cancellation", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    await schedulerservice_1.schedulerService.triggerUnpaidBookingCancellation();
+    (0, logger_middleware_1.auditLog)("MANUAL_CANCELLATION_TRIGGER", req.user.id, { triggeredBy: req.user.email }, req.ip);
+    res.json({
+        success: true,
+        message: "Auto-cancellation process completed",
+    });
+}));
+// ===============================
+// EMAIL QUEUE MANAGEMENT
+// ===============================
+/**
+ * @route   GET /api/v1/admin/email-queue
+ * @desc    Get email queue with filters
+ * @access  Admin
+ */
+router.get("/email-queue", [
+    (0, express_validator_1.query)("status")
+        .optional()
+        .isIn(["pending", "processing", "sent", "failed"]),
+    (0, express_validator_1.query)("type").optional().isString(),
+    (0, express_validator_1.query)("page").optional().isInt({ min: 1 }),
+    (0, express_validator_1.query)("limit").optional().isInt({ min: 1, max: 100 }),
+], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { status, type, page = 1, limit = 20 } = req.query;
+    const whereClause = {};
+    if (status)
+        whereClause.status = status;
+    if (type)
+        whereClause.type = type;
+    const emails = await server_1.prisma.emailQueue.findMany({
+        where: whereClause,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+    });
+    const total = await server_1.prisma.emailQueue.count({ where: whereClause });
+    res.json({
+        success: true,
+        data: emails,
+        meta: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        },
+    });
+}));
+/**
+ * @route   POST /api/v1/admin/email-queue/:id/resend
+ * @desc    Resend failed email
+ * @access  Admin
+ */
+router.post("/email-queue/:id/resend", [(0, express_validator_1.param)("id").isString()], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const emailQueue = await server_1.prisma.emailQueue.findUnique({
+        where: { id: req.params.id },
+    });
+    if (!emailQueue) {
+        throw new error_middleware_2.AppError("Email not found in queue", 404);
+    }
+    try {
+        // Import emailService here to avoid circular dependency
+        const { emailService } = await Promise.resolve().then(() => __importStar(require("../services/emailservice")));
+        const success = await emailService.sendEmail({
+            to: emailQueue.to,
+            subject: emailQueue.subject,
+            html: emailQueue.html,
+        });
+        if (success) {
+            await server_1.prisma.emailQueue.update({
+                where: { id: req.params.id },
+                data: {
+                    status: "sent",
+                    attempts: emailQueue.attempts + 1,
+                    updatedAt: new Date(),
+                },
+            });
+            (0, logger_middleware_1.auditLog)("EMAIL_RESENT", req.user.id, { emailId: req.params.id, recipient: emailQueue.to }, req.ip);
+            res.json({
+                success: true,
+                message: "Email resent successfully",
+            });
+        }
+        else {
+            throw new error_middleware_2.AppError("Failed to resend email", 500);
+        }
+    }
+    catch (error) {
+        await server_1.prisma.emailQueue.update({
+            where: { id: req.params.id },
+            data: {
+                attempts: emailQueue.attempts + 1,
+                error: error instanceof Error ? error.message : "Unknown error",
+                updatedAt: new Date(),
+            },
+        });
+        throw new error_middleware_2.AppError("Failed to resend email", 500);
+    }
+}));
+/**
+ * @route   DELETE /api/v1/admin/email-queue/:id
+ * @desc    Delete email from queue
+ * @access  Admin
+ */
+router.delete("/email-queue/:id", [(0, express_validator_1.param)("id").isString()], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const emailQueue = await server_1.prisma.emailQueue.findUnique({
+        where: { id: req.params.id },
+    });
+    if (!emailQueue) {
+        throw new error_middleware_2.AppError("Email not found in queue", 404);
+    }
+    await server_1.prisma.emailQueue.delete({
+        where: { id: req.params.id },
+    });
+    (0, logger_middleware_1.auditLog)("EMAIL_QUEUE_DELETED", req.user.id, { emailId: req.params.id, recipient: emailQueue.to }, req.ip);
+    res.json({
+        success: true,
+        message: "Email removed from queue",
     });
 }));
 exports.default = router;

@@ -792,10 +792,7 @@ router.get("/admin/stats", (0, authservice_1.requireAuth)({ role: client_1.UserR
             orderBy: { createdAt: "desc" },
             include: {
                 user: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                        email: true,
+                    select: { email: true,
                     },
                 },
             },

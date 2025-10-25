@@ -34,6 +34,9 @@ import { errorHandler } from "./middlewares/error.middleware";
 import { notFoundHandler } from "./middlewares/notfound.middleware";
 import { requestLogger } from "./middlewares/logger.middleware";
 
+// Import services
+import { schedulerService } from "./services/schedulerservice";
+
 // Initialize Prisma
 export const prisma = new PrismaClient({
   log:
@@ -179,6 +182,9 @@ const startServer = async () => {
       console.log(`Environment: ${process.env.NODE_ENV}`);
       console.log(`Primary Color: ${process.env.PRIMARY_COLOR}`);
       console.log(`Secondary Color: ${process.env.SECONDARY_COLOR}`);
+
+      // Start the booking scheduler service
+      schedulerService.start();
     });
   } catch (error) {
     console.error("Failed to start server:", error);
@@ -189,12 +195,14 @@ const startServer = async () => {
 // Graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, shutting down gracefully...");
+  schedulerService.stop();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully...");
+  schedulerService.stop();
   await prisma.$disconnect();
   process.exit(0);
 });

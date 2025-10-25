@@ -14,7 +14,7 @@ const date_fns_1 = require("date-fns");
  */
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat(constants_1.APP_CONSTANTS.PRICING.LOCALE, {
-        style: 'currency',
+        style: "currency",
         currency: constants_1.APP_CONSTANTS.PRICING.CURRENCY,
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
@@ -25,15 +25,15 @@ exports.formatCurrency = formatCurrency;
  * Format date for display
  */
 const formatDate = (date, options) => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const dateObj = typeof date === "string" ? new Date(date) : date;
     const defaultOptions = {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'Africa/Lagos',
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: "Africa/Lagos",
         ...options,
     };
-    return new Intl.DateTimeFormat('en-NG', defaultOptions).format(dateObj);
+    return new Intl.DateTimeFormat("en-NG", defaultOptions).format(dateObj);
 };
 exports.formatDate = formatDate;
 /**
@@ -41,11 +41,11 @@ exports.formatDate = formatDate;
  */
 const formatDateTime = (date) => {
     return (0, exports.formatDate)(date, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
     });
 };
 exports.formatDateTime = formatDateTime;
@@ -54,7 +54,7 @@ exports.formatDateTime = formatDateTime;
  */
 const generateBookingNumber = async () => {
     const timestamp = Date.now().toString(36).toUpperCase();
-    const random = crypto_1.default.randomBytes(3).toString('hex').toUpperCase();
+    const random = crypto_1.default.randomBytes(3).toString("hex").toUpperCase();
     return `MAR-${timestamp}-${random}`;
 };
 exports.generateBookingNumber = generateBookingNumber;
@@ -64,7 +64,7 @@ exports.generateBookingNumber = generateBookingNumber;
 const calculatePricing = (checkIn, checkOut, baseRate, cleaningFee = 0, cautionFeeRate = constants_1.APP_CONSTANTS.PRICING.CAUTION_FEE_RATE) => {
     const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
     if (nights <= 0) {
-        throw new Error('Check-out date must be after check-in date');
+        throw new Error("Check-out date must be after check-in date");
     }
     const subtotal = nights * baseRate;
     let cautionFee = Math.round(subtotal * cautionFeeRate);
@@ -87,15 +87,15 @@ exports.calculatePricing = calculatePricing;
  * Generate secure random string
  */
 const generateSecureToken = (length = 32) => {
-    return crypto_1.default.randomBytes(length).toString('hex');
+    return crypto_1.default.randomBytes(length).toString("hex");
 };
 exports.generateSecureToken = generateSecureToken;
 /**
  * Generate secure random code (numeric)
  */
 const generateSecureCode = (length = 6) => {
-    const chars = '0123456789';
-    let result = '';
+    const chars = "0123456789";
+    let result = "";
     for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -117,11 +117,11 @@ const isValidPhone = (phone) => {
 };
 exports.isValidPhone = isValidPhone;
 /**
- * Validate password strength
+ * Validate password strength (deprecated - not used in passwordless auth)
  */
 const isValidPassword = (password) => {
-    return password.length >= constants_1.APP_CONSTANTS.VALIDATION.PASSWORD.MIN_LENGTH &&
-        constants_1.APP_CONSTANTS.VALIDATION.PASSWORD.REGEX.test(password);
+    // Legacy function - not used in passwordless authentication
+    return password.length >= 8;
 };
 exports.isValidPassword = isValidPassword;
 /**
@@ -129,9 +129,9 @@ exports.isValidPassword = isValidPassword;
  */
 const sanitizeFilename = (filename) => {
     return filename
-        .replace(/[^a-zA-Z0-9.-]/g, '_')
-        .replace(/_{2,}/g, '_')
-        .replace(/^_+|_+$/g, '');
+        .replace(/[^a-zA-Z0-9.-]/g, "_")
+        .replace(/_{2,}/g, "_")
+        .replace(/^_+|_+$/g, "");
 };
 exports.sanitizeFilename = sanitizeFilename;
 /**
@@ -141,9 +141,9 @@ const generateSlug = (str) => {
     return str
         .toLowerCase()
         .trim()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+        .replace(/[^\w\s-]/g, "")
+        .replace(/[\s_-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
 };
 exports.generateSlug = generateSlug;
 /**
@@ -169,7 +169,7 @@ exports.calculatePagination = calculatePagination;
  * Validate pagination parameters
  */
 const validatePagination = (page, limit) => {
-    let pageNum = parseInt(page || '1');
+    let pageNum = parseInt(page || "1");
     let limitNum = parseInt(limit || constants_1.APP_CONSTANTS.PAGINATION.DEFAULT_LIMIT.toString());
     // Ensure valid page number
     if (isNaN(pageNum) || pageNum < 1) {
@@ -215,11 +215,11 @@ exports.isBusinessHours = isBusinessHours;
  */
 const formatFileSize = (bytes) => {
     if (bytes === 0)
-        return '0 Bytes';
+        return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 exports.formatFileSize = formatFileSize;
 /**
@@ -227,7 +227,7 @@ exports.formatFileSize = formatFileSize;
  */
 const generateInitials = (firstName, lastName) => {
     const first = firstName.charAt(0).toUpperCase();
-    const last = lastName ? lastName.charAt(0).toUpperCase() : '';
+    const last = lastName ? lastName.charAt(0).toUpperCase() : "";
     return first + last;
 };
 exports.generateInitials = generateInitials;
@@ -235,15 +235,17 @@ exports.generateInitials = generateInitials;
  * Mask sensitive data (email, phone)
  */
 const maskEmail = (email) => {
-    const [local, domain] = email.split('@');
-    const maskedLocal = local.charAt(0) + '*'.repeat(local.length - 2) + local.charAt(local.length - 1);
+    const [local, domain] = email.split("@");
+    const maskedLocal = local.charAt(0) +
+        "*".repeat(local.length - 2) +
+        local.charAt(local.length - 1);
     return `${maskedLocal}@${domain}`;
 };
 exports.maskEmail = maskEmail;
 const maskPhone = (phone) => {
     if (phone.length < 4)
         return phone;
-    return '*'.repeat(phone.length - 4) + phone.slice(-4);
+    return "*".repeat(phone.length - 4) + phone.slice(-4);
 };
 exports.maskPhone = maskPhone;
 /**
@@ -273,7 +275,7 @@ const validateBookingDates = (checkIn, checkOut) => {
         errors.push(`Check-in cannot be more than ${constants_1.APP_CONSTANTS.BOOKING.MAX_ADVANCE_DAYS} days in advance`);
     }
     if (checkOut <= checkIn) {
-        errors.push('Check-out date must be after check-in date');
+        errors.push("Check-out date must be after check-in date");
     }
     const nights = (0, exports.daysBetween)(checkIn, checkOut);
     if (nights < constants_1.APP_CONSTANTS.BOOKING.MIN_STAY_NIGHTS) {
