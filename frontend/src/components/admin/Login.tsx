@@ -1,13 +1,4 @@
 "use client";
-import { useForm, Controller } from "react-hook-form";
-import { Label } from "@components/ui/label";
-import { Input } from "@components/ui/input";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { LogInSchema } from "@lib/schemas";
-import { Button } from "@components/ui/button";
-import { Checkbox } from "@components/ui/checkbox";
-import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
@@ -16,39 +7,92 @@ import { setSession } from "@lib/action";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { setUser } from "@lib/features/authSlice";
+import { AnimatePresence } from "framer-motion";
+import EmailStep from "@components/EmailStep";
+import OtpStep from "@components/OtpStep";
+import { useState } from "react";
 
 const AdminLogIn = () => {
-	const form = useForm<z.infer<typeof LogInSchema>>({
-		resolver: zodResolver(LogInSchema),
-		defaultValues: {
-			email: "",
-			password: "",
-			rememberMe: false,
-		},
-		mode: "onChange",
-	});
+	const [step, setStep] = useState<"email" | "otp">("email");
+	const [email, setEmail] = useState("");
+	const handleNext = () => {
+		setStep("otp");
+	};
 	const router = useRouter();
-	const mutation = useMutation({
-		mutationFn: async (formData: z.infer<typeof LogInSchema>) => {
-			const response = await apiService.post("/auth/login", {
-				...formData,
-				role: "ADMIN",
+	const dispatch = useDispatch();
+
+	const verifyEmailMutation = useMutation({
+		mutationFn: async (email: string) => {
+			const response = await apiService.post("/auth/request-otp", {
+				email: email,
+				purpose: "login",
 			});
 			return response;
 		},
-		onSuccess: async (res, variables) => {
+		onSuccess: async (res, variable) => {
 			if (res?.success) {
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
+				setEmail(variable);
+				handleNext();
+			} else {
+				const message = res?.message as string;
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			}
+		},
 
+		onError: (error) => {
+			if (isAxiosError(error)) {
+				const message = error.response?.data?.message as string;
+				toast.error(`${message}`, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			} else {
+				toast.error(error.message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
+			}
+		},
+	});
+
+	const OtpMutation = useMutation({
+		mutationFn: async (otp: string) => {
+			const response = await apiService.post("/auth/verify-otp", {
+				email: email,
+				otpCode: otp,
+				purpose: "login",
+			});
+			return response;
+		},
+		onSuccess: async (res) => {
+			if (res?.success) {
+				if (
+					(res?.data?.user?.role as string).toLowerCase() !== "admin"
+				) {
+					toast.error("You don't have access to this resource", {
+						closeOnClick: false,
+						progress: undefined,
+					});
+					return;
+				}
+				const message = res?.message as string;
+				toast.success(message, {
+					closeOnClick: false,
+					progress: undefined,
+				});
 				await setSession({
 					email: res.data.user.email,
 					id: res.data.user.id,
-					name: `${res.data.user.firstName} ${res.data.user.lastName}`,
-					rememberMe: variables.rememberMe,
+					name: "",
+					rememberMe: true,
 					token: res.data.accessToken,
 					refreshToken: res.data.refreshToken,
 					role: res.data.user.role,
@@ -58,7 +102,6 @@ const AdminLogIn = () => {
 						email: res.data.user.email,
 						id: res.data.user.id,
 						isLoggedIn: true,
-						name: `${res.data.user.firstName} ${res.data.user.lastName}`,
 					})
 				);
 				router.push("/dashboard");
@@ -73,27 +116,13 @@ const AdminLogIn = () => {
 
 		onError: (error) => {
 			if (isAxiosError(error)) {
-				const errorList = error.response?.data?.errors;
-				if (Array.isArray(errorList)) {
-					errorList.forEach((err) => {
-						if (err.path && err.msg) {
-							form.setError(err.path, {
-								type: "server",
-								message: err.msg,
-							});
-						}
-					});
-				} else {
-					const message =
-						(error.response?.data?.message as string) ||
-						"Something went wrong";
-					toast.error(`${message}`, {
-						closeOnClick: false,
-						progress: undefined,
-					});
-				}
+				const message = error.response?.data?.message as string;
+				toast.error(`${message}`, {
+					closeOnClick: false,
+					progress: undefined,
+				});
 			} else {
-				toast.error("Unexpected error, please try again", {
+				toast.error(error.message, {
 					closeOnClick: false,
 					progress: undefined,
 				});
@@ -101,10 +130,13 @@ const AdminLogIn = () => {
 		},
 	});
 
-	const onSubmit = (values: z.infer<typeof LogInSchema>) => {
-		mutation.mutate(values);
+	const mutateEmail = async (email: string) => {
+		verifyEmailMutation.mutate(email);
 	};
-	const dispatch = useDispatch();
+
+	const mutateOtp = (otp: string) => {
+		OtpMutation.mutate(otp);
+	};
 	return (
 		<div className="flex justify-center items-start h-svh bg-[#FDF7F1]">
 			<div className="w-full max-w-xl mx-auto px-4 pt-14">
@@ -115,114 +147,33 @@ const AdminLogIn = () => {
 						className="object-contain object-left w-[260px] h-[63px] mx-auto"
 					/>
 				</div>
-				<div className="mt-11 mb-11">
-					<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl text-center">
-						Welcome to MAR ABU Admin.
+				<div className="mt-10 sm:mt-20 mb-10">
+					<h1 className="mb-1.5 font-semibold text-3xl md:text-4xl ">
+						{step === "email"
+							? "	Welcome to MAR ABU Admin."
+							: "Verify your email address to continue."}
 					</h1>
-					<p className="text-center text-gray-500">
-						Login to your account
+					<p className=" text-gray-500">
+						{step === "email"
+							? "Enter your email to sign in."
+							: `We sent a verification code to ${email}. Enter this code to continue.`}
 					</p>
 				</div>
 
 				<div>
-					<form
-						onSubmit={form.handleSubmit(onSubmit)}
-						className="mb-2"
-					>
-						<Controller
-							control={form.control}
-							name="email"
-							render={({ field, fieldState }) => (
-								<div className="grid w-full items-center gap-1.5 mb-3.5">
-									<Label className="text-base !text-foreground !font-medium">
-										Email
-										<span className="text-red-600">*</span>
-									</Label>
-									<Input
-										type="email"
-										placeholder="you@example.com"
-										className="border-2 border-[#f7d5b0] h-[47px] !text-base bg-white"
-										{...field}
-									/>
-
-									<p className="text-[14px] text-right min-h-[18px] text-red-600">
-										{
-											fieldState.error?.message ||
-												"\u00A0" /* non-breaking space */
-										}
-									</p>
-								</div>
-							)}
-						/>
-
-						<Controller
-							control={form.control}
-							name="password"
-							render={({ field, fieldState }) => (
-								<div className="grid w-full items-center gap-1.5  mb-3.5">
-									<Label className="text-base !text-foreground !font-medium">
-										Password
-										<span className="text-red-600">*</span>
-									</Label>
-									<Input
-										type="password"
-										id="password"
-										placeholder="password"
-										className="border-2 border-[#f7d5b0] h-[47px] !text-base bg-white"
-										onChange={(e) => {
-											field.onChange(e);
-										}}
-									/>
-
-									<p className="text-[14px] text-right min-h-[18px] text-red-600">
-										{
-											fieldState.error?.message ||
-												"\u00A0" /* non-breaking space */
-										}
-									</p>
-								</div>
-							)}
-						/>
-
-						<Controller
-							name="rememberMe"
-							control={form.control}
-							render={({ field: { value, onChange, ref } }) => (
-								<div className="flex justify-between items-center">
-									<div className="flex items-start gap-[10px]">
-										<Checkbox
-											checked={value}
-											onCheckedChange={onChange}
-											ref={ref}
-											className="bg-white border-1 border-black cursor-pointer"
-										/>
-										<Label
-											htmlFor="terms"
-											className="text-[15px] font-medium text-start text-muted-foreground"
-										>
-											<p>Remember Me</p>
-										</Label>
-									</div>
-
-									<div />
-								</div>
-							)}
-						/>
-
-						<Button
-							className="!cursor-pointer w-full mt-5 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
-							disabled={mutation.isPending}
-							type="submit"
-						>
-							{mutation.isPending ? (
-								<Loader2
-									className="animate-spin size-5"
-									strokeWidth={3}
-								/>
-							) : null}
-							Submit
-						</Button>
-					</form>
+					<AnimatePresence mode="wait">
+						{step === "email" ? (
+							<EmailStep
+								isLoading={verifyEmailMutation.isPending}
+								onSubmit={mutateEmail}
+							/>
+						) : (
+							<OtpStep
+								onSubmit={mutateOtp}
+								isLoading={OtpMutation.isPending}
+							/>
+						)}
+					</AnimatePresence>
 				</div>
 			</div>
 		</div>

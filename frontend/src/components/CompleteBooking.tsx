@@ -78,7 +78,7 @@ const CompleteBooking = ({
 		queryKey: ["booking-id", { bookingId }],
 		queryFn: async () => {
 			try {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				 
 
 				const response = await apiService.get(`/bookings/${bookingId}`);
 				return response;

@@ -26,7 +26,6 @@ const EmailStep = ({ onSubmit, isLoading }: props) => {
 	};
 	return (
 		<motion.div
-			
 			animate={{ opacity: 1, x: 0 }}
 			exit={{ opacity: 0, x: -40 }}
 			transition={{ duration: 0.4, ease: "easeInOut" }}
@@ -59,7 +58,7 @@ const EmailStep = ({ onSubmit, isLoading }: props) => {
 				/>
 
 				<Button
-					className="!cursor-pointer w-full hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
+					className="!cursor-pointer w-full mt-1.5 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
 					disabled={isLoading}
 					type="submit"
 				>
@@ -69,7 +68,7 @@ const EmailStep = ({ onSubmit, isLoading }: props) => {
 							strokeWidth={3}
 						/>
 					) : null}
-					Create Account
+					Verify Email
 				</Button>
 			</form>
 		</motion.div>

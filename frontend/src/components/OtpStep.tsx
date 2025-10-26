@@ -65,7 +65,7 @@ const OtpStep = ({ isLoading, onSubmit }: props) => {
 				/>
 
 				<Button
-					className="!cursor-pointer w-full hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
+					className="!cursor-pointer w-full mt-1.5 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
 					disabled={isLoading}
 					type="submit"
 				>
