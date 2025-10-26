@@ -5,19 +5,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.prisma = void 0;
 // MAR ABU PROJECTS SERVICES LLC - Server Configuration
-const express_1 = __importDefault(require("express"));
-const cors_1 = __importDefault(require("cors"));
+const express = require("express");
+const cors = require("cors");
 const helmet_1 = __importDefault(require("helmet"));
-const compression_1 = __importDefault(require("compression"));
-const morgan_1 = __importDefault(require("morgan"));
-const dotenv_1 = __importDefault(require("dotenv"));
+const compression = require("compression");
+const morgan = require("morgan");
+const dotenv = require("dotenv");
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const client_1 = require("@prisma/client");
-const path_1 = __importDefault(require("path"));
+const path = require("path");
 const swagger_1 = require("./swagger");
 const node_cron_1 = __importDefault(require("node-cron"));
 // Load environment variables
-dotenv_1.default.config();
+dotenv.config();
 // Import routes
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
@@ -45,7 +45,7 @@ exports.prisma = new client_1.PrismaClient({
         : ["error"],
 });
 // Create Express app
-const app = (0, express_1.default)();
+const app = express();
 // Trust proxy (for production behind reverse proxy)
 app.set("trust proxy", 1);
 // Swagger implementation
@@ -65,7 +65,7 @@ app.use((0, helmet_1.default)({
     },
 }));
 // CORS configuration (allow all origins)
-app.use((0, cors_1.default)({
+app.use(cors({
     // Reflect request origin (enables credentials with dynamic origins)
     origin: true,
     credentials: true,
@@ -79,16 +79,16 @@ app.use((0, cors_1.default)({
     ],
 }));
 // Body parsing middleware
-app.use(express_1.default.json({ limit: "10mb" }));
-app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Compression middleware
-app.use((0, compression_1.default)());
+app.use(compression());
 // Logging middleware
 if (process.env.NODE_ENV === "development") {
-    app.use((0, morgan_1.default)("dev"));
+    app.use(morgan("dev"));
 }
 else {
-    app.use((0, morgan_1.default)("combined"));
+    app.use(morgan("combined"));
 }
 // Custom request logger
 app.use(logger_middleware_1.requestLogger);
@@ -110,7 +110,7 @@ const authLimiter = (0, express_rate_limit_1.default)({
     skipSuccessfulRequests: true,
 });
 // Static files
-app.use("/uploads", express_1.default.static(path_1.default.join(__dirname, "..", "uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 // ===============================
 // API ROUTES
 // ===============================

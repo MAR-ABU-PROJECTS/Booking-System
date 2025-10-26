@@ -1,7 +1,4 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 // MAR ABU PROJECTS SERVICES LLC - File Upload and Media Management Routes
 const express_1 = require("express");
@@ -12,25 +9,25 @@ const error_middleware_1 = require("../middlewares/error.middleware");
 const error_middleware_2 = require("../middlewares/error.middleware");
 const server_1 = require("../server");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
-const multer_1 = __importDefault(require("multer"));
-const path_1 = __importDefault(require("path"));
+const multer = require("multer");
+const path = require("path");
 const uuid_1 = require("uuid");
-const sharp_1 = __importDefault(require("sharp"));
-const promises_1 = __importDefault(require("fs/promises"));
+const sharp = require("sharp");
+const fs = require("fs/promises");
 const constants_1 = require("../utils/constants");
 const router = (0, express_1.Router)();
 // Configure multer for different file types
-const createStorage = (destination) => multer_1.default.diskStorage({
+const createStorage = (destination) => multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, destination);
     },
     filename: (req, file, cb) => {
-        const uniqueName = `${(0, uuid_1.v4)()}${path_1.default.extname(file.originalname)}`;
+        const uniqueName = `${(0, uuid_1.v4)()}${path.extname(file.originalname)}`;
         cb(null, uniqueName);
     },
 });
 // Image upload configuration
-const imageUpload = (0, multer_1.default)({
+const imageUpload = multer({
     storage: createStorage("uploads/images"),
     limits: {
         fileSize: constants_1.APP_CONSTANTS.UPLOAD.MAX_IMAGE_SIZE,
@@ -46,7 +43,7 @@ const imageUpload = (0, multer_1.default)({
     },
 });
 // Document upload configuration
-const documentUpload = (0, multer_1.default)({
+const documentUpload = multer({
     storage: createStorage("uploads/documents"),
     limits: {
         fileSize: constants_1.APP_CONSTANTS.UPLOAD.MAX_DOCUMENT_SIZE,
@@ -62,7 +59,7 @@ const documentUpload = (0, multer_1.default)({
     },
 });
 // General file upload configuration
-const fileUpload = (0, multer_1.default)({
+const fileUpload = multer({
     storage: createStorage("uploads/files"),
     limits: {
         fileSize: constants_1.APP_CONSTANTS.UPLOAD.MAX_FILE_SIZE,
@@ -84,7 +81,7 @@ const validate = (req, res, next) => {
 // Helper function to resize and optimize images
 const processImage = async (inputPath, outputPath, options = {}) => {
     const { width = 1200, height = 800, quality = 80, format = "jpeg" } = options;
-    await (0, sharp_1.default)(inputPath)
+    await sharp(inputPath)
         .resize(width, height, {
         fit: "inside",
         withoutEnlargement: true,
@@ -195,8 +192,8 @@ router.post("/images", (0, authservice_1.requireAuth)(), imageUpload.array("imag
         for (const file of req.files) {
             // Create optimized versions
             const originalPath = file.path;
-            const optimizedPath = path_1.default.join(path_1.default.dirname(originalPath), `opt_${file.filename}`);
-            const thumbnailPath = path_1.default.join(path_1.default.dirname(originalPath), `thumb_${file.filename}`);
+            const optimizedPath = path.join(path.dirname(originalPath), `opt_${file.filename}`);
+            const thumbnailPath = path.join(path.dirname(originalPath), `thumb_${file.filename}`);
             // Process images
             await Promise.all([
                 processImage(originalPath, optimizedPath, {
@@ -240,7 +237,7 @@ router.post("/images", (0, authservice_1.requireAuth)(), imageUpload.array("imag
                 uploadedAt: image.createdAt,
             });
             // Delete original file after processing
-            await promises_1.default.unlink(originalPath);
+            await fs.unlink(originalPath);
         }
         (0, logger_middleware_1.auditLog)("IMAGES_UPLOADED", req.user.id, {
             imageCount: uploadedImages.length,
@@ -256,7 +253,7 @@ router.post("/images", (0, authservice_1.requireAuth)(), imageUpload.array("imag
         // Clean up uploaded files on error
         for (const file of req.files) {
             try {
-                await promises_1.default.unlink(file.path);
+                await fs.unlink(file.path);
             }
             catch (cleanupError) {
                 console.error("Failed to cleanup file:", cleanupError);
@@ -410,8 +407,8 @@ router.post("/images/property/:propertyId", (0, authservice_1.requireAuth)({ rol
         for (const file of req.files) {
             // Process image
             const originalPath = file.path;
-            const optimizedPath = path_1.default.join(path_1.default.dirname(originalPath), `opt_${file.filename}`);
-            const thumbnailPath = path_1.default.join(path_1.default.dirname(originalPath), `thumb_${file.filename}`);
+            const optimizedPath = path.join(path.dirname(originalPath), `opt_${file.filename}`);
+            const thumbnailPath = path.join(path.dirname(originalPath), `thumb_${file.filename}`);
             await Promise.all([
                 processImage(originalPath, optimizedPath, {
                     width: 1200,
@@ -455,7 +452,7 @@ router.post("/images/property/:propertyId", (0, authservice_1.requireAuth)({ rol
                 uploadedAt: image.createdAt,
             });
             // Delete original file
-            await promises_1.default.unlink(originalPath);
+            await fs.unlink(originalPath);
         }
         // Update property images
         const currentImages = property.images || [];
@@ -481,7 +478,7 @@ router.post("/images/property/:propertyId", (0, authservice_1.requireAuth)({ rol
         // Clean up files on error
         for (const file of req.files) {
             try {
-                await promises_1.default.unlink(file.path);
+                await fs.unlink(file.path);
             }
             catch (cleanupError) {
                 console.error("Failed to cleanup file:", cleanupError);
@@ -640,7 +637,7 @@ router.post("/documents", (0, authservice_1.requireAuth)(), documentUpload.array
         // Clean up files on error
         for (const file of req.files) {
             try {
-                await promises_1.default.unlink(file.path);
+                await fs.unlink(file.path);
             }
             catch (cleanupError) {
                 console.error("Failed to cleanup file:", cleanupError);
@@ -816,8 +813,7 @@ router.get("/media", (0, authservice_1.requireAuth)(), [
             take: parseInt(limit),
             include: {
                 uploader: {
-                    select: { email: true,
-                    },
+                    select: { email: true },
                 },
             },
         }),
@@ -935,7 +931,7 @@ router.delete("/media/:id", (0, authservice_1.requireAuth)(), (0, error_middlewa
         ].filter(Boolean);
         await Promise.all(filesToDelete.map(async (filePath) => {
             try {
-                await promises_1.default.unlink(filePath);
+                await fs.unlink(filePath);
             }
             catch (error) {
                 console.error(`Failed to delete file ${filePath}:`, error);

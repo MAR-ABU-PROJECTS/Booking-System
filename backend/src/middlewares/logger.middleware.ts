@@ -1,7 +1,7 @@
 // MAR ABU PROJECTS SERVICES LLC - Minimal Logger Middleware
 // This is a quick fix to get your server running immediately
 import { Request, Response, NextFunction } from "express";
-import winston from "winston";
+import * as winston from "winston";
 
 // Configure winston logger with basic transports only
 const logger = winston.createLogger({

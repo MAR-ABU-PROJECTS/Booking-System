@@ -160,7 +160,10 @@ const validate = (req: any, res: any, next: any) => {
  *                               id:
  *                                 type: string
  *                                 example: host_67890
- *optionalAuth(),
+ */
+router.get(
+  "/",
+  optionalAuth,
   asyncHandler(async (req: any, res: any) => {
     const {
       page = 1,
@@ -219,7 +222,9 @@ const validate = (req: any, res: any, next: any) => {
         include: {
           host: {
             select: {
-              id: true,avatar: true,
+              id: true,
+              email: true,
+              avatar: true,
             },
           },
           reviews: {
@@ -358,14 +363,19 @@ const validate = (req: any, res: any, next: any) => {
  *                         id:
  *                           type: string
  *                           example: host_67890
- *optionalAuth(),
+ */
+router.get(
+  "/:id",
+  optionalAuth,
   asyncHandler(async (req: any, res: any) => {
     const property = await prisma.property.findUnique({
       where: { id: req.params.id },
       include: {
         host: {
           select: {
-            id: true,avatar: true,
+            id: true,
+            email: true,
+            avatar: true,
             createdAt: true,
             _count: {
               select: {
@@ -379,7 +389,9 @@ const validate = (req: any, res: any, next: any) => {
           orderBy: { createdAt: "desc" },
           include: {
             customer: {
-              select: {avatar: true,
+              select: {
+                email: true,
+                avatar: true,
               },
             },
           },
@@ -966,7 +978,10 @@ router.get(
  *                     host:
  *                       type: object
  *                       properties:
- *requireAuth({ role: UserRole.ADMIN }),
+ */
+router.post(
+  "/",
+  requireAuth({ role: UserRole.ADMIN }),
   [
     body("name").trim().notEmpty().withMessage("Property name required"),
     body("description").trim().notEmpty().withMessage("Description required"),
@@ -1009,7 +1024,8 @@ router.get(
       data: propertyData,
       include: {
         host: {
-          select: {email: true,
+          select: {
+            email: true,
           },
         },
       },
@@ -1021,7 +1037,7 @@ router.get(
         userId: req.user.id, // This would be admin ID in real implementation
         type: "PROPERTY_SUBMITTED",
         title: "New Property Submitted",
-        message: `${user.email} ${user.email} submitted a new property: ${property.name}`,
+        message: `${req.user.email} submitted a new property: ${property.name}`,
         metadata: {
           propertyId: property.id,
         },
@@ -1052,6 +1068,7 @@ router.get(
  * @desc    Update property
  * @access  Property Host (owner), Admin
  */
+
 /**
  * @swagger
  * /api/v1/properties/{id}:

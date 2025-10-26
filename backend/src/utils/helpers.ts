@@ -1,5 +1,5 @@
 // MAR ABU PROJECTS SERVICES LLC - Helper Functions
-import crypto from "crypto";
+import * as crypto from "crypto";
 import { APP_CONSTANTS } from "./constants";
 import { isBefore, subHours } from "date-fns";
 

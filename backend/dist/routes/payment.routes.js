@@ -1,7 +1,4 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 // MAR ABU PROJECTS SERVICES LLC - Payment Processing Routes
 const express_1 = require("express");
@@ -17,9 +14,9 @@ const emailservice_1 = require("../services/emailservice");
 // import { flutterwaveService } from "../services/flutterwaveservice";
 const helpers_1 = require("../utils/helpers");
 const zod_1 = require("zod");
-const multer_1 = __importDefault(require("multer"));
-const path_1 = __importDefault(require("path"));
-const fs_1 = __importDefault(require("fs"));
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const router = (0, express_1.Router)();
 // Zod schema for refund approval/rejection
 const refundApproveSchema = zod_1.z.object({
@@ -42,27 +39,27 @@ const validate = (req, res, next) => {
 };
 // Create uploads directory - use /tmp for production (Render compatible)
 const uploadsDir = process.env.NODE_ENV === "production"
-    ? path_1.default.join("/tmp", "receipts")
-    : path_1.default.join(process.cwd(), "uploads", "receipts");
-if (!fs_1.default.existsSync(uploadsDir)) {
-    fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+    ? path.join("/tmp", "receipts")
+    : path.join(process.cwd(), "uploads", "receipts");
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
 }
 // Multer configuration for receipt uploads
-const storage = multer_1.default.diskStorage({
+const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadsDir);
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, `receipt-${uniqueSuffix}${path_1.default.extname(file.originalname)}`);
+        cb(null, `receipt-${uniqueSuffix}${path.extname(file.originalname)}`);
     },
 });
-const upload = (0, multer_1.default)({
+const upload = multer({
     storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // Increased to 5MB for better user experience
     fileFilter: (req, file, cb) => {
         const allowedTypes = /jpeg|jpg|png|pdf/;
-        const extname = allowedTypes.test(path_1.default.extname(file.originalname).toLowerCase());
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
         const mimetype = allowedTypes.test(file.mimetype);
         console.log("DEBUG: File filter check:", {
             originalname: file.originalname,
@@ -94,20 +91,20 @@ router.get("/debug/storage", (0, authservice_1.requireAuth)(), async (req, res) 
             processDir: process.cwd(),
             uploadsDir,
             directories: {
-                uploadsExists: fs_1.default.existsSync(uploadsDir),
-                tmpExists: fs_1.default.existsSync("/tmp"),
-                processUploads: fs_1.default.existsSync(path_1.default.join(process.cwd(), "uploads")),
-                tmpReceipts: fs_1.default.existsSync("/tmp/receipts"),
+                uploadsExists: fs.existsSync(uploadsDir),
+                tmpExists: fs.existsSync("/tmp"),
+                processUploads: fs.existsSync(path.join(process.cwd(), "uploads")),
+                tmpReceipts: fs.existsSync("/tmp/receipts"),
             },
             files: {
-                uploadsContent: fs_1.default.existsSync(uploadsDir)
-                    ? fs_1.default.readdirSync(uploadsDir)
+                uploadsContent: fs.existsSync(uploadsDir)
+                    ? fs.readdirSync(uploadsDir)
                     : [],
-                tmpContent: fs_1.default.existsSync("/tmp")
-                    ? fs_1.default.readdirSync("/tmp").slice(0, 10)
+                tmpContent: fs.existsSync("/tmp")
+                    ? fs.readdirSync("/tmp").slice(0, 10)
                     : [],
-                tmpReceiptsContent: fs_1.default.existsSync("/tmp/receipts")
-                    ? fs_1.default.readdirSync("/tmp/receipts")
+                tmpReceiptsContent: fs.existsSync("/tmp/receipts")
+                    ? fs.readdirSync("/tmp/receipts")
                     : [],
             },
             recentPayments: await server_1.prisma.payment.findMany({
@@ -307,7 +304,7 @@ router.post("/:id/upload-receipt", (0, authservice_1.requireAuth)(), upload.sing
         let fileData = null;
         let fileMetadata = null;
         try {
-            const fileBuffer = fs_1.default.readFileSync(req.file.path);
+            const fileBuffer = fs.readFileSync(req.file.path);
             fileData = fileBuffer.toString("base64");
             fileMetadata = {
                 originalName: req.file.originalname,
@@ -1203,16 +1200,16 @@ router.get("/receipt/:filename", (0, authservice_1.requireAuth)(), async (req, r
         }
         // PRIORITY 2: Try multiple possible file paths (development fallback)
         const possiblePaths = [
-            path_1.default.join(uploadsDir, filename),
-            path_1.default.join(process.cwd(), "uploads", "receipts", filename),
-            path_1.default.join(__dirname, "..", "..", "uploads", "receipts", filename),
-            path_1.default.join("/tmp", "receipts", filename),
-            path_1.default.join("/tmp", "uploads", "receipts", filename),
+            path.join(uploadsDir, filename),
+            path.join(process.cwd(), "uploads", "receipts", filename),
+            path.join(__dirname, "..", "..", "uploads", "receipts", filename),
+            path.join("/tmp", "receipts", filename),
+            path.join("/tmp", "uploads", "receipts", filename),
         ];
         console.log("Database storage not available, checking file paths:", possiblePaths);
         let filePath = null;
         for (const testPath of possiblePaths) {
-            if (fs_1.default.existsSync(testPath)) {
+            if (fs.existsSync(testPath)) {
                 filePath = testPath;
                 console.log("Found file at:", filePath);
                 break;
@@ -1221,18 +1218,18 @@ router.get("/receipt/:filename", (0, authservice_1.requireAuth)(), async (req, r
         if (!filePath) {
             console.log("Receipt not found in database or file system. Debug info:");
             try {
-                if (fs_1.default.existsSync(uploadsDir)) {
-                    const files = fs_1.default.readdirSync(uploadsDir);
+                if (fs.existsSync(uploadsDir)) {
+                    const files = fs.readdirSync(uploadsDir);
                     console.log("Upload dir contents:", files);
                 }
                 else {
                     console.log("Upload directory doesn't exist");
                 }
                 // Check /tmp directory
-                if (fs_1.default.existsSync("/tmp")) {
+                if (fs.existsSync("/tmp")) {
                     console.log("/tmp exists");
-                    if (fs_1.default.existsSync("/tmp/receipts")) {
-                        console.log("/tmp/receipts contents:", fs_1.default.readdirSync("/tmp/receipts"));
+                    if (fs.existsSync("/tmp/receipts")) {
+                        console.log("/tmp/receipts contents:", fs.readdirSync("/tmp/receipts"));
                     }
                 }
             }
@@ -1247,14 +1244,14 @@ router.get("/receipt/:filename", (0, authservice_1.requireAuth)(), async (req, r
                         filename,
                         checkedPaths: possiblePaths,
                         uploadsDir,
-                        directoryExists: fs_1.default.existsSync(uploadsDir),
+                        directoryExists: fs.existsSync(uploadsDir),
                         hasDbBackup: !!payment?.gatewayResponse?.receiptBackup,
                     }
                     : undefined,
             });
         }
         // Send the file with proper headers
-        const stats = fs_1.default.statSync(filePath);
+        const stats = fs.statSync(filePath);
         const gatewayResponseData = payment?.gatewayResponse;
         const mimeType = gatewayResponseData?.receiptMetadata?.mimeType ||
             (filename.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
@@ -1263,7 +1260,7 @@ router.get("/receipt/:filename", (0, authservice_1.requireAuth)(), async (req, r
             "Content-Length": stats.size.toString(),
             "Cache-Control": "private, max-age=3600",
         });
-        res.sendFile(path_1.default.resolve(filePath));
+        res.sendFile(path.resolve(filePath));
     }
     catch (error) {
         console.error("Receipt retrieval error:", error);

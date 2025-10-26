@@ -12,7 +12,7 @@ import { AppError } from "../middlewares/error.middleware";
 import { auditLog } from "../middlewares/logger.middleware";
 import { emailService } from "../services/emailservice";
 import { OTPService } from "../services/otpservice";
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 
 const router = Router();
 
@@ -456,104 +456,6 @@ router.post(
 );
 
 /**
- * @route   POST /api/v1/auth/forgot-password
- * @desc    Request password reset
- * @access  Public
- */
-/**
- * @swagger
- * /auth/forgot-you will receive password reset instructions.
- *       400:
- *         description: Invalid input
- *       500:
- *         description: Server error
- */
-
-router.post(
-  "/forgot-password",
-  [
-    body("email")
-      .isEmail()
-      .normalizeEmail()
-      .withMessage("Valid email required"),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { email } = req.body;
-
-    try {
-      await authService.forgotPassword(email);
-
-      res.json({
-        success: true,
-        message:
-          "If an account exists with this email, you will receive password reset instructions.",
-      });
-    } catch (error) {
-      // Don't reveal if email exists or not for security
-      res.json({
-        success: true,
-        message:
-          "If an account exists with this email, you will receive password reset instructions.",
-      });
-    }
-  })
-);
-
-/**
- * @route   POST /api/v1/auth/reset-password
- * @desc    Reset password with token
- * @access  Public
- */
-/**
- * @swagger
- * /auth/reset-[
-    body("token").notEmpty().withMessage("Reset token required"),
-    body("password")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-      )
-      .withMessage(
-        "Password must contain uppercase, lowercase, number and special character"
-      ),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { token, password } = req.body;
-
-    await authService.resetPassword(token, password);
-
-    res.json({
-      success: true,
-      message:
-        "Password reset successful. Please login with your new password.",
-    });
-  })
-);
-
-router.get(
-  "/reset-password",
-  asyncHandler(async (req: any, res: any) => {
-    const { token } = req.query;
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: "Reset token is required",
-      });
-    }
-    // You can render a password reset page here, or just return a message
-    res.json({
-      success: true,
-      message:
-        "Please submit your new password using the POST /auth/reset-password endpoint.",
-      token,
-    });
-  })
-);
-
-/**
  * @route   POST /api/v1/auth/logout
  * @desc    Logout user
  * @access  Protected
@@ -778,48 +680,6 @@ router.put(
       success: true,
       message: "Profile updated successfully",
       data: updatedUser,
-    });
-  })
-);
-
-/**
- * @route   PUT /api/v1/auth/change-password
- * @desc    Change user password
- * @access  Protected
- */
-/**
- * @swagger
- * /auth/change-requireAuth(),
-  [
-    body("currentPassword").notEmpty().withMessage("Current password required"),
-    body("newPassword")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-      )
-      .withMessage(
-        "Password must contain uppercase, lowercase, number and special character"
-      ),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { currentPassword, newPassword } = req.body;
-
-    await authService.changePassword(req.user.id, currentPassword, newPassword);
-
-    auditLog(
-      "PASSWORD_CHANGED",
-      req.user.id,
-      {
-        email: req.user.email,
-      },
-      req.ip
-    );
-
-    res.json({
-      success: true,
-      message: "Password changed successfully",
     });
   })
 );

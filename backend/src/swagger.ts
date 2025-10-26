@@ -1,6 +1,6 @@
 // MAR ABU PROJECTS SERVICES LLC - Server Configuration
-import swaggerJsdoc from "swagger-jsdoc";
-import swaggerUi from "swagger-ui-express";
+import swaggerJsdoc = require("swagger-jsdoc");
+import * as swaggerUi from "swagger-ui-express";
 
 const options = {
   definition: {
