@@ -268,7 +268,6 @@ const BookingCard = ({
 							</Button>
 						</div>
 					)}
-
 				</CardContent>
 			</Card>
 

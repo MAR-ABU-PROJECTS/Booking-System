@@ -74,7 +74,7 @@ const CompleteBooking = ({
 	const [paymentId, setPaymentId] = useState("");
 	const [instructions, setInstructions] = useState<string[]>();
 
-	const getHistory = useQuery({
+	const getBooking = useQuery({
 		queryKey: ["booking-id", { bookingId }],
 		queryFn: async () => {
 			try {
@@ -101,11 +101,11 @@ const CompleteBooking = ({
 	});
 
 	useEffect(() => {
-		if (getHistory.data?.success) {
-			setSummaryData(getHistory.data?.data);
+		if (getBooking.data?.success) {
+			setSummaryData(getBooking.data?.data);
 			handleNext();
 		}
-	}, [getHistory.data]);
+	}, [getBooking.data]);
 
 	const handleNext = () => {
 		if (step == 3) return;
@@ -138,7 +138,7 @@ const CompleteBooking = ({
 						)}
 					</div>
 					<QueryStateHandler
-						query={getHistory}
+						query={getBooking}
 						emptyMessage={`Booking Not Found`}
 						getItems={(res) => res.data}
 						loadingComponent={

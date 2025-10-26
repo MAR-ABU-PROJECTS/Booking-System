@@ -177,12 +177,8 @@ export const BookSchema = z.object({
 });
 
 export const SignUpSchema = z.object({
-	firstName: z.string().min(1, "First name is required"),
-	lastName: z.string().min(1, "Last name is required"),
 	email: z.email("Invalid email address"),
-	phone: z.string().min(10, "Phone number is required"),
-	password: z.string().min(1, "Password is required"),
-	role: z.string().min(1, "role is required"),
+	otp: z.string("otp required").min(6, "incomplete otp"),
 });
 
 export const LogInSchema = z.object({
@@ -196,21 +192,30 @@ export const ForgotPasswordSchema = z.object({
 });
 
 export const ResetPasswordSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/\d/, "Password must contain at least one number")
-      .regex(/[\W_]/, "Password must contain at least one special character"),
+	.object({
+		password: z
+			.string()
+			.min(8, "Password must be at least 8 characters")
+			.regex(
+				/[A-Z]/,
+				"Password must contain at least one uppercase letter"
+			)
+			.regex(
+				/[a-z]/,
+				"Password must contain at least one lowercase letter"
+			)
+			.regex(/\d/, "Password must contain at least one number")
+			.regex(
+				/[\W_]/,
+				"Password must contain at least one special character"
+			),
 
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"], // Error will be shown at confirmPassword field
-  });
+		confirmPassword: z.string(),
+	})
+	.refine((data) => data.password === data.confirmPassword, {
+		message: "Passwords do not match",
+		path: ["confirmPassword"], // Error will be shown at confirmPassword field
+	});
 
 export const ProfileSchema = z.object({
 	firstName: z.string().min(1, "First name is required"),
