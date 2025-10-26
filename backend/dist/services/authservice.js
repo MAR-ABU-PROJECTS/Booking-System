@@ -316,7 +316,6 @@ class AuthService {
             userId: user.id,
             email: user.email,
             role: user.role,
-            exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
         };
         const accessToken = jwt.sign(payload, this.JWT_SECRET, {
             expiresIn: "1h",
@@ -479,14 +478,15 @@ class AuthService {
      */
     async blacklistToken(token) {
         try {
-            const payload = this.verifyToken(token);
-            const expiresAt = new Date(payload.exp * 1000);
+            // Decode the full JWT payload including exp claim
+            const fullPayload = jwt.verify(token, this.JWT_SECRET);
+            const expiresAt = new Date(fullPayload.exp * 1000);
             const tokenHash = hashToken(token);
             await database_1.default.blacklistedToken.create({
                 data: {
                     tokenHash,
                     expiresAt,
-                    userId: payload.userId,
+                    userId: fullPayload.userId,
                 },
             });
             console.log(`Token blacklisted: ${token.substring(0, 20)}...`);
