@@ -1,5 +1,5 @@
 "use client";
-import { useState, ChangeEvent } from "react";
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Label } from "@components/ui/label";
 import { Input } from "@components/ui/input";
@@ -32,6 +32,7 @@ const SignUp = () => {
 		resolver: zodResolver(SignUpSchema),
 		defaultValues: {
 			email: "",
+			otp: "",
 		},
 		mode: "onChange",
 	});
