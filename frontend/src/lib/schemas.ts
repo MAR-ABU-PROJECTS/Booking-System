@@ -181,6 +181,14 @@ export const SignUpSchema = z.object({
 	otp: z.string("otp required").min(6, "incomplete otp"),
 });
 
+export const AuthEmailSchema = z.object({
+	email: z.email("Invalid email address"),
+});
+
+export const AuthOtpSchema = z.object({
+	otp: z.string("otp required").min(6, "incomplete otp"),
+});
+
 export const LogInSchema = z.object({
 	email: z.email("Invalid email address"),
 	otp: z.string("otp required").min(6, "incomplete otp"),
