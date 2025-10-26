@@ -19,9 +19,9 @@ import { emailService } from "../services/emailservice";
 // import { flutterwaveService } from "../services/flutterwaveservice";
 import { isRefundAllowed } from "../utils/helpers";
 import { z } from "zod";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
+import multer = require("multer");
+import path = require("path");
+import fs = require("fs");
 
 const router = Router();
 
@@ -70,7 +70,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Increased to 5MB for better user experience
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     const allowedTypes = /jpeg|jpg|png|pdf/;
     const extname = allowedTypes.test(
       path.extname(file.originalname).toLowerCase()

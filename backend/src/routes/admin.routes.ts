@@ -14,7 +14,7 @@ import { prisma } from "../server";
 import { auditLog } from "../middlewares/logger.middleware";
 import { dbQueries } from "../config/database";
 import { schedulerService } from "../services/schedulerservice";
-import bcryptjs from "bcryptjs";
+import * as bcryptjs from "bcryptjs";
 
 const router = Router();
 

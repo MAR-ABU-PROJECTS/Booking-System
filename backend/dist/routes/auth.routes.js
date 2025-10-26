@@ -1,7 +1,37 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 // MAR ABU PROJECTS SERVICES LLC - Passwordless Authentication Routes
 const express_1 = require("express");
@@ -12,7 +42,7 @@ const error_middleware_2 = require("../middlewares/error.middleware");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
 const otpservice_1 = require("../services/otpservice");
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const jwt = __importStar(require("jsonwebtoken"));
 const router = (0, express_1.Router)();
 // Validation middleware
 const validate = (req, res, next) => {
@@ -399,94 +429,6 @@ router.post("/verify-email/resend", (0, authservice_1.requireAuth)({ allowPendin
     }
 }));
 /**
- * @route   POST /api/v1/auth/forgot-password
- * @desc    Request password reset
- * @access  Public
- */
-/**
- * @swagger
- * /auth/forgot-you will receive password reset instructions.
- *       400:
- *         description: Invalid input
- *       500:
- *         description: Server error
- */
-router.post("/forgot-password", [
-    (0, express_validator_1.body)("email")
-        .isEmail()
-        .normalizeEmail()
-        .withMessage("Valid email required"),
-], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { email } = req.body;
-    try {
-        await authservice_1.authService.forgotPassword(email);
-        res.json({
-            success: true,
-            message: "If an account exists with this email, you will receive password reset instructions.",
-        });
-    }
-    catch (error) {
-        // Don't reveal if email exists or not for security
-        res.json({
-            success: true,
-            message: "If an account exists with this email, you will receive password reset instructions.",
-        });
-    }
-}));
-/**
- * @route   POST /api/v1/auth/reset-password
- * @desc    Reset password with token
- * @access  Public
- */
-/**
- * @swagger
- * /auth/reset-[
-    body("token").notEmpty().withMessage("Reset token required"),
-    body("password")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-      )
-      .withMessage(
-        "Password must contain uppercase, lowercase, number and special character"
-      ),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { token, password } = req.body;
-
-    await authService.resetPassword(token, password);
-
-    res.json({
-      success: true,
-      message:
-        "Password reset successful. Please login with your new password.",
-    });
-  })
-);
-
-router.get(
-  "/reset-password",
-  asyncHandler(async (req: any, res: any) => {
-    const { token } = req.query;
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: "Reset token is required",
-      });
-    }
-    // You can render a password reset page here, or just return a message
-    res.json({
-      success: true,
-      message:
-        "Please submit your new password using the POST /auth/reset-password endpoint.",
-      token,
-    });
-  })
-);
-
-/**
  * @route   POST /api/v1/auth/logout
  * @desc    Logout user
  * @access  Protected
@@ -526,7 +468,7 @@ router.post("/logout", (0, authservice_1.requireAuth)(), (0, error_middleware_1.
             .status(400)
             .json({ success: false, message: "No token provided" });
     // Decode token to get expiry (or use JWT library)
-    const payload = jsonwebtoken_1.default.decode(token);
+    const payload = jwt.decode(token);
     const expiresAt = payload?.exp
         ? new Date(payload.exp * 1000)
         : new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -686,48 +628,6 @@ router.put("/profile", (0, authservice_1.requireAuth)(), [
     });
 }));
 /**
- * @route   PUT /api/v1/auth/change-password
- * @desc    Change user password
- * @access  Protected
- */
-/**
- * @swagger
- * /auth/change-requireAuth(),
-  [
-    body("currentPassword").notEmpty().withMessage("Current password required"),
-    body("newPassword")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-      )
-      .withMessage(
-        "Password must contain uppercase, lowercase, number and special character"
-      ),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { currentPassword, newPassword } = req.body;
-
-    await authService.changePassword(req.user.id, currentPassword, newPassword);
-
-    auditLog(
-      "PASSWORD_CHANGED",
-      req.user.id,
-      {
-        email: req.user.email,
-      },
-      req.ip
-    );
-
-    res.json({
-      success: true,
-      message: "Password changed successfully",
-    });
-  })
-);
-
-/**
  * @route   POST /api/v1/auth/test-email
  * @desc    Send test email
  * @access  Public
@@ -801,7 +701,7 @@ router.post("/refresh-token", (0, error_middleware_1.asyncHandler)(async (req, r
             .status(400)
             .json({ success: false, message: "Refresh token required" });
     // Decode refresh token to get userId
-    const payload = jsonwebtoken_1.default.decode(refreshToken);
+    const payload = jwt.decode(refreshToken);
     const userId = payload?.userId;
     if (!userId)
         return res

@@ -1,9 +1,9 @@
 // MAR ABU PROJECTS SERVICES LLC - File Upload Service
-import multer from "multer";
-import path from "path";
-import fs from "fs/promises";
-import crypto from "crypto";
-import sharp from "sharp";
+import multer = require("multer");
+import path = require("path");
+import fs = require("fs/promises");
+import * as crypto from "crypto";
+import sharp = require("sharp");
 import { APP_CONSTANTS } from "../utils/constants";
 import { logger } from "../middlewares/logger.middleware";
 import { AppError } from "../middlewares/error.middleware";

@@ -1,15 +1,45 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.uploadMiddleware = exports.fileService = exports.FileService = void 0;
 // MAR ABU PROJECTS SERVICES LLC - File Upload Service
-const multer_1 = __importDefault(require("multer"));
-const path_1 = __importDefault(require("path"));
-const promises_1 = __importDefault(require("fs/promises"));
-const crypto_1 = __importDefault(require("crypto"));
-const sharp_1 = __importDefault(require("sharp"));
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs/promises");
+const crypto = __importStar(require("crypto"));
+const sharp = require("sharp");
 const constants_1 = require("../utils/constants");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const error_middleware_1 = require("../middlewares/error.middleware");
@@ -24,17 +54,17 @@ class FileService {
     async initializeDirectories() {
         const directories = [
             this.uploadsDir,
-            path_1.default.join(this.uploadsDir, "properties"),
-            path_1.default.join(this.uploadsDir, "receipts"),
-            path_1.default.join(this.uploadsDir, "avatars"),
-            path_1.default.join(this.uploadsDir, "temp"),
+            path.join(this.uploadsDir, "properties"),
+            path.join(this.uploadsDir, "receipts"),
+            path.join(this.uploadsDir, "avatars"),
+            path.join(this.uploadsDir, "temp"),
         ];
         for (const dir of directories) {
             try {
-                await promises_1.default.access(dir);
+                await fs.access(dir);
             }
             catch {
-                await promises_1.default.mkdir(dir, { recursive: true });
+                await fs.mkdir(dir, { recursive: true });
                 logger_middleware_1.logger.info(`Created directory: ${dir}`);
             }
         }
@@ -43,8 +73,8 @@ class FileService {
      * Generate unique filename
      */
     generateUniqueFilename(originalName) {
-        const ext = path_1.default.extname(originalName);
-        const hash = crypto_1.default.randomBytes(16).toString("hex");
+        const ext = path.extname(originalName);
+        const hash = crypto.randomBytes(16).toString("hex");
         const timestamp = Date.now();
         return `${timestamp}-${hash}${ext}`;
     }
@@ -52,14 +82,14 @@ class FileService {
      * Create multer storage configuration
      */
     createStorage(config) {
-        return multer_1.default.diskStorage({
+        return multer.diskStorage({
             destination: async (req, file, cb) => {
-                const dir = path_1.default.join(this.uploadsDir, config.destination);
+                const dir = path.join(this.uploadsDir, config.destination);
                 try {
-                    await promises_1.default.access(dir);
+                    await fs.access(dir);
                 }
                 catch {
-                    await promises_1.default.mkdir(dir, { recursive: true });
+                    await fs.mkdir(dir, { recursive: true });
                 }
                 cb(null, dir);
             },
@@ -88,7 +118,7 @@ class FileService {
      * Create multer upload instance
      */
     createUploader(config) {
-        return (0, multer_1.default)({
+        return multer({
             storage: this.createStorage(config),
             limits: {
                 fileSize: config.maxSize,
@@ -137,8 +167,8 @@ class FileService {
     async processImage(filePath, options = {}) {
         const { maxWidth = 1920, maxHeight = 1080, quality = 85, format = "jpeg", } = options;
         try {
-            const processedPath = filePath.replace(path_1.default.extname(filePath), `.processed.${format}`);
-            await (0, sharp_1.default)(filePath)
+            const processedPath = filePath.replace(path.extname(filePath), `.processed.${format}`);
+            await sharp(filePath)
                 .resize(maxWidth, maxHeight, {
                 fit: "inside",
                 withoutEnlargement: true,
@@ -146,8 +176,8 @@ class FileService {
                 .jpeg({ quality })
                 .toFile(processedPath);
             // Delete original and rename processed
-            await promises_1.default.unlink(filePath);
-            await promises_1.default.rename(processedPath, filePath);
+            await fs.unlink(filePath);
+            await fs.rename(processedPath, filePath);
             logger_middleware_1.logger.info(`Image processed: ${filePath}`);
             return filePath;
         }
@@ -163,9 +193,9 @@ class FileService {
         const thumbnails = [];
         for (const size of sizes) {
             try {
-                const ext = path_1.default.extname(filePath);
+                const ext = path.extname(filePath);
                 const thumbnailPath = filePath.replace(ext, `${size.suffix}${ext}`);
-                await (0, sharp_1.default)(filePath)
+                await sharp(filePath)
                     .resize(size.width, size.height, {
                     fit: "cover",
                     position: "center",
@@ -184,10 +214,10 @@ class FileService {
      */
     async deleteFile(filePath) {
         try {
-            const fullPath = path_1.default.isAbsolute(filePath)
+            const fullPath = path.isAbsolute(filePath)
                 ? filePath
-                : path_1.default.join(process.cwd(), filePath);
-            await promises_1.default.unlink(fullPath);
+                : path.join(process.cwd(), filePath);
+            await fs.unlink(fullPath);
             logger_middleware_1.logger.info(`File deleted: ${filePath}`);
             return true;
         }
@@ -207,9 +237,9 @@ class FileService {
      */
     async moveFile(source, destination) {
         try {
-            const destDir = path_1.default.dirname(destination);
-            await promises_1.default.mkdir(destDir, { recursive: true });
-            await promises_1.default.rename(source, destination);
+            const destDir = path.dirname(destination);
+            await fs.mkdir(destDir, { recursive: true });
+            await fs.rename(source, destination);
             logger_middleware_1.logger.info(`File moved from ${source} to ${destination}`);
             return destination;
         }
@@ -223,7 +253,7 @@ class FileService {
      */
     async getFileStats(filePath) {
         try {
-            const stats = await promises_1.default.stat(filePath);
+            const stats = await fs.stat(filePath);
             const mimeType = this.getMimeType(filePath);
             return {
                 size: stats.size,
@@ -241,7 +271,7 @@ class FileService {
      * Get MIME type from file extension
      */
     getMimeType(filePath) {
-        const ext = path_1.default.extname(filePath).toLowerCase();
+        const ext = path.extname(filePath).toLowerCase();
         const mimeTypes = {
             ".jpg": "image/jpeg",
             ".jpeg": "image/jpeg",
@@ -258,15 +288,15 @@ class FileService {
      */
     async cleanupTempFiles(olderThanHours = 24) {
         try {
-            const tempDir = path_1.default.join(this.uploadsDir, "temp");
-            const files = await promises_1.default.readdir(tempDir);
+            const tempDir = path.join(this.uploadsDir, "temp");
+            const files = await fs.readdir(tempDir);
             const now = Date.now();
             const maxAge = olderThanHours * 60 * 60 * 1000;
             for (const file of files) {
-                const filePath = path_1.default.join(tempDir, file);
-                const stats = await promises_1.default.stat(filePath);
+                const filePath = path.join(tempDir, file);
+                const stats = await fs.stat(filePath);
                 if (now - stats.mtime.getTime() > maxAge) {
-                    await promises_1.default.unlink(filePath);
+                    await fs.unlink(filePath);
                     logger_middleware_1.logger.info(`Cleaned up temp file: ${file}`);
                 }
             }
@@ -281,14 +311,14 @@ class FileService {
     async getDirectorySize(dirPath) {
         let size = 0;
         try {
-            const files = await promises_1.default.readdir(dirPath, { withFileTypes: true });
+            const files = await fs.readdir(dirPath, { withFileTypes: true });
             for (const file of files) {
-                const filePath = path_1.default.join(dirPath, file.name);
+                const filePath = path.join(dirPath, file.name);
                 if (file.isDirectory()) {
                     size += await this.getDirectorySize(filePath);
                 }
                 else {
-                    const stats = await promises_1.default.stat(filePath);
+                    const stats = await fs.stat(filePath);
                     size += stats.size;
                 }
             }
