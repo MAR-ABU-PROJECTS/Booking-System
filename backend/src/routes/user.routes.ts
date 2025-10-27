@@ -13,9 +13,9 @@ import { AppError } from "../middlewares/error.middleware";
 import { prisma } from "../server";
 import { auditLog } from "../middlewares/logger.middleware";
 import { emailService } from "../services/emailservice";
-import bcryptjs from "bcryptjs";
-import multer from "multer";
-import path from "path";
+import * as bcryptjs from "bcryptjs";
+import multer = require("multer");
+import path = require("path");
 import { v4 as uuidv4 } from "uuid";
 import { APP_CONSTANTS } from "../utils/constants";
 
@@ -37,7 +37,7 @@ const upload = multer({
   limits: {
     fileSize: APP_CONSTANTS.UPLOAD.MAX_IMAGE_SIZE,
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
@@ -364,7 +364,7 @@ router.put(
 
     auditLog(
       "PROFILE_UPDATED",
-      req.user.id,
+      req.user.email,
       {
         changes: updateData,
       },
@@ -559,7 +559,7 @@ router.delete(
         data: { avatar: null },
       });
 
-      auditLog("AVATAR_DELETED", req.user.id, {}, req.ip);
+      auditLog("AVATAR_DELETED", req.user.email, {}, req.ip);
     }
 
     res.json({

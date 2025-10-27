@@ -7,11 +7,11 @@ import { asyncHandler } from "../middlewares/error.middleware";
 import { AppError } from "../middlewares/error.middleware";
 import { prisma } from "../server";
 import { auditLog } from "../middlewares/logger.middleware";
-import multer from "multer";
-import path from "path";
+import multer = require("multer");
+import path = require("path");
 import { v4 as uuidv4 } from "uuid";
-import sharp from "sharp";
-import fs from "fs/promises";
+import sharp = require("sharp");
+import fs = require("fs/promises");
 import { APP_CONSTANTS } from "../utils/constants";
 
 const router = Router();
@@ -35,7 +35,7 @@ const imageUpload = multer({
     fileSize: APP_CONSTANTS.UPLOAD.MAX_IMAGE_SIZE,
     files: 10,
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
@@ -51,7 +51,7 @@ const documentUpload = multer({
     fileSize: APP_CONSTANTS.UPLOAD.MAX_DOCUMENT_SIZE,
     files: 5,
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     if (APP_CONSTANTS.UPLOAD.ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -273,7 +273,7 @@ router.post(
 
       auditLog(
         "IMAGES_UPLOADED",
-        req.user.id,
+        req.user.email,
         {
           imageCount: uploadedImages.length,
           totalSize: req.files.reduce(
@@ -918,8 +918,7 @@ router.get(
         take: parseInt(limit),
         include: {
           uploader: {
-            select: {email: true,
-            },
+            select: { email: true },
           },
         },
       }),

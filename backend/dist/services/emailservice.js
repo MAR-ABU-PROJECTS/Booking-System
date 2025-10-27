@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailService = exports.EmailService = void 0;
 // MAR ABU PROJECTS SERVICES LLC - Production Email Service (Resend API Only)
 const resend_1 = require("resend");
+const client_1 = require("@prisma/client");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const constants_1 = require("../utils/constants");
 class EmailService {
@@ -14,6 +15,7 @@ class EmailService {
         this.fromEmail = process.env.EMAIL_FROM || "noreply@marabuprojects.com";
         this.replyToEmail =
             process.env.EMAIL_REPLY_TO || "noreply@marabuprojects.com";
+        this.prisma = new client_1.PrismaClient();
         logger_middleware_1.logger.info("Email service initialized with Resend API");
     }
     safeBookingProperty(property) {
@@ -50,7 +52,7 @@ class EmailService {
     }
     async queueEmail(options, type) {
         try {
-            const queued = await server_1.prisma.emailQueue.create({
+            const queued = await this.prisma.emailQueue.create({
                 data: {
                     to: options.to,
                     subject: options.subject,
@@ -68,7 +70,7 @@ class EmailService {
     }
     async updateEmailQueueStatus(queueId, status, error) {
         try {
-            await server_1.prisma.emailQueue.update({
+            await this.prisma.emailQueue.update({
                 where: { id: queueId },
                 data: {
                     status,
@@ -224,7 +226,6 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <h3>📋 Booking Details</h3>
         <div class="detail-row"><span class="detail-label">Booking Code:</span><span>${booking.bookingCode || "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Property:</span><span>${property.name}</span></div>
-        <div class="detail-row"><span class="detail-label">Location:</span><span>${property.address || property.city}</span></div>
         <div class="detail-row"><span class="detail-label">Check-in:</span><span>${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Check-out:</span><span>${booking.checkOutDate ? new Date(booking.checkOutDate).toLocaleDateString() : "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Guests:</span><span>${booking.adults || 1} adult(s)${booking.children ? `, ${booking.children} children` : ""}</span></div>
@@ -376,7 +377,6 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
       <div class="info-box" style="border-left: 4px solid #28a745;">
         <h3>🏠 Property Details</h3>
         <div class="detail-row"><span class="detail-label">Name:</span><span><strong>${property.name}</strong></span></div>
-        <div class="detail-row"><span class="detail-label">Location:</span><span>${property.city}, ${property.state}</span></div>
         <div class="detail-row"><span class="detail-label">Type:</span><span>${property.type}</span></div>
         <div class="detail-row"><span class="detail-label">Status:</span><span style="color: #28a745;">✅ Live & Bookable</span></div>
         <div class="detail-row"><span class="detail-label">Approved Date:</span><span>${new Date().toLocaleDateString()}</span></div>
@@ -558,7 +558,6 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <h3>📍 Check-in Details</h3>
         <div class="detail-row"><span class="detail-label">Date:</span><span>${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Time:</span><span>After 3:00 PM</span></div>
-        <div class="detail-row"><span class="detail-label">Address:</span><span>${property.address}, ${property.city}</span></div>
       </div>
       
       <div class="info-box">

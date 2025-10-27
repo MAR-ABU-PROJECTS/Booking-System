@@ -27,7 +27,6 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role: UserRole;
-  exp: number; // JWT expiration timestamp
 }
 
 // ===============================
@@ -212,7 +211,8 @@ export class AuthService {
   async verifyOTP(
     email: string,
     otpCode: string,
-    purpose: "signup" | "login"
+    purpose: "signup" | "login",
+    interfaceType?: "admin" | "customer"
   ): Promise<{
     user: AuthUser;
     accessToken: string;
@@ -287,10 +287,14 @@ export class AuthService {
 
       // Handle signup: create new user
       if (purpose === "signup") {
+        // Determine role based on interface type
+        const userRole =
+          interfaceType === "admin" ? UserRole.ADMIN : UserRole.CUSTOMER;
+
         user = await prisma.user.create({
           data: {
             email,
-            role: UserRole.CUSTOMER,
+            role: userRole,
             status: UserStatus.ACTIVE,
             emailVerified: new Date(),
             // Clear OTP fields after successful verification
@@ -376,7 +380,6 @@ export class AuthService {
       userId: user.id,
       email: user.email,
       role: user.role,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
     };
 
     const accessToken = jwt.sign(payload, this.JWT_SECRET, {
@@ -572,15 +575,16 @@ export class AuthService {
    */
   public async blacklistToken(token: string): Promise<void> {
     try {
-      const payload = this.verifyToken(token);
-      const expiresAt = new Date(payload.exp * 1000);
+      // Decode the full JWT payload including exp claim
+      const fullPayload = jwt.verify(token, this.JWT_SECRET) as any;
+      const expiresAt = new Date(fullPayload.exp * 1000);
       const tokenHash = hashToken(token);
 
       await prisma.blacklistedToken.create({
         data: {
           tokenHash,
           expiresAt,
-          userId: payload.userId,
+          userId: fullPayload.userId,
         },
       });
 

@@ -1,7 +1,7 @@
 // MAR ABU PROJECTS SERVICES LLC - Minimal Logger Middleware
 // This is a quick fix to get your server running immediately
 import { Request, Response, NextFunction } from "express";
-import winston from "winston";
+import * as winston from "winston";
 
 // Configure winston logger with basic transports only
 const logger = winston.createLogger({
@@ -24,6 +24,22 @@ const logger = winston.createLogger({
       filename: "logs/app.log",
       maxsize: 5242880, // 5MB
       maxFiles: 5,
+    }),
+  ],
+});
+
+// Separate audit logger with monthly rotation
+const auditLogger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({
+      filename: "logs/audit.log",
+      maxsize: 10485760, // 10MB per file
+      maxFiles: 31, // Keep ~1 month of files (will rotate based on size)
     }),
   ],
 });
@@ -62,11 +78,21 @@ export const errorLogger = (
 // Audit log function
 export const auditLog = (
   action: string,
-  userId: string,
+  userEmail: string,
   details: any,
   ip?: string
 ) => {
-  logger.info("Audit", { action, userId, details, ip });
+  const auditEntry = {
+    action,
+    userEmail,
+    details,
+    ip,
+    timestamp: new Date().toISOString(),
+  };
+
+  // Log to both regular logger and dedicated audit logger
+  logger.info("Audit", auditEntry);
+  auditLogger.info("AUDIT_ENTRY", auditEntry);
 };
 
 // Export everything

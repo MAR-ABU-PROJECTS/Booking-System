@@ -179,7 +179,7 @@ class AuthService {
     /**
      * Verify OTP and authenticate user (signup or login)
      */
-    async verifyOTP(email, otpCode, purpose) {
+    async verifyOTP(email, otpCode, purpose, interfaceType) {
         const { OTPService } = await Promise.resolve().then(() => __importStar(require("./otpservice")));
         try {
             let user;
@@ -235,10 +235,12 @@ class AuthService {
             }
             // Handle signup: create new user
             if (purpose === "signup") {
+                // Determine role based on interface type
+                const userRole = interfaceType === "admin" ? client_1.UserRole.ADMIN : client_1.UserRole.CUSTOMER;
                 user = await database_1.default.user.create({
                     data: {
                         email,
-                        role: client_1.UserRole.CUSTOMER,
+                        role: userRole,
                         status: client_1.UserStatus.ACTIVE,
                         emailVerified: new Date(),
                         // Clear OTP fields after successful verification
@@ -316,7 +318,6 @@ class AuthService {
             userId: user.id,
             email: user.email,
             role: user.role,
-            exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
         };
         const accessToken = jwt.sign(payload, this.JWT_SECRET, {
             expiresIn: "1h",
@@ -479,14 +480,15 @@ class AuthService {
      */
     async blacklistToken(token) {
         try {
-            const payload = this.verifyToken(token);
-            const expiresAt = new Date(payload.exp * 1000);
+            // Decode the full JWT payload including exp claim
+            const fullPayload = jwt.verify(token, this.JWT_SECRET);
+            const expiresAt = new Date(fullPayload.exp * 1000);
             const tokenHash = hashToken(token);
             await database_1.default.blacklistedToken.create({
                 data: {
                     tokenHash,
                     expiresAt,
-                    userId: payload.userId,
+                    userId: fullPayload.userId,
                 },
             });
             console.log(`Token blacklisted: ${token.substring(0, 20)}...`);

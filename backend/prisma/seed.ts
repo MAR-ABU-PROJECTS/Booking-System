@@ -30,6 +30,32 @@ async function main() {
   });
   console.log(`✅ Admin created: ${superAdmin.email}`);
 
+  const superAdmin1 = await prisma.user.upsert({
+    where: { email: "support@marabuprojects.com" },
+    update: {},
+    create: {
+      email: "support@marabuprojects.com",
+      phone: "(+234) 803 619 4871",
+      role: UserRole.ADMIN,
+      status: "ACTIVE",
+      emailVerified: new Date(),
+    },
+  });
+  console.log(`✅ Admin created: ${superAdmin1.email}`);
+
+  const superAdmin2 = await prisma.user.upsert({
+    where: { email: "atandaremilekun@gmail.com" },
+    update: {},
+    create: {
+      email: "atandaremilekun@gmail.com",
+      phone: "(+234) 803 619 4871",
+      role: UserRole.ADMIN,
+      status: "ACTIVE",
+      emailVerified: new Date(),
+    },
+  });
+  console.log(`✅ Admin created: ${superAdmin2.email}`);
+
   const Admin = await prisma.user.upsert({
     where: { email: "soputa42@gmail.com" },
     update: {},

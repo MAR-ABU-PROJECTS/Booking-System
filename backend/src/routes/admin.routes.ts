@@ -14,7 +14,20 @@ import { prisma } from "../server";
 import { auditLog } from "../middlewares/logger.middleware";
 import { dbQueries } from "../config/database";
 import { schedulerService } from "../services/schedulerservice";
-import bcryptjs from "bcryptjs";
+import * as bcryptjs from "bcryptjs";
+
+// Helper function to get user email by ID for audit logging
+async function getUserEmail(userId: string): Promise<string> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    return user?.email || `user-id-${userId}`;
+  } catch (error) {
+    return `user-id-${userId}`;
+  }
+}
 
 const router = Router();
 
@@ -631,11 +644,12 @@ router.put(
       data: req.body,
     });
 
+    const targetUserEmail = await getUserEmail(req.params.id);
     auditLog(
       "USER_UPDATED",
-      req.user.id,
+      req.user.email,
       {
-        targetUserId: req.params.id,
+        targetUserEmail,
         changes: req.body,
       },
       req.ip
@@ -657,8 +671,8 @@ router.put(
  * @swagger
  * /admin/users/{id}:
  *   delete:
- *     summary: Delete user
- *     description: Admin can delete a user if they have no active bookings.
+ *     summary: Delete user (soft delete)
+ *     description: Admin can soft delete a user if they have no active bookings. This preserves referential integrity by marking the user as deleted rather than removing the record.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -671,7 +685,7 @@ router.put(
  *           type: string
  *     responses:
  *       200:
- *         description: User deleted successfully
+ *         description: User deleted successfully (soft delete)
  *         content:
  *           application/json:
  *             schema:
@@ -682,7 +696,22 @@ router.put(
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: User deleted successfully
+ *                   example: User deleted successfully (soft delete)
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedUser:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         status:
+ *                           type: string
+ *                         deletedAt:
+ *                           type: string
+ *                           format: date-time
  *       400:
  *         description: Cannot delete user with active bookings
  *         content:
@@ -720,7 +749,11 @@ router.delete(
       where: {
         customerId: req.params.id,
         status: {
-          in: [BookingStatus.PENDING, BookingStatus.APPROVED],
+          in: [
+            BookingStatus.PENDING,
+            BookingStatus.APPROVED,
+            BookingStatus.CONFIRMED,
+          ],
         },
       },
     });
@@ -729,22 +762,380 @@ router.delete(
       throw new AppError("Cannot delete user with active bookings", 400);
     }
 
-    await prisma.user.delete({
+    // Get user email before deletion for audit log
+    const targetUserEmail = await getUserEmail(req.params.id);
+
+    // Use soft delete instead of hard delete to preserve referential integrity
+    const deletedUser = await prisma.user.update({
       where: { id: req.params.id },
+      data: {
+        status: UserStatus.DELETED,
+        deletedAt: new Date(),
+        // Anonymize sensitive data
+        email: `deleted-${req.params.id}@deleted.local`,
+        phone: null,
+        avatar: null,
+        bio: null,
+        address: null,
+        city: null,
+        state: null,
+        // Clear OTP data
+        otpCode: null,
+        otpExpiry: null,
+        otpAttempts: 0,
+        otpLastSent: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        deletedAt: true,
+      },
     });
 
     auditLog(
-      "USER_DELETED",
-      req.user.id,
+      "USER_SOFT_DELETED",
+      req.user.email,
       {
+        targetUserEmail,
         targetUserId: req.params.id,
+        method: "soft_delete",
       },
       req.ip
     );
 
     res.json({
       success: true,
-      message: "User deleted successfully",
+      message: "User deleted successfully (soft delete)",
+      data: {
+        deletedUser,
+      },
+    });
+  })
+);
+
+/**
+ * @route   DELETE /api/v1/admin/users/by-email/:email
+ * @desc    Delete customer by email
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/users/by-email/{email}:
+ *   delete:
+ *     summary: Delete customer by email (soft delete)
+ *     description: Admin can soft delete a customer account by email address. This preserves referential integrity by marking the user as deleted rather than removing the record. Only customers can be deleted this way, not admin accounts.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         description: Email address of the customer to delete
+ *         schema:
+ *           type: string
+ *           format: email
+ *           example: customer@example.com
+ *     responses:
+ *       200:
+ *         description: Customer deleted successfully (soft delete)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Customer deleted successfully (soft delete)
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedUser:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *                         deletedAt:
+ *                           type: string
+ *                           format: date-time
+ *       400:
+ *         description: Cannot delete user (has active bookings, is admin, etc.)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Cannot delete admin account or user with active bookings
+ *       404:
+ *         description: Customer not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Customer not found with the provided email
+ */
+router.delete(
+  "/users/by-email/:email",
+  [param("email").isEmail().normalizeEmail()],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const email = req.params.email;
+
+    // Find the user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        _count: {
+          select: {
+            bookings: {
+              where: {
+                status: {
+                  in: [
+                    BookingStatus.PENDING,
+                    BookingStatus.APPROVED,
+                    BookingStatus.CONFIRMED,
+                  ],
+                },
+              },
+            },
+            hostedProperties: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppError("Customer not found with the provided email", 404);
+    }
+
+    // Prevent deletion of admin accounts
+    if (user.role === UserRole.ADMIN) {
+      throw new AppError(
+        "Cannot delete admin accounts. Admin accounts can only be managed by other admins through proper channels.",
+        400
+      );
+    }
+
+    // Check if user has active bookings
+    if (user._count.bookings > 0) {
+      throw new AppError(
+        `Cannot delete customer with active bookings. Customer has ${user._count.bookings} active booking(s). Please cancel or complete these bookings first.`,
+        400
+      );
+    }
+
+    // Check if user has hosted properties (in case they're also a host)
+    if (user._count.hostedProperties > 0) {
+      throw new AppError(
+        `Cannot delete customer who has hosted properties. Customer has ${user._count.hostedProperties} property(ies). Please transfer or remove these properties first.`,
+        400
+      );
+    }
+
+    // Use soft delete instead of hard delete to preserve referential integrity
+    const deletedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        status: UserStatus.DELETED,
+        deletedAt: new Date(),
+        // Anonymize sensitive data
+        email: `deleted-${user.id}@deleted.local`,
+        phone: null,
+        avatar: null,
+        bio: null,
+        address: null,
+        city: null,
+        state: null,
+        // Clear OTP data
+        otpCode: null,
+        otpExpiry: null,
+        otpAttempts: 0,
+        otpLastSent: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        deletedAt: true,
+      },
+    });
+
+    // Log the deletion
+    auditLog(
+      "CUSTOMER_SOFT_DELETED_BY_EMAIL",
+      req.user.email,
+      {
+        targetUserEmail: email,
+        targetUserId: user.id,
+        targetUserRole: user.role,
+        deletedBy: req.user.email,
+        method: "soft_delete_by_email",
+      },
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: "Customer deleted successfully (soft delete)",
+      data: {
+        deletedUser,
+      },
+    });
+  })
+);
+
+/**
+ * @route   GET /api/v1/admin/users/deleted
+ * @desc    Get all soft deleted users
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/users/deleted:
+ *   get:
+ *     summary: Get all soft deleted users
+ *     description: Admin can view all users that have been soft deleted with pagination.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of deleted users per page
+ *     responses:
+ *       200:
+ *         description: Deleted users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedUsers:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           role:
+ *                             type: string
+ *                           status:
+ *                             type: string
+ *                           deletedAt:
+ *                             type: string
+ *                             format: date-time
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         pages:
+ *                           type: integer
+ */
+router.get(
+  "/users/deleted",
+  asyncHandler(async (req: any, res: any) => {
+    const { page = 1, limit = 20 } = req.query;
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    const [deletedUsers, total] = await Promise.all([
+      prisma.user.findMany({
+        where: { status: UserStatus.DELETED },
+        orderBy: { deletedAt: "desc" },
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          status: true,
+          deletedAt: true,
+          createdAt: true,
+          _count: {
+            select: {
+              bookings: true,
+              hostedProperties: true,
+            },
+          },
+        },
+      }),
+      prisma.user.count({
+        where: { status: UserStatus.DELETED },
+      }),
+    ]);
+
+    auditLog(
+      "DELETED_USERS_VIEWED",
+      req.user.email,
+      {
+        page: pageNum,
+        limit: limitNum,
+        totalDeleted: total,
+      },
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      data: {
+        deletedUsers,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum),
+        },
+      },
     });
   })
 );
@@ -1073,7 +1464,7 @@ router.put(
 
     auditLog(
       "PROPERTY_STATUS_UPDATED",
-      req.user.id,
+      req.user.email,
       {
         propertyId: req.params.id,
         status,
@@ -1396,7 +1787,7 @@ router.put(
 
     auditLog(
       "SETTINGS_UPDATED",
-      req.user.id,
+      req.user.email,
       {
         settings,
       },
@@ -1680,5 +2071,582 @@ router.delete(
     });
   })
 );
+
+// ===============================
+// AUDIT LOGS MANAGEMENT
+// ===============================
+
+/**
+ * @route   GET /api/v1/admin/audit-logs
+ * @desc    Get audit logs with filters and pagination
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/audit-logs:
+ *   get:
+ *     summary: Get audit logs with filters
+ *     description: Retrieve audit logs with filtering, searching, and pagination capabilities for administrators.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Number of logs per page (max 200)
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *         description: Filter by specific action type
+ *       - in: query
+ *         name: userEmail
+ *         schema:
+ *           type: string
+ *         description: Filter by user email
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter logs from this date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter logs until this date (YYYY-MM-DD)
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in log details and user emails
+ *     responses:
+ *       200:
+ *         description: Audit logs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     logs:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           timestamp:
+ *                             type: string
+ *                             format: date-time
+ *                           action:
+ *                             type: string
+ *                           userEmail:
+ *                             type: string
+ *                           details:
+ *                             type: object
+ *                           ip:
+ *                             type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         pages:
+ *                           type: integer
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         totalLogs:
+ *                           type: integer
+ *                         dateRange:
+ *                           type: object
+ *                         uniqueActions:
+ *                           type: array
+ *                         uniqueUsers:
+ *                           type: integer
+ */
+router.get(
+  "/audit-logs",
+  asyncHandler(async (req: any, res: any) => {
+    const {
+      page = 1,
+      limit = 50,
+      action,
+      userEmail,
+      startDate,
+      endDate,
+      search,
+    } = req.query;
+
+    // Validate pagination
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit))); // Max 200 logs per page
+
+    try {
+      const auditLogs = await getAuditLogs({
+        page: pageNum,
+        limit: limitNum,
+        action,
+        userEmail,
+        startDate,
+        endDate,
+        search,
+      });
+
+      auditLog(
+        "AUDIT_LOGS_VIEWED",
+        req.user.email,
+        {
+          filters: { action, userEmail, startDate, endDate, search },
+          pagination: { page: pageNum, limit: limitNum },
+        },
+        req.ip
+      );
+
+      res.json({
+        success: true,
+        data: auditLogs,
+      });
+    } catch (error: any) {
+      throw new AppError(
+        `Failed to retrieve audit logs: ${error.message}`,
+        500
+      );
+    }
+  })
+);
+
+/**
+ * @route   GET /api/v1/admin/audit-logs/download
+ * @desc    Download audit logs as CSV or JSON
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/audit-logs/download:
+ *   get:
+ *     summary: Download audit logs
+ *     description: Download audit logs in CSV or JSON format with optional filtering.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [csv, json]
+ *           default: csv
+ *         description: Download format
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *         description: Filter by specific action type
+ *       - in: query
+ *         name: userEmail
+ *         schema:
+ *           type: string
+ *         description: Filter by user email
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter logs from this date (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter logs until this date (YYYY-MM-DD)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10000
+ *         description: Maximum number of logs to download (max 50000)
+ *     responses:
+ *       200:
+ *         description: Audit logs downloaded successfully
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ */
+router.get(
+  "/audit-logs/download",
+  asyncHandler(async (req: any, res: any) => {
+    const {
+      format = "csv",
+      action,
+      userEmail,
+      startDate,
+      endDate,
+      limit = 10000,
+    } = req.query;
+
+    const limitNum = Math.min(50000, Math.max(1, parseInt(limit))); // Max 50K logs for download
+
+    try {
+      const auditLogs = await getAuditLogs({
+        page: 1,
+        limit: limitNum,
+        action,
+        userEmail,
+        startDate,
+        endDate,
+        download: true,
+      });
+
+      const timestamp = new Date().toISOString().split("T")[0];
+      const filename = `audit-logs-${timestamp}`;
+
+      if (format === "json") {
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${filename}.json"`
+        );
+        res.json(auditLogs.logs);
+      } else {
+        // CSV format
+        const csv = convertLogsToCSV(auditLogs.logs);
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${filename}.csv"`
+        );
+        res.send(csv);
+      }
+
+      auditLog(
+        "AUDIT_LOGS_DOWNLOADED",
+        req.user.email,
+        {
+          format,
+          filters: { action, userEmail, startDate, endDate },
+          count: auditLogs.logs.length,
+        },
+        req.ip
+      );
+    } catch (error: any) {
+      throw new AppError(
+        `Failed to download audit logs: ${error.message}`,
+        500
+      );
+    }
+  })
+);
+
+/**
+ * @route   GET /api/v1/admin/audit-logs/stats
+ * @desc    Get audit logs statistics
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/audit-logs/stats:
+ *   get:
+ *     summary: Get audit logs statistics
+ *     description: Retrieve statistics about audit logs including action counts, user activity, and trends.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *         description: Number of days to analyze (max 365)
+ *     responses:
+ *       200:
+ *         description: Audit logs statistics retrieved successfully
+ */
+router.get(
+  "/audit-logs/stats",
+  asyncHandler(async (req: any, res: any) => {
+    const { days = 30 } = req.query;
+    const daysNum = Math.min(365, Math.max(1, parseInt(days)));
+
+    try {
+      const stats = await getAuditLogStats(daysNum);
+
+      auditLog("AUDIT_STATS_VIEWED", req.user.email, { days: daysNum }, req.ip);
+
+      res.json({
+        success: true,
+        data: stats,
+      });
+    } catch (error: any) {
+      throw new AppError(
+        `Failed to retrieve audit statistics: ${error.message}`,
+        500
+      );
+    }
+  })
+);
+
+// Helper functions for audit log processing
+import * as fs from "fs/promises";
+import * as path from "path";
+
+async function getAuditLogs(options: {
+  page: number;
+  limit: number;
+  action?: string;
+  userEmail?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  download?: boolean;
+}) {
+  const {
+    page,
+    limit,
+    action,
+    userEmail,
+    startDate,
+    endDate,
+    search,
+    download,
+  } = options;
+
+  try {
+    // Read audit log files
+    const logsDir = path.join(process.cwd(), "logs");
+    const auditLogPath = path.join(logsDir, "audit.log");
+
+    let allLogs: any[] = [];
+
+    // Check if audit log file exists
+    try {
+      const auditLogContent = await fs.readFile(auditLogPath, "utf-8");
+      const logLines = auditLogContent
+        .split("\n")
+        .filter((line) => line.trim());
+
+      for (const line of logLines) {
+        try {
+          const logEntry = JSON.parse(line);
+          if (logEntry.message === "AUDIT_ENTRY" && logEntry.action) {
+            // Extract audit data from the log entry
+            const auditData = {
+              timestamp: logEntry.timestamp,
+              action: logEntry.action,
+              userEmail: logEntry.userEmail,
+              details: logEntry.details || {},
+              ip: logEntry.ip,
+            };
+            allLogs.push(auditData);
+          }
+        } catch (parseError) {
+          // Skip malformed log entries
+          continue;
+        }
+      }
+    } catch (fileError: any) {
+      // If file doesn't exist, return empty results
+      console.warn("Audit log file not found:", fileError.message);
+    }
+
+    // Apply filters
+    let filteredLogs = allLogs;
+
+    if (action) {
+      filteredLogs = filteredLogs.filter((log) =>
+        log.action.toLowerCase().includes(action.toLowerCase())
+      );
+    }
+
+    if (userEmail) {
+      filteredLogs = filteredLogs.filter(
+        (log) =>
+          log.userEmail &&
+          log.userEmail.toLowerCase().includes(userEmail.toLowerCase())
+      );
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      filteredLogs = filteredLogs.filter(
+        (log) => new Date(log.timestamp) >= start
+      );
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Include full end date
+      filteredLogs = filteredLogs.filter(
+        (log) => new Date(log.timestamp) <= end
+      );
+    }
+
+    if (search) {
+      const searchTerm = search.toLowerCase();
+      filteredLogs = filteredLogs.filter(
+        (log) =>
+          log.action.toLowerCase().includes(searchTerm) ||
+          (log.userEmail && log.userEmail.toLowerCase().includes(searchTerm)) ||
+          JSON.stringify(log.details).toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Sort by timestamp (newest first)
+    filteredLogs.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    const total = filteredLogs.length;
+
+    // Apply pagination (unless downloading)
+    if (!download) {
+      const startIndex = (page - 1) * limit;
+      filteredLogs = filteredLogs.slice(startIndex, startIndex + limit);
+    }
+
+    // Generate summary
+    const uniqueActions = [...new Set(allLogs.map((log) => log.action))];
+    const uniqueUsers = new Set(allLogs.map((log) => log.userEmail)).size;
+    const dateRange = {
+      earliest:
+        allLogs.length > 0 ? allLogs[allLogs.length - 1].timestamp : null,
+      latest: allLogs.length > 0 ? allLogs[0].timestamp : null,
+    };
+
+    return {
+      logs: filteredLogs,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+      summary: {
+        totalLogs: allLogs.length,
+        filteredLogs: total,
+        dateRange,
+        uniqueActions: uniqueActions.sort(),
+        uniqueUsers,
+      },
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to process audit logs: ${error.message}`);
+  }
+}
+
+async function getAuditLogStats(days: number) {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  try {
+    const logsData = await getAuditLogs({
+      page: 1,
+      limit: 100000, // Get all logs for stats
+      startDate: cutoffDate.toISOString().split("T")[0],
+      download: true,
+    });
+
+    const logs = logsData.logs;
+
+    // Action frequency
+    const actionCounts: Record<string, number> = {};
+    const userActivity: Record<string, number> = {};
+    const dailyActivity: Record<string, number> = {};
+
+    logs.forEach((log) => {
+      // Count actions
+      actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
+
+      // Count user activity
+      if (log.userEmail) {
+        userActivity[log.userEmail] = (userActivity[log.userEmail] || 0) + 1;
+      }
+
+      // Count daily activity
+      const day = log.timestamp.split("T")[0];
+      dailyActivity[day] = (dailyActivity[day] || 0) + 1;
+    });
+
+    // Top actions
+    const topActions = Object.entries(actionCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([action, count]) => ({ action, count }));
+
+    // Top users
+    const topUsers = Object.entries(userActivity)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([email, count]) => ({ email, count }));
+
+    return {
+      period: {
+        days,
+        from: cutoffDate.toISOString(),
+        to: new Date().toISOString(),
+      },
+      totals: {
+        totalActions: logs.length,
+        uniqueActions: Object.keys(actionCounts).length,
+        uniqueUsers: Object.keys(userActivity).length,
+        activeDays: Object.keys(dailyActivity).length,
+      },
+      topActions,
+      topUsers,
+      dailyActivity,
+      actionBreakdown: actionCounts,
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to generate audit statistics: ${error.message}`);
+  }
+}
+
+function convertLogsToCSV(logs: any[]): string {
+  if (logs.length === 0) {
+    return "timestamp,action,userEmail,ip,details\n";
+  }
+
+  const headers = ["timestamp", "action", "userEmail", "ip", "details"];
+  const csvRows = [headers.join(",")];
+
+  logs.forEach((log) => {
+    const row = [
+      log.timestamp || "",
+      log.action || "",
+      log.userEmail || "",
+      log.ip || "",
+      JSON.stringify(log.details || {}).replace(/"/g, '""'), // Escape quotes
+    ];
+    csvRows.push(row.map((field) => `"${field}"`).join(","));
+  });
+
+  return csvRows.join("\n");
+}
 
 export default router;

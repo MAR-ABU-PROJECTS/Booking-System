@@ -1,13 +1,13 @@
 // MAR ABU PROJECTS SERVICES LLC - Server Configuration
-import express from "express";
-import cors from "cors";
+import express = require("express");
+import cors = require("cors");
 import helmet from "helmet";
-import compression from "compression";
-import morgan from "morgan";
-import dotenv from "dotenv";
+import compression = require("compression");
+import morgan = require("morgan");
+import dotenv = require("dotenv");
 import rateLimit from "express-rate-limit";
 import { PrismaClient } from "@prisma/client";
-import path from "path";
+import path = require("path");
 import { swaggerSpec, swaggerUi } from "./swagger";
 import cron from "node-cron";
 

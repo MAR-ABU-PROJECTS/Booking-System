@@ -1,7 +1,4 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 // MAR ABU PROJECTS SERVICES LLC - User Profile Management Routes
 const express_1 = require("express");
@@ -13,22 +10,22 @@ const error_middleware_2 = require("../middlewares/error.middleware");
 const server_1 = require("../server");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
-const multer_1 = __importDefault(require("multer"));
-const path_1 = __importDefault(require("path"));
+const multer = require("multer");
+const path = require("path");
 const uuid_1 = require("uuid");
 const constants_1 = require("../utils/constants");
 const router = (0, express_1.Router)();
 // Configure multer for avatar uploads
-const storage = multer_1.default.diskStorage({
+const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, "uploads/avatars");
     },
     filename: (req, file, cb) => {
-        const uniqueName = `avatar-${(0, uuid_1.v4)()}${path_1.default.extname(file.originalname)}`;
+        const uniqueName = `avatar-${(0, uuid_1.v4)()}${path.extname(file.originalname)}`;
         cb(null, uniqueName);
     },
 });
-const upload = (0, multer_1.default)({
+const upload = multer({
     storage,
     limits: {
         fileSize: constants_1.APP_CONSTANTS.UPLOAD.MAX_IMAGE_SIZE,
@@ -342,7 +339,7 @@ router.put("/profile", (0, authservice_1.requireAuth)(), [
             country: true,
         },
     });
-    (0, logger_middleware_1.auditLog)("PROFILE_UPDATED", req.user.id, {
+    (0, logger_middleware_1.auditLog)("PROFILE_UPDATED", req.user.email, {
         changes: updateData,
     }, req.ip);
     res.json({
@@ -424,7 +421,7 @@ router.post("/avatar", (0, authservice_1.requireAuth)(), upload.single("avatar")
     });
     if (currentUser?.avatar) {
         const fs = require("fs").promises;
-        const oldAvatarPath = path_1.default.join("uploads/avatars", path_1.default.basename(currentUser.avatar));
+        const oldAvatarPath = path.join("uploads/avatars", path.basename(currentUser.avatar));
         try {
             await fs.unlink(oldAvatarPath);
         }
@@ -493,7 +490,7 @@ router.delete("/avatar", (0, authservice_1.requireAuth)(), (0, error_middleware_
     if (user?.avatar) {
         // Delete file from filesystem
         const fs = require("fs").promises;
-        const avatarPath = path_1.default.join("uploads/avatars", path_1.default.basename(user.avatar));
+        const avatarPath = path.join("uploads/avatars", path.basename(user.avatar));
         try {
             await fs.unlink(avatarPath);
         }
@@ -505,7 +502,7 @@ router.delete("/avatar", (0, authservice_1.requireAuth)(), (0, error_middleware_
             where: { id: req.user.id },
             data: { avatar: null },
         });
-        (0, logger_middleware_1.auditLog)("AVATAR_DELETED", req.user.id, {}, req.ip);
+        (0, logger_middleware_1.auditLog)("AVATAR_DELETED", req.user.email, {}, req.ip);
     }
     res.json({
         success: true,

@@ -12,7 +12,7 @@ import { AppError } from "../middlewares/error.middleware";
 import { auditLog } from "../middlewares/logger.middleware";
 import { emailService } from "../services/emailservice";
 import { OTPService } from "../services/otpservice";
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 
 const router = Router();
 
@@ -45,6 +45,14 @@ const validate = (req: any, res: any, next: any) => {
  *     summary: Request OTP for signup or login
  *     tags:
  *       - Auth
+ *     parameters:
+ *       - in: query
+ *         name: interface
+ *         schema:
+ *           type: string
+ *           enum: [admin, customer]
+ *         description: Interface type (optional for login, used for validation)
+ *         example: customer
  *     requestBody:
  *       required: true
  *       content:
@@ -112,9 +120,8 @@ router.post(
 
     auditLog(
       "OTP_REQUESTED",
-      result.userId || "anonymous",
+      email || "anonymous",
       {
-        email,
         purpose,
         ip: req.ip,
       },
@@ -144,6 +151,14 @@ router.post(
  *     summary: Verify OTP and authenticate user
  *     tags:
  *       - Auth
+ *     parameters:
+ *       - in: query
+ *         name: interface
+ *         schema:
+ *           type: string
+ *           enum: [admin, customer]
+ *         description: Interface type for role-based signup (required for signup)
+ *         example: customer
  *     requestBody:
  *       required: true
  *       content:
@@ -229,12 +244,35 @@ router.post(
     const interfaceType =
       req.query.interface || req.headers["x-interface-type"];
 
-    const result = await authService.verifyOTP(email, otpCode, purpose);
+    // Validate interface type
+    if (interfaceType && !["admin", "customer"].includes(interfaceType)) {
+      throw new AppError(
+        "Invalid interface type. Must be 'admin' or 'customer'",
+        400,
+        "INVALID_INTERFACE_TYPE"
+      );
+    }
+
+    // For signup, interface type is required
+    if (purpose === "signup" && !interfaceType) {
+      throw new AppError(
+        "Interface type is required for signup. Please specify 'admin' or 'customer'",
+        400,
+        "INTERFACE_TYPE_REQUIRED"
+      );
+    }
+
+    const result = await authService.verifyOTP(
+      email,
+      otpCode,
+      purpose,
+      interfaceType as "admin" | "customer"
+    );
 
     // Check if the user's role matches the interface they're trying to access
     if (interfaceType === "admin" && result.user.role !== "ADMIN") {
       throw new AppError(
-        "Access denied. Admin interface is only accessible to administrators",
+        `Access denied. This account (${result.user.email}) is registered as a customer, not an administrator. Please use the customer login interface instead.`,
         403,
         "ROLE_MISMATCH"
       );
@@ -242,7 +280,7 @@ router.post(
 
     if (interfaceType === "customer" && result.user.role !== "CUSTOMER") {
       throw new AppError(
-        "Access denied. Customer interface is only accessible to customers",
+        `Access denied. This account (${result.user.email}) is registered as an administrator, not a customer. Please use the admin login interface instead.`,
         403,
         "ROLE_MISMATCH"
       );
@@ -267,9 +305,8 @@ router.post(
 
     auditLog(
       result.isNewUser ? "USER_REGISTERED" : "USER_LOGIN",
-      result.user.id,
+      result.user.email,
       {
-        email: result.user.email,
         role: result.user.role,
         interfaceType,
         authMethod: "OTP",
@@ -470,104 +507,6 @@ router.post(
       }
       throw e;
     }
-  })
-);
-
-/**
- * @route   POST /api/v1/auth/forgot-password
- * @desc    Request password reset
- * @access  Public
- */
-/**
- * @swagger
- * /auth/forgot-you will receive password reset instructions.
- *       400:
- *         description: Invalid input
- *       500:
- *         description: Server error
- */
-
-router.post(
-  "/forgot-password",
-  [
-    body("email")
-      .isEmail()
-      .normalizeEmail()
-      .withMessage("Valid email required"),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { email } = req.body;
-
-    try {
-      await authService.forgotPassword(email);
-
-      res.json({
-        success: true,
-        message:
-          "If an account exists with this email, you will receive password reset instructions.",
-      });
-    } catch (error) {
-      // Don't reveal if email exists or not for security
-      res.json({
-        success: true,
-        message:
-          "If an account exists with this email, you will receive password reset instructions.",
-      });
-    }
-  })
-);
-
-/**
- * @route   POST /api/v1/auth/reset-password
- * @desc    Reset password with token
- * @access  Public
- */
-/**
- * @swagger
- * /auth/reset-[
-    body("token").notEmpty().withMessage("Reset token required"),
-    body("password")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-      )
-      .withMessage(
-        "Password must contain uppercase, lowercase, number and special character"
-      ),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { token, password } = req.body;
-
-    await authService.resetPassword(token, password);
-
-    res.json({
-      success: true,
-      message:
-        "Password reset successful. Please login with your new password.",
-    });
-  })
-);
-
-router.get(
-  "/reset-password",
-  asyncHandler(async (req: any, res: any) => {
-    const { token } = req.query;
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: "Reset token is required",
-      });
-    }
-    // You can render a password reset page here, or just return a message
-    res.json({
-      success: true,
-      message:
-        "Please submit your new password using the POST /auth/reset-password endpoint.",
-      token,
-    });
   })
 );
 
@@ -784,9 +723,8 @@ router.put(
 
     auditLog(
       "PROFILE_UPDATED",
-      req.user.id,
+      req.user.email,
       {
-        email: req.user.email,
         changes: req.body,
       },
       req.ip
@@ -796,48 +734,6 @@ router.put(
       success: true,
       message: "Profile updated successfully",
       data: updatedUser,
-    });
-  })
-);
-
-/**
- * @route   PUT /api/v1/auth/change-password
- * @desc    Change user password
- * @access  Protected
- */
-/**
- * @swagger
- * /auth/change-requireAuth(),
-  [
-    body("currentPassword").notEmpty().withMessage("Current password required"),
-    body("newPassword")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-      )
-      .withMessage(
-        "Password must contain uppercase, lowercase, number and special character"
-      ),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { currentPassword, newPassword } = req.body;
-
-    await authService.changePassword(req.user.id, currentPassword, newPassword);
-
-    auditLog(
-      "PASSWORD_CHANGED",
-      req.user.id,
-      {
-        email: req.user.email,
-      },
-      req.ip
-    );
-
-    res.json({
-      success: true,
-      message: "Password changed successfully",
     });
   })
 );

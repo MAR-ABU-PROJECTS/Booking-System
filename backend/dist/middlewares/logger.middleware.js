@@ -1,21 +1,51 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.stream = exports.logger = exports.auditLog = exports.errorLogger = exports.requestLogger = void 0;
-const winston_1 = __importDefault(require("winston"));
+const winston = __importStar(require("winston"));
 // Configure winston logger with basic transports only
-const logger = winston_1.default.createLogger({
+const logger = winston.createLogger({
     level: process.env.NODE_ENV === "production" ? "info" : "debug",
-    format: winston_1.default.format.combine(winston_1.default.format.timestamp(), winston_1.default.format.errors({ stack: true }), winston_1.default.format.json()),
+    format: winston.format.combine(winston.format.timestamp(), winston.format.errors({ stack: true }), winston.format.json()),
     transports: [
         // Console transport
-        new winston_1.default.transports.Console({
-            format: winston_1.default.format.combine(winston_1.default.format.colorize(), winston_1.default.format.simple()),
+        new winston.transports.Console({
+            format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
         }),
         // Basic file transport (optional)
-        new winston_1.default.transports.File({
+        new winston.transports.File({
             filename: "logs/app.log",
             maxsize: 5242880, // 5MB
             maxFiles: 5,
@@ -23,6 +53,18 @@ const logger = winston_1.default.createLogger({
     ],
 });
 exports.logger = logger;
+// Separate audit logger with monthly rotation
+const auditLogger = winston.createLogger({
+    level: "info",
+    format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+    transports: [
+        new winston.transports.File({
+            filename: "logs/audit.log",
+            maxsize: 10485760, // 10MB per file
+            maxFiles: 31, // Keep ~1 month of files (will rotate based on size)
+        }),
+    ],
+});
 // Request logger middleware (simplified)
 const requestLogger = (req, res, next) => {
     const start = Date.now();
@@ -43,8 +85,17 @@ const errorLogger = (err, req, res, next) => {
 };
 exports.errorLogger = errorLogger;
 // Audit log function
-const auditLog = (action, userId, details, ip) => {
-    logger.info("Audit", { action, userId, details, ip });
+const auditLog = (action, userEmail, details, ip) => {
+    const auditEntry = {
+        action,
+        userEmail,
+        details,
+        ip,
+        timestamp: new Date().toISOString(),
+    };
+    // Log to both regular logger and dedicated audit logger
+    logger.info("Audit", auditEntry);
+    auditLogger.info("AUDIT_ENTRY", auditEntry);
 };
 exports.auditLog = auditLog;
 exports.stream = {

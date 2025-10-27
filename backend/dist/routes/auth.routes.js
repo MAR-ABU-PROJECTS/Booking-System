@@ -1,7 +1,37 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 // MAR ABU PROJECTS SERVICES LLC - Passwordless Authentication Routes
 const express_1 = require("express");
@@ -12,7 +42,7 @@ const error_middleware_2 = require("../middlewares/error.middleware");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
 const otpservice_1 = require("../services/otpservice");
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const jwt = __importStar(require("jsonwebtoken"));
 const router = (0, express_1.Router)();
 // Validation middleware
 const validate = (req, res, next) => {
@@ -41,6 +71,14 @@ const validate = (req, res, next) => {
  *     summary: Request OTP for signup or login
  *     tags:
  *       - Auth
+ *     parameters:
+ *       - in: query
+ *         name: interface
+ *         schema:
+ *           type: string
+ *           enum: [admin, customer]
+ *         description: Interface type (optional for login, used for validation)
+ *         example: customer
  *     requestBody:
  *       required: true
  *       content:
@@ -100,8 +138,7 @@ router.post("/request-otp", [
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { email, purpose } = req.body;
     const result = await authservice_1.authService.requestOTP(email, purpose);
-    (0, logger_middleware_1.auditLog)("OTP_REQUESTED", result.userId || "anonymous", {
-        email,
+    (0, logger_middleware_1.auditLog)("OTP_REQUESTED", email || "anonymous", {
         purpose,
         ip: req.ip,
     }, req.ip);
@@ -128,6 +165,14 @@ router.post("/request-otp", [
  *     summary: Verify OTP and authenticate user
  *     tags:
  *       - Auth
+ *     parameters:
+ *       - in: query
+ *         name: interface
+ *         schema:
+ *           type: string
+ *           enum: [admin, customer]
+ *         description: Interface type for role-based signup (required for signup)
+ *         example: customer
  *     requestBody:
  *       required: true
  *       content:
@@ -206,16 +251,23 @@ router.post("/verify-otp", [
     const { email, otpCode, purpose } = req.body;
     // Get the interface type from the request headers or query
     const interfaceType = req.query.interface || req.headers["x-interface-type"];
-    const result = await authservice_1.authService.verifyOTP(email, otpCode, purpose);
+    // Validate interface type
+    if (interfaceType && !["admin", "customer"].includes(interfaceType)) {
+        throw new error_middleware_2.AppError("Invalid interface type. Must be 'admin' or 'customer'", 400, "INVALID_INTERFACE_TYPE");
+    }
+    // For signup, interface type is required
+    if (purpose === "signup" && !interfaceType) {
+        throw new error_middleware_2.AppError("Interface type is required for signup. Please specify 'admin' or 'customer'", 400, "INTERFACE_TYPE_REQUIRED");
+    }
+    const result = await authservice_1.authService.verifyOTP(email, otpCode, purpose, interfaceType);
     // Check if the user's role matches the interface they're trying to access
     if (interfaceType === "admin" && result.user.role !== "ADMIN") {
-        throw new error_middleware_2.AppError("Access denied. Admin interface is only accessible to administrators", 403, "ROLE_MISMATCH");
+        throw new error_middleware_2.AppError(`Access denied. This account (${result.user.email}) is registered as a customer, not an administrator. Please use the customer login interface instead.`, 403, "ROLE_MISMATCH");
     }
     if (interfaceType === "customer" && result.user.role !== "CUSTOMER") {
-        throw new error_middleware_2.AppError("Access denied. Customer interface is only accessible to customers", 403, "ROLE_MISMATCH");
+        throw new error_middleware_2.AppError(`Access denied. This account (${result.user.email}) is registered as an administrator, not a customer. Please use the admin login interface instead.`, 403, "ROLE_MISMATCH");
     }
-    (0, logger_middleware_1.auditLog)(result.isNewUser ? "USER_REGISTERED" : "USER_LOGIN", result.user.id, {
-        email: result.user.email,
+    (0, logger_middleware_1.auditLog)(result.isNewUser ? "USER_REGISTERED" : "USER_LOGIN", result.user.email, {
         role: result.user.role,
         interfaceType,
         authMethod: "OTP",
@@ -399,94 +451,6 @@ router.post("/verify-email/resend", (0, authservice_1.requireAuth)({ allowPendin
     }
 }));
 /**
- * @route   POST /api/v1/auth/forgot-password
- * @desc    Request password reset
- * @access  Public
- */
-/**
- * @swagger
- * /auth/forgot-you will receive password reset instructions.
- *       400:
- *         description: Invalid input
- *       500:
- *         description: Server error
- */
-router.post("/forgot-password", [
-    (0, express_validator_1.body)("email")
-        .isEmail()
-        .normalizeEmail()
-        .withMessage("Valid email required"),
-], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
-    const { email } = req.body;
-    try {
-        await authservice_1.authService.forgotPassword(email);
-        res.json({
-            success: true,
-            message: "If an account exists with this email, you will receive password reset instructions.",
-        });
-    }
-    catch (error) {
-        // Don't reveal if email exists or not for security
-        res.json({
-            success: true,
-            message: "If an account exists with this email, you will receive password reset instructions.",
-        });
-    }
-}));
-/**
- * @route   POST /api/v1/auth/reset-password
- * @desc    Reset password with token
- * @access  Public
- */
-/**
- * @swagger
- * /auth/reset-[
-    body("token").notEmpty().withMessage("Reset token required"),
-    body("password")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-      )
-      .withMessage(
-        "Password must contain uppercase, lowercase, number and special character"
-      ),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { token, password } = req.body;
-
-    await authService.resetPassword(token, password);
-
-    res.json({
-      success: true,
-      message:
-        "Password reset successful. Please login with your new password.",
-    });
-  })
-);
-
-router.get(
-  "/reset-password",
-  asyncHandler(async (req: any, res: any) => {
-    const { token } = req.query;
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        message: "Reset token is required",
-      });
-    }
-    // You can render a password reset page here, or just return a message
-    res.json({
-      success: true,
-      message:
-        "Please submit your new password using the POST /auth/reset-password endpoint.",
-      token,
-    });
-  })
-);
-
-/**
  * @route   POST /api/v1/auth/logout
  * @desc    Logout user
  * @access  Protected
@@ -526,7 +490,7 @@ router.post("/logout", (0, authservice_1.requireAuth)(), (0, error_middleware_1.
             .status(400)
             .json({ success: false, message: "No token provided" });
     // Decode token to get expiry (or use JWT library)
-    const payload = jsonwebtoken_1.default.decode(token);
+    const payload = jwt.decode(token);
     const expiresAt = payload?.exp
         ? new Date(payload.exp * 1000)
         : new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -675,8 +639,7 @@ router.put("/profile", (0, authservice_1.requireAuth)(), [
     (0, express_validator_1.body)("avatar").optional().isURL().withMessage("Valid avatar URL required"),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const updatedUser = await authservice_1.authService.updateProfile(req.user.id, req.body);
-    (0, logger_middleware_1.auditLog)("PROFILE_UPDATED", req.user.id, {
-        email: req.user.email,
+    (0, logger_middleware_1.auditLog)("PROFILE_UPDATED", req.user.email, {
         changes: req.body,
     }, req.ip);
     res.json({
@@ -685,48 +648,6 @@ router.put("/profile", (0, authservice_1.requireAuth)(), [
         data: updatedUser,
     });
 }));
-/**
- * @route   PUT /api/v1/auth/change-password
- * @desc    Change user password
- * @access  Protected
- */
-/**
- * @swagger
- * /auth/change-requireAuth(),
-  [
-    body("currentPassword").notEmpty().withMessage("Current password required"),
-    body("newPassword")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters")
-      .matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-      )
-      .withMessage(
-        "Password must contain uppercase, lowercase, number and special character"
-      ),
-  ],
-  validate,
-  asyncHandler(async (req: any, res: any) => {
-    const { currentPassword, newPassword } = req.body;
-
-    await authService.changePassword(req.user.id, currentPassword, newPassword);
-
-    auditLog(
-      "PASSWORD_CHANGED",
-      req.user.id,
-      {
-        email: req.user.email,
-      },
-      req.ip
-    );
-
-    res.json({
-      success: true,
-      message: "Password changed successfully",
-    });
-  })
-);
-
 /**
  * @route   POST /api/v1/auth/test-email
  * @desc    Send test email
@@ -801,7 +722,7 @@ router.post("/refresh-token", (0, error_middleware_1.asyncHandler)(async (req, r
             .status(400)
             .json({ success: false, message: "Refresh token required" });
     // Decode refresh token to get userId
-    const payload = jsonwebtoken_1.default.decode(refreshToken);
+    const payload = jwt.decode(refreshToken);
     const userId = payload?.userId;
     if (!userId)
         return res

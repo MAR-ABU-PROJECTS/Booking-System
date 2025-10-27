@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
-import winston from "winston";
+import * as winston from "winston";
 
 // Create logger
 const logger = winston.createLogger({
