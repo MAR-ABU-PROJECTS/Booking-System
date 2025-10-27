@@ -2,7 +2,7 @@
 import { QueryStateHandler } from "@components/QueryStateHandler";
 import { apiService } from "@lib/apiService";
 import { Audit } from "@lib/type";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery} from "@tanstack/react-query";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
 import dayjs from "dayjs";
 import { DataTable } from "./DataTable";

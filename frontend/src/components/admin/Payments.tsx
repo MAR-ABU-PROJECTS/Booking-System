@@ -5,7 +5,7 @@ import { isAxiosError } from "axios";
 import { toast } from "react-toastify";
 import { DataTable } from "./DataTable";
 import { ColumnDef, PaginationState } from "@tanstack/react-table";
-import { PaymentType } from "@lib/type";
+import { ManualPaymentSummary } from "@lib/type";
 import { Button } from "@components/ui/button";
 import { useState } from "react";
 import { ReceiptModal } from "./ReceiptModal";
@@ -15,6 +15,8 @@ import advancedFormat from "dayjs/plugin/advancedFormat";
 import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
 import { QueryStateHandler } from "@components/QueryStateHandler";
 import { paymentStatusColors } from "@components/PaymentStatus";
+import { Input } from "@components/ui/input";
+import useDebounce from "@hooks/use-debounce";
 dayjs.extend(advancedFormat);
 
 const Payments = () => {
@@ -22,12 +24,20 @@ const Payments = () => {
 		pageIndex: 0,
 		pageSize: 10,
 	});
+	const [code, setCode] = useState("");
+	const debouncedValue = useDebounce(code, 2000);
+	
 	const getPayments = useQuery({
-		queryKey: ["pending-verifications"],
+		queryKey: ["pending-verifications", { pagination , debouncedValue}],
 		queryFn: async () => {
+			const params: Record<string, any> = {
+				page: pagination.pageIndex + 1,
+				limit: pagination.pageSize,
+			};
 			try {
 				const response = await apiService.get(
-					"/payment/pending-verification"
+					"/payment/pending-verification",
+					{ params }
 				);
 				return response;
 			} catch (error) {
@@ -56,10 +66,14 @@ const Payments = () => {
 		receiptUrl: "",
 		paymentId: "",
 	});
-	const columns: ColumnDef<PaymentType>[] = [
+	const columns: ColumnDef<ManualPaymentSummary>[] = [
 		{
-			accessorKey: "bookingId",
-			header: "Booking Id",
+			id: "booking",
+			header: "Booking Code",
+			cell: ({ row }) => {
+				const data = row.original;
+				return <div>{data.booking.bookingCode}</div>;
+			},
 		},
 		{
 			accessorKey: "amount",
@@ -128,7 +142,6 @@ const Payments = () => {
 						>
 							View Receipt
 						</Button>
-					
 					</div>
 				);
 			},
@@ -137,6 +150,18 @@ const Payments = () => {
 
 	return (
 		<div>
+			<div className="space-y-2 mb-4 w-full max-w-[300px]">
+				<label className="text-[15px] font-medium text-muted-foreground">
+					Search
+				</label>
+				<Input
+					className="bg-background rounded-md w-full min-w-[150px] justify-between text-[15px] font-normal border-2 border-[#f7d5b0]  flex text-muted-foreground px-2 py-1.5 outline-none"
+					disabled={getPayments.isPending}
+					placeholder="Enter / paste booking code"
+					value={code}
+					onChange={(e) => setCode(e.target.value)}
+				/>
+			</div>
 			<QueryStateHandler
 				query={getPayments}
 				emptyMessage="No payment found"

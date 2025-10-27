@@ -41,7 +41,7 @@ const Properties = () => {
 		},
 	});
 
-	console.log(getProperties.data);
+	
 
 	const [selectedProperty, setSelectedProperty] = useState({
 		id: "",

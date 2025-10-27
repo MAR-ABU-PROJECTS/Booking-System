@@ -26,10 +26,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@components/ui/select";
-import { Label } from "@components/ui/label";
 import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
 import { formatCurrency } from "@lib/utils";
-import { CalendarMinus2, Copy, File, Loader2 } from "lucide-react";
+import { CalendarMinus2, Copy, Loader2 } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
 	AlertDialog,
@@ -104,7 +103,7 @@ const Bookings = () => {
 	const [selectedId, setSelectedId] = useState("");
 	const [reason, setReason] = useState("");
 
-	const handleCopy = async (text:string) => {
+	const handleCopy = async (text: string) => {
 		try {
 			await navigator.clipboard.writeText(text);
 			toast.success("Booking Code copied!.", {
@@ -189,7 +188,13 @@ const Bookings = () => {
 				const bookingCode = row.original.bookingCode;
 				return (
 					<div className="flex items-center">
-						<h3>{bookingCode}</h3> <button className='outline-none ml-2' onClick={()=> handleCopy(bookingCode)}><Copy className="size-4 !cursor-pointer" /></button>
+						<h3>{bookingCode}</h3>{" "}
+						<button
+							className="outline-none ml-2"
+							onClick={() => handleCopy(bookingCode)}
+						>
+							<Copy className="size-4 !cursor-pointer" />
+						</button>
 					</div>
 				);
 			},
@@ -297,6 +302,9 @@ const Bookings = () => {
 		},
 	];
 
+
+
+
 	useEffect(() => {
 		if (!confirm) {
 			setSelectedId("");
@@ -398,11 +406,13 @@ const Bookings = () => {
 			<div className="flex gap-5 mb-6 flex-wrap items-center">
 				<h1>Filter:</h1>
 				<div className="flex flex-col gap-1">
-					<Label>Date</Label>
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Date
+					</label>
 					<Popover open={open} onOpenChange={setOpen}>
 						<PopoverTrigger asChild>
 							<button
-								className="bg-background rounded-md w-full min-w-[150px] justify-between text-[14px] font-normal border-1 flex text-muted-foreground px-2 py-1.5 outline-none"
+								className="border-[#f7d5b0] bg-background rounded-md w-full min-w-[150px] justify-between text-[14px] font-normal border-2 flex text-muted-foreground px-2 py-1.5 outline-none"
 								disabled={getBookings.isPending}
 							>
 								{uiDateRange?.from && uiDateRange?.to ? (
@@ -418,7 +428,7 @@ const Bookings = () => {
 										</span>
 									</p>
 								) : (
-									<p>Select Date</p>
+									<p>Filter Date</p>
 								)}
 								<CalendarMinus2 className="size-5" />
 							</button>
@@ -438,7 +448,10 @@ const Bookings = () => {
 					</Popover>
 				</div>
 				<div className="flex flex-col gap-1">
-					<Label>Property</Label>
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Property
+					</label>
+
 					<Select
 						onValueChange={(value) =>
 							setFilter((prev) => ({
@@ -480,7 +493,9 @@ const Bookings = () => {
 				</div>
 
 				<div className="flex flex-col gap-1">
-					<Label>Booking Status</Label>
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Booking Status
+					</label>
 					<Select
 						value={filter.bookingStatus ?? ""}
 						onValueChange={(value) =>
@@ -510,7 +525,9 @@ const Bookings = () => {
 					</Select>
 				</div>
 				<div className="flex flex-col gap-1">
-					<Label>Payment Status</Label>
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Payment Status
+					</label>
 					<Select
 						value={filter.paymentStatus ?? ""}
 						onValueChange={(value) =>

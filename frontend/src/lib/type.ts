@@ -365,6 +365,19 @@ export type PaymentType = {
 	};
 };
 
+export type ManualPaymentSummary = {
+	id: string;
+	booking: {
+		id: string;
+		bookingCode: string;
+	};
+	amount: number;
+	method: PaymentMethod;
+	status: PaymentStatus;
+	paidAt: string | null;
+	receiptUrl: string | null;
+};
+
 export type Users = {
 	id: string;
 	email: string;
