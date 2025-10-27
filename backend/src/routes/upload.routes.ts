@@ -273,7 +273,7 @@ router.post(
 
       auditLog(
         "IMAGES_UPLOADED",
-        req.user.id,
+        req.user.email,
         {
           imageCount: uploadedImages.length,
           totalSize: req.files.reduce(

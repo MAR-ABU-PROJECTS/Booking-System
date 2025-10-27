@@ -339,7 +339,7 @@ router.put("/profile", (0, authservice_1.requireAuth)(), [
             country: true,
         },
     });
-    (0, logger_middleware_1.auditLog)("PROFILE_UPDATED", req.user.id, {
+    (0, logger_middleware_1.auditLog)("PROFILE_UPDATED", req.user.email, {
         changes: updateData,
     }, req.ip);
     res.json({
@@ -502,7 +502,7 @@ router.delete("/avatar", (0, authservice_1.requireAuth)(), (0, error_middleware_
             where: { id: req.user.id },
             data: { avatar: null },
         });
-        (0, logger_middleware_1.auditLog)("AVATAR_DELETED", req.user.id, {}, req.ip);
+        (0, logger_middleware_1.auditLog)("AVATAR_DELETED", req.user.email, {}, req.ip);
     }
     res.json({
         success: true,

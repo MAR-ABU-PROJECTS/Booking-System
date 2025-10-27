@@ -226,7 +226,6 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <h3>📋 Booking Details</h3>
         <div class="detail-row"><span class="detail-label">Booking Code:</span><span>${booking.bookingCode || "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Property:</span><span>${property.name}</span></div>
-        <div class="detail-row"><span class="detail-label">Location:</span><span>${property.address || property.city}</span></div>
         <div class="detail-row"><span class="detail-label">Check-in:</span><span>${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Check-out:</span><span>${booking.checkOutDate ? new Date(booking.checkOutDate).toLocaleDateString() : "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Guests:</span><span>${booking.adults || 1} adult(s)${booking.children ? `, ${booking.children} children` : ""}</span></div>
@@ -378,7 +377,6 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
       <div class="info-box" style="border-left: 4px solid #28a745;">
         <h3>🏠 Property Details</h3>
         <div class="detail-row"><span class="detail-label">Name:</span><span><strong>${property.name}</strong></span></div>
-        <div class="detail-row"><span class="detail-label">Location:</span><span>${property.city}, ${property.state}</span></div>
         <div class="detail-row"><span class="detail-label">Type:</span><span>${property.type}</span></div>
         <div class="detail-row"><span class="detail-label">Status:</span><span style="color: #28a745;">✅ Live & Bookable</span></div>
         <div class="detail-row"><span class="detail-label">Approved Date:</span><span>${new Date().toLocaleDateString()}</span></div>
@@ -560,7 +558,6 @@ a{color:${constants_1.APP_CONSTANTS.COLORS.PRIMARY};}
         <h3>📍 Check-in Details</h3>
         <div class="detail-row"><span class="detail-label">Date:</span><span>${booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : "N/A"}</span></div>
         <div class="detail-row"><span class="detail-label">Time:</span><span>After 3:00 PM</span></div>
-        <div class="detail-row"><span class="detail-label">Address:</span><span>${property.address}, ${property.city}</span></div>
       </div>
       
       <div class="info-box">

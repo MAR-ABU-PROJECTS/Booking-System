@@ -112,9 +112,8 @@ router.post(
 
     auditLog(
       "OTP_REQUESTED",
-      result.userId || "anonymous",
+      email || "anonymous",
       {
-        email,
         purpose,
         ip: req.ip,
       },
@@ -267,9 +266,8 @@ router.post(
 
     auditLog(
       result.isNewUser ? "USER_REGISTERED" : "USER_LOGIN",
-      result.user.id,
+      result.user.email,
       {
-        email: result.user.email,
         role: result.user.role,
         interfaceType,
         authMethod: "OTP",
@@ -686,9 +684,8 @@ router.put(
 
     auditLog(
       "PROFILE_UPDATED",
-      req.user.id,
+      req.user.email,
       {
-        email: req.user.email,
         changes: req.body,
       },
       req.ip

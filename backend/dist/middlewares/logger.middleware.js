@@ -53,6 +53,18 @@ const logger = winston.createLogger({
     ],
 });
 exports.logger = logger;
+// Separate audit logger with monthly rotation
+const auditLogger = winston.createLogger({
+    level: "info",
+    format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+    transports: [
+        new winston.transports.File({
+            filename: "logs/audit.log",
+            maxsize: 10485760, // 10MB per file
+            maxFiles: 31, // Keep ~1 month of files (will rotate based on size)
+        }),
+    ],
+});
 // Request logger middleware (simplified)
 const requestLogger = (req, res, next) => {
     const start = Date.now();
@@ -73,8 +85,17 @@ const errorLogger = (err, req, res, next) => {
 };
 exports.errorLogger = errorLogger;
 // Audit log function
-const auditLog = (action, userId, details, ip) => {
-    logger.info("Audit", { action, userId, details, ip });
+const auditLog = (action, userEmail, details, ip) => {
+    const auditEntry = {
+        action,
+        userEmail,
+        details,
+        ip,
+        timestamp: new Date().toISOString()
+    };
+    // Log to both regular logger and dedicated audit logger
+    logger.info("Audit", auditEntry);
+    auditLogger.info("AUDIT_ENTRY", auditEntry);
 };
 exports.auditLog = auditLog;
 exports.stream = {

@@ -239,7 +239,7 @@ router.post("/images", (0, authservice_1.requireAuth)(), imageUpload.array("imag
             // Delete original file after processing
             await fs.unlink(originalPath);
         }
-        (0, logger_middleware_1.auditLog)("IMAGES_UPLOADED", req.user.id, {
+        (0, logger_middleware_1.auditLog)("IMAGES_UPLOADED", req.user.email, {
             imageCount: uploadedImages.length,
             totalSize: req.files.reduce((sum, file) => sum + file.size, 0),
         }, req.ip);
