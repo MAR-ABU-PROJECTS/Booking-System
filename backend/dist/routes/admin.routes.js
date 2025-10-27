@@ -49,7 +49,7 @@ async function getUserEmail(userId) {
     try {
         const user = await server_1.prisma.user.findUnique({
             where: { id: userId },
-            select: { email: true }
+            select: { email: true },
         });
         return user?.email || `user-id-${userId}`;
     }
@@ -635,8 +635,8 @@ router.put("/users/:id", [
  * @swagger
  * /admin/users/{id}:
  *   delete:
- *     summary: Delete user
- *     description: Admin can delete a user if they have no active bookings.
+ *     summary: Delete user (soft delete)
+ *     description: Admin can soft delete a user if they have no active bookings. This preserves referential integrity by marking the user as deleted rather than removing the record.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -649,7 +649,7 @@ router.put("/users/:id", [
  *           type: string
  *     responses:
  *       200:
- *         description: User deleted successfully
+ *         description: User deleted successfully (soft delete)
  *         content:
  *           application/json:
  *             schema:
@@ -660,7 +660,22 @@ router.put("/users/:id", [
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: User deleted successfully
+ *                   example: User deleted successfully (soft delete)
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedUser:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         status:
+ *                           type: string
+ *                         deletedAt:
+ *                           type: string
+ *                           format: date-time
  *       400:
  *         description: Cannot delete user with active bookings
  *         content:
@@ -694,23 +709,223 @@ router.delete("/users/:id", (0, express_validator_1.param)("id").isString(), val
         where: {
             customerId: req.params.id,
             status: {
-                in: [client_1.BookingStatus.PENDING, client_1.BookingStatus.APPROVED],
+                in: [
+                    client_1.BookingStatus.PENDING,
+                    client_1.BookingStatus.APPROVED,
+                    client_1.BookingStatus.CONFIRMED,
+                ],
             },
         },
     });
     if (activeBookings > 0) {
         throw new error_middleware_2.AppError("Cannot delete user with active bookings", 400);
     }
-    await server_1.prisma.user.delete({
-        where: { id: req.params.id },
-    });
+    // Get user email before deletion for audit log
     const targetUserEmail = await getUserEmail(req.params.id);
-    (0, logger_middleware_1.auditLog)("USER_DELETED", req.user.email, {
+    // Use soft delete instead of hard delete to preserve referential integrity
+    const deletedUser = await server_1.prisma.user.update({
+        where: { id: req.params.id },
+        data: {
+            status: client_1.UserStatus.DELETED,
+            deletedAt: new Date(),
+            // Anonymize sensitive data
+            email: `deleted-${req.params.id}@deleted.local`,
+            phone: null,
+            avatar: null,
+            bio: null,
+            address: null,
+            city: null,
+            state: null,
+            // Clear OTP data
+            otpCode: null,
+            otpExpiry: null,
+            otpAttempts: 0,
+            otpLastSent: null,
+        },
+        select: {
+            id: true,
+            email: true,
+            status: true,
+            deletedAt: true,
+        },
+    });
+    (0, logger_middleware_1.auditLog)("USER_SOFT_DELETED", req.user.email, {
         targetUserEmail,
+        targetUserId: req.params.id,
+        method: "soft_delete",
     }, req.ip);
     res.json({
         success: true,
-        message: "User deleted successfully",
+        message: "User deleted successfully (soft delete)",
+        data: {
+            deletedUser,
+        },
+    });
+}));
+/**
+ * @route   DELETE /api/v1/admin/users/by-email/:email
+ * @desc    Delete customer by email
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/users/by-email/{email}:
+ *   delete:
+ *     summary: Delete customer by email (soft delete)
+ *     description: Admin can soft delete a customer account by email address. This preserves referential integrity by marking the user as deleted rather than removing the record. Only customers can be deleted this way, not admin accounts.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         description: Email address of the customer to delete
+ *         schema:
+ *           type: string
+ *           format: email
+ *           example: customer@example.com
+ *     responses:
+ *       200:
+ *         description: Customer deleted successfully (soft delete)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Customer deleted successfully (soft delete)
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedUser:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *                         deletedAt:
+ *                           type: string
+ *                           format: date-time
+ *       400:
+ *         description: Cannot delete user (has active bookings, is admin, etc.)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Cannot delete admin account or user with active bookings
+ *       404:
+ *         description: Customer not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Customer not found with the provided email
+ */
+router.delete("/users/by-email/:email", [(0, express_validator_1.param)("email").isEmail().normalizeEmail()], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const email = req.params.email;
+    // Find the user by email
+    const user = await server_1.prisma.user.findUnique({
+        where: { email },
+        select: {
+            id: true,
+            email: true,
+            role: true,
+            status: true,
+            _count: {
+                select: {
+                    bookings: {
+                        where: {
+                            status: {
+                                in: [
+                                    client_1.BookingStatus.PENDING,
+                                    client_1.BookingStatus.APPROVED,
+                                    client_1.BookingStatus.CONFIRMED,
+                                ],
+                            },
+                        },
+                    },
+                    hostedProperties: true,
+                },
+            },
+        },
+    });
+    if (!user) {
+        throw new error_middleware_2.AppError("Customer not found with the provided email", 404);
+    }
+    // Prevent deletion of admin accounts
+    if (user.role === client_1.UserRole.ADMIN) {
+        throw new error_middleware_2.AppError("Cannot delete admin accounts. Admin accounts can only be managed by other admins through proper channels.", 400);
+    }
+    // Check if user has active bookings
+    if (user._count.bookings > 0) {
+        throw new error_middleware_2.AppError(`Cannot delete customer with active bookings. Customer has ${user._count.bookings} active booking(s). Please cancel or complete these bookings first.`, 400);
+    }
+    // Check if user has hosted properties (in case they're also a host)
+    if (user._count.hostedProperties > 0) {
+        throw new error_middleware_2.AppError(`Cannot delete customer who has hosted properties. Customer has ${user._count.hostedProperties} property(ies). Please transfer or remove these properties first.`, 400);
+    }
+    // Use soft delete instead of hard delete to preserve referential integrity
+    const deletedUser = await server_1.prisma.user.update({
+        where: { id: user.id },
+        data: {
+            status: client_1.UserStatus.DELETED,
+            deletedAt: new Date(),
+            // Anonymize sensitive data
+            email: `deleted-${user.id}@deleted.local`,
+            phone: null,
+            avatar: null,
+            bio: null,
+            address: null,
+            city: null,
+            state: null,
+            // Clear OTP data
+            otpCode: null,
+            otpExpiry: null,
+            otpAttempts: 0,
+            otpLastSent: null,
+        },
+        select: {
+            id: true,
+            email: true,
+            role: true,
+            status: true,
+            deletedAt: true,
+        },
+    });
+    // Log the deletion
+    (0, logger_middleware_1.auditLog)("CUSTOMER_SOFT_DELETED_BY_EMAIL", req.user.email, {
+        targetUserEmail: email,
+        targetUserId: user.id,
+        targetUserRole: user.role,
+        deletedBy: req.user.email,
+        method: "soft_delete_by_email",
+    }, req.ip);
+    res.json({
+        success: true,
+        message: "Customer deleted successfully (soft delete)",
+        data: {
+            deletedUser,
+        },
     });
 }));
 // ===============================
@@ -1730,7 +1945,7 @@ router.get("/audit-logs/download", (0, error_middleware_1.asyncHandler)(async (r
             endDate,
             download: true,
         });
-        const timestamp = new Date().toISOString().split('T')[0];
+        const timestamp = new Date().toISOString().split("T")[0];
         const filename = `audit-logs-${timestamp}`;
         if (format === "json") {
             res.setHeader("Content-Type", "application/json");
@@ -1798,7 +2013,7 @@ router.get("/audit-logs/stats", (0, error_middleware_1.asyncHandler)(async (req,
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 async function getAuditLogs(options) {
-    const { page, limit, action, userEmail, startDate, endDate, search, download } = options;
+    const { page, limit, action, userEmail, startDate, endDate, search, download, } = options;
     try {
         // Read audit log files
         const logsDir = path.join(process.cwd(), "logs");
@@ -1807,7 +2022,9 @@ async function getAuditLogs(options) {
         // Check if audit log file exists
         try {
             const auditLogContent = await fs.readFile(auditLogPath, "utf-8");
-            const logLines = auditLogContent.split("\n").filter(line => line.trim());
+            const logLines = auditLogContent
+                .split("\n")
+                .filter((line) => line.trim());
             for (const line of logLines) {
                 try {
                     const logEntry = JSON.parse(line);
@@ -1836,23 +2053,24 @@ async function getAuditLogs(options) {
         // Apply filters
         let filteredLogs = allLogs;
         if (action) {
-            filteredLogs = filteredLogs.filter(log => log.action.toLowerCase().includes(action.toLowerCase()));
+            filteredLogs = filteredLogs.filter((log) => log.action.toLowerCase().includes(action.toLowerCase()));
         }
         if (userEmail) {
-            filteredLogs = filteredLogs.filter(log => log.userEmail && log.userEmail.toLowerCase().includes(userEmail.toLowerCase()));
+            filteredLogs = filteredLogs.filter((log) => log.userEmail &&
+                log.userEmail.toLowerCase().includes(userEmail.toLowerCase()));
         }
         if (startDate) {
             const start = new Date(startDate);
-            filteredLogs = filteredLogs.filter(log => new Date(log.timestamp) >= start);
+            filteredLogs = filteredLogs.filter((log) => new Date(log.timestamp) >= start);
         }
         if (endDate) {
             const end = new Date(endDate);
             end.setHours(23, 59, 59, 999); // Include full end date
-            filteredLogs = filteredLogs.filter(log => new Date(log.timestamp) <= end);
+            filteredLogs = filteredLogs.filter((log) => new Date(log.timestamp) <= end);
         }
         if (search) {
             const searchTerm = search.toLowerCase();
-            filteredLogs = filteredLogs.filter(log => log.action.toLowerCase().includes(searchTerm) ||
+            filteredLogs = filteredLogs.filter((log) => log.action.toLowerCase().includes(searchTerm) ||
                 (log.userEmail && log.userEmail.toLowerCase().includes(searchTerm)) ||
                 JSON.stringify(log.details).toLowerCase().includes(searchTerm));
         }
@@ -1865,8 +2083,8 @@ async function getAuditLogs(options) {
             filteredLogs = filteredLogs.slice(startIndex, startIndex + limit);
         }
         // Generate summary
-        const uniqueActions = [...new Set(allLogs.map(log => log.action))];
-        const uniqueUsers = new Set(allLogs.map(log => log.userEmail)).size;
+        const uniqueActions = [...new Set(allLogs.map((log) => log.action))];
+        const uniqueUsers = new Set(allLogs.map((log) => log.userEmail)).size;
         const dateRange = {
             earliest: allLogs.length > 0 ? allLogs[allLogs.length - 1].timestamp : null,
             latest: allLogs.length > 0 ? allLogs[0].timestamp : null,
@@ -1899,7 +2117,7 @@ async function getAuditLogStats(days) {
         const logsData = await getAuditLogs({
             page: 1,
             limit: 100000, // Get all logs for stats
-            startDate: cutoffDate.toISOString().split('T')[0],
+            startDate: cutoffDate.toISOString().split("T")[0],
             download: true,
         });
         const logs = logsData.logs;
@@ -1907,7 +2125,7 @@ async function getAuditLogStats(days) {
         const actionCounts = {};
         const userActivity = {};
         const dailyActivity = {};
-        logs.forEach(log => {
+        logs.forEach((log) => {
             // Count actions
             actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
             // Count user activity
@@ -1915,7 +2133,7 @@ async function getAuditLogStats(days) {
                 userActivity[log.userEmail] = (userActivity[log.userEmail] || 0) + 1;
             }
             // Count daily activity
-            const day = log.timestamp.split('T')[0];
+            const day = log.timestamp.split("T")[0];
             dailyActivity[day] = (dailyActivity[day] || 0) + 1;
         });
         // Top actions
@@ -1956,7 +2174,7 @@ function convertLogsToCSV(logs) {
     }
     const headers = ["timestamp", "action", "userEmail", "ip", "details"];
     const csvRows = [headers.join(",")];
-    logs.forEach(log => {
+    logs.forEach((log) => {
         const row = [
             log.timestamp || "",
             log.action || "",
@@ -1964,7 +2182,7 @@ function convertLogsToCSV(logs) {
             log.ip || "",
             JSON.stringify(log.details || {}).replace(/"/g, '""'), // Escape quotes
         ];
-        csvRows.push(row.map(field => `"${field}"`).join(","));
+        csvRows.push(row.map((field) => `"${field}"`).join(","));
     });
     return csvRows.join("\n");
 }

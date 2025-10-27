@@ -671,8 +671,8 @@ router.put(
  * @swagger
  * /admin/users/{id}:
  *   delete:
- *     summary: Delete user
- *     description: Admin can delete a user if they have no active bookings.
+ *     summary: Delete user (soft delete)
+ *     description: Admin can soft delete a user if they have no active bookings. This preserves referential integrity by marking the user as deleted rather than removing the record.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -685,7 +685,7 @@ router.put(
  *           type: string
  *     responses:
  *       200:
- *         description: User deleted successfully
+ *         description: User deleted successfully (soft delete)
  *         content:
  *           application/json:
  *             schema:
@@ -696,7 +696,22 @@ router.put(
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: User deleted successfully
+ *                   example: User deleted successfully (soft delete)
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedUser:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         status:
+ *                           type: string
+ *                         deletedAt:
+ *                           type: string
+ *                           format: date-time
  *       400:
  *         description: Cannot delete user with active bookings
  *         content:
@@ -734,7 +749,11 @@ router.delete(
       where: {
         customerId: req.params.id,
         status: {
-          in: [BookingStatus.PENDING, BookingStatus.APPROVED],
+          in: [
+            BookingStatus.PENDING,
+            BookingStatus.APPROVED,
+            BookingStatus.CONFIRMED,
+          ],
         },
       },
     });
@@ -743,23 +762,248 @@ router.delete(
       throw new AppError("Cannot delete user with active bookings", 400);
     }
 
-    await prisma.user.delete({
+    // Get user email before deletion for audit log
+    const targetUserEmail = await getUserEmail(req.params.id);
+
+    // Use soft delete instead of hard delete to preserve referential integrity
+    const deletedUser = await prisma.user.update({
       where: { id: req.params.id },
+      data: {
+        status: UserStatus.DELETED,
+        deletedAt: new Date(),
+        // Anonymize sensitive data
+        email: `deleted-${req.params.id}@deleted.local`,
+        phone: null,
+        avatar: null,
+        bio: null,
+        address: null,
+        city: null,
+        state: null,
+        // Clear OTP data
+        otpCode: null,
+        otpExpiry: null,
+        otpAttempts: 0,
+        otpLastSent: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        deletedAt: true,
+      },
     });
 
-    const targetUserEmail = await getUserEmail(req.params.id);
     auditLog(
-      "USER_DELETED",
+      "USER_SOFT_DELETED",
       req.user.email,
       {
         targetUserEmail,
+        targetUserId: req.params.id,
+        method: "soft_delete",
       },
       req.ip
     );
 
     res.json({
       success: true,
-      message: "User deleted successfully",
+      message: "User deleted successfully (soft delete)",
+      data: {
+        deletedUser,
+      },
+    });
+  })
+);
+
+/**
+ * @route   DELETE /api/v1/admin/users/by-email/:email
+ * @desc    Delete customer by email
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/users/by-email/{email}:
+ *   delete:
+ *     summary: Delete customer by email (soft delete)
+ *     description: Admin can soft delete a customer account by email address. This preserves referential integrity by marking the user as deleted rather than removing the record. Only customers can be deleted this way, not admin accounts.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: email
+ *         required: true
+ *         description: Email address of the customer to delete
+ *         schema:
+ *           type: string
+ *           format: email
+ *           example: customer@example.com
+ *     responses:
+ *       200:
+ *         description: Customer deleted successfully (soft delete)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Customer deleted successfully (soft delete)
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedUser:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: string
+ *                         deletedAt:
+ *                           type: string
+ *                           format: date-time
+ *       400:
+ *         description: Cannot delete user (has active bookings, is admin, etc.)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Cannot delete admin account or user with active bookings
+ *       404:
+ *         description: Customer not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Customer not found with the provided email
+ */
+router.delete(
+  "/users/by-email/:email",
+  [param("email").isEmail().normalizeEmail()],
+  validate,
+  asyncHandler(async (req: any, res: any) => {
+    const email = req.params.email;
+
+    // Find the user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        _count: {
+          select: {
+            bookings: {
+              where: {
+                status: {
+                  in: [
+                    BookingStatus.PENDING,
+                    BookingStatus.APPROVED,
+                    BookingStatus.CONFIRMED,
+                  ],
+                },
+              },
+            },
+            hostedProperties: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppError("Customer not found with the provided email", 404);
+    }
+
+    // Prevent deletion of admin accounts
+    if (user.role === UserRole.ADMIN) {
+      throw new AppError(
+        "Cannot delete admin accounts. Admin accounts can only be managed by other admins through proper channels.",
+        400
+      );
+    }
+
+    // Check if user has active bookings
+    if (user._count.bookings > 0) {
+      throw new AppError(
+        `Cannot delete customer with active bookings. Customer has ${user._count.bookings} active booking(s). Please cancel or complete these bookings first.`,
+        400
+      );
+    }
+
+    // Check if user has hosted properties (in case they're also a host)
+    if (user._count.hostedProperties > 0) {
+      throw new AppError(
+        `Cannot delete customer who has hosted properties. Customer has ${user._count.hostedProperties} property(ies). Please transfer or remove these properties first.`,
+        400
+      );
+    }
+
+    // Use soft delete instead of hard delete to preserve referential integrity
+    const deletedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        status: UserStatus.DELETED,
+        deletedAt: new Date(),
+        // Anonymize sensitive data
+        email: `deleted-${user.id}@deleted.local`,
+        phone: null,
+        avatar: null,
+        bio: null,
+        address: null,
+        city: null,
+        state: null,
+        // Clear OTP data
+        otpCode: null,
+        otpExpiry: null,
+        otpAttempts: 0,
+        otpLastSent: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        deletedAt: true,
+      },
+    });
+
+    // Log the deletion
+    auditLog(
+      "CUSTOMER_SOFT_DELETED_BY_EMAIL",
+      req.user.email,
+      {
+        targetUserEmail: email,
+        targetUserId: user.id,
+        targetUserRole: user.role,
+        deletedBy: req.user.email,
+        method: "soft_delete_by_email",
+      },
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: "Customer deleted successfully (soft delete)",
+      data: {
+        deletedUser,
+      },
     });
   })
 );
