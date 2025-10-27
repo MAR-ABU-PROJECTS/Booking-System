@@ -91,7 +91,7 @@ const auditLog = (action, userEmail, details, ip) => {
         userEmail,
         details,
         ip,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
     };
     // Log to both regular logger and dedicated audit logger
     logger.info("Audit", auditEntry);
