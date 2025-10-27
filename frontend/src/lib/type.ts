@@ -376,43 +376,41 @@ export type Users = {
 };
 
 export type User = {
+	address: string;
+	avatar: string;
+	bio: string | null;
+	bookings: Booking[];
+	city: string | null;
+	country: string;
+	createdAt: string;
+	dateOfBirth: string | null;
+	deletedAt: string | null;
+	email: string;
+	emailVerified: string;
+	firstName: string;
 
-		address: string;
-		avatar: string;
-		bio: string | null;
-		bookings: Booking[];
-		city: string | null;
-		country: string;
-		createdAt: string;
-		dateOfBirth: string | null;
-		deletedAt: string | null;
-		email: string;
-		emailVerified: string;
-		firstName: string;
-		 
-		hostedProperties: [];
-		id: string;
-		idNumber: string | null;
-		idType: string | null;
-		identityVerified: boolean | null;
-		lastLoginAt: string;
-		lastName: string;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		notificationPreferences: any | null;
-		password: string;
-		phone: string;
-		phoneVerified: boolean | null;
-		resetToken: string | null;
-		resetTokenExpiry: string | null;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		reviews: any[];
-		role: string;
-		state: string | null;
-		status: string;
-		updatedAt: string;
-		verificationToken: string | null;
-		verificationTokenExpiry: string | null;
-
+	hostedProperties: [];
+	id: string;
+	idNumber: string | null;
+	idType: string | null;
+	identityVerified: boolean | null;
+	lastLoginAt: string;
+	lastName: string;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	notificationPreferences: any | null;
+	password: string;
+	phone: string;
+	phoneVerified: boolean | null;
+	resetToken: string | null;
+	resetTokenExpiry: string | null;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	reviews: any[];
+	role: string;
+	state: string | null;
+	status: string;
+	updatedAt: string;
+	verificationToken: string | null;
+	verificationTokenExpiry: string | null;
 };
 
 export type DashboardData = {
@@ -502,4 +500,16 @@ export type AdminProperty = {
 		bookings: number;
 		reviews: number;
 	};
+};
+
+export type Audit = {
+	action: string;
+	details: {
+		authMethod: string;
+		interfaceType: string;
+		role: string;
+	};
+	ip: string;
+	timestamp: string;
+	userEmail: string;
 };

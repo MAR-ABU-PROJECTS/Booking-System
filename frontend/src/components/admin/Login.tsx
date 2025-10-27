@@ -23,7 +23,7 @@ const AdminLogIn = () => {
 
 	const verifyEmailMutation = useMutation({
 		mutationFn: async (email: string) => {
-			const response = await apiService.post("/auth/request-otp", {
+			const response = await apiService.post("/auth/request-otp?interface=admin", {
 				email: email,
 				purpose: "login",
 			});
@@ -65,11 +65,14 @@ const AdminLogIn = () => {
 
 	const OtpMutation = useMutation({
 		mutationFn: async (otp: string) => {
-			const response = await apiService.post("/auth/verify-otp", {
-				email: email,
-				otpCode: otp,
-				purpose: "login",
-			});
+			const response = await apiService.post(
+				"/auth/verify-otp?interface=admin",
+				{
+					email: email,
+					otpCode: otp,
+					purpose: "login",
+				}
+			);
 			return response;
 		},
 		onSuccess: async (res) => {
@@ -83,6 +86,7 @@ const AdminLogIn = () => {
 					});
 					return;
 				}
+
 				const message = res?.message as string;
 				toast.success(message, {
 					closeOnClick: false,

@@ -25,7 +25,7 @@ const SignUp = () => {
 
 	const verifyEmailMutation = useMutation({
 		mutationFn: async (email: string) => {
-			const response = await apiService.post("/auth/request-otp", {
+			const response = await apiService.post("/auth/request-otp?interface=customer", {
 				email: email,
 				purpose: "signup",
 			});
@@ -70,7 +70,7 @@ const SignUp = () => {
 
 	const OtpMutation = useMutation({
 		mutationFn: async (otp: string) => {
-			const response = await apiService.post("/auth/verify-otp", {
+			const response = await apiService.post("/auth/verify-otp?interface=customer", {
 				email: email,
 				otpCode: otp,
 				purpose: "signup",

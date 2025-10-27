@@ -40,6 +40,11 @@ const SideBarLinks = () => {
 				href: "/admin-properties",
 				isActive: splittedPath[1] === "admin-properties",
 			},
+			{
+				title: "Audits",
+				href: "/audit-logs",
+				isActive: splittedPath[1] === "audit-logs",
+			},
 		];
 	}, [splittedPath]);
 
