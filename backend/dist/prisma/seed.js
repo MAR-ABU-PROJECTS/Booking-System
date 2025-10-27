@@ -48,6 +48,18 @@ async function main() {
         },
     });
     console.log(`✅ Admin created: ${superAdmin2.email}`);
+    const superAdmin3 = await prisma.user.upsert({
+        where: { email: "sofulldelight7@gmail.com" },
+        update: {},
+        create: {
+            email: "sofulldelight7@gmail.com",
+            phone: "(+234) 803 619 4871",
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+        },
+    });
+    console.log(`✅ Admin created: ${superAdmin3.email}`);
     const Admin = await prisma.user.upsert({
         where: { email: "soputa42@gmail.com" },
         update: {},
