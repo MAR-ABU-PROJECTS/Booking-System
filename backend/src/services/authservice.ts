@@ -211,7 +211,8 @@ export class AuthService {
   async verifyOTP(
     email: string,
     otpCode: string,
-    purpose: "signup" | "login"
+    purpose: "signup" | "login",
+    interfaceType?: "admin" | "customer"
   ): Promise<{
     user: AuthUser;
     accessToken: string;
@@ -286,10 +287,14 @@ export class AuthService {
 
       // Handle signup: create new user
       if (purpose === "signup") {
+        // Determine role based on interface type
+        const userRole =
+          interfaceType === "admin" ? UserRole.ADMIN : UserRole.CUSTOMER;
+
         user = await prisma.user.create({
           data: {
             email,
-            role: UserRole.CUSTOMER,
+            role: userRole,
             status: UserStatus.ACTIVE,
             emailVerified: new Date(),
             // Clear OTP fields after successful verification

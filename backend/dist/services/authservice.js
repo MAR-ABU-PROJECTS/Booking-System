@@ -179,7 +179,7 @@ class AuthService {
     /**
      * Verify OTP and authenticate user (signup or login)
      */
-    async verifyOTP(email, otpCode, purpose) {
+    async verifyOTP(email, otpCode, purpose, interfaceType) {
         const { OTPService } = await Promise.resolve().then(() => __importStar(require("./otpservice")));
         try {
             let user;
@@ -235,10 +235,12 @@ class AuthService {
             }
             // Handle signup: create new user
             if (purpose === "signup") {
+                // Determine role based on interface type
+                const userRole = interfaceType === "admin" ? client_1.UserRole.ADMIN : client_1.UserRole.CUSTOMER;
                 user = await database_1.default.user.create({
                     data: {
                         email,
-                        role: client_1.UserRole.CUSTOMER,
+                        role: userRole,
                         status: client_1.UserStatus.ACTIVE,
                         emailVerified: new Date(),
                         // Clear OTP fields after successful verification

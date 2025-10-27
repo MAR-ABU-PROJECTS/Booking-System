@@ -71,6 +71,14 @@ const validate = (req, res, next) => {
  *     summary: Request OTP for signup or login
  *     tags:
  *       - Auth
+ *     parameters:
+ *       - in: query
+ *         name: interface
+ *         schema:
+ *           type: string
+ *           enum: [admin, customer]
+ *         description: Interface type (optional for login, used for validation)
+ *         example: customer
  *     requestBody:
  *       required: true
  *       content:
@@ -157,6 +165,14 @@ router.post("/request-otp", [
  *     summary: Verify OTP and authenticate user
  *     tags:
  *       - Auth
+ *     parameters:
+ *       - in: query
+ *         name: interface
+ *         schema:
+ *           type: string
+ *           enum: [admin, customer]
+ *         description: Interface type for role-based signup (required for signup)
+ *         example: customer
  *     requestBody:
  *       required: true
  *       content:
@@ -235,13 +251,21 @@ router.post("/verify-otp", [
     const { email, otpCode, purpose } = req.body;
     // Get the interface type from the request headers or query
     const interfaceType = req.query.interface || req.headers["x-interface-type"];
-    const result = await authservice_1.authService.verifyOTP(email, otpCode, purpose);
+    // Validate interface type
+    if (interfaceType && !["admin", "customer"].includes(interfaceType)) {
+        throw new error_middleware_2.AppError("Invalid interface type. Must be 'admin' or 'customer'", 400, "INVALID_INTERFACE_TYPE");
+    }
+    // For signup, interface type is required
+    if (purpose === "signup" && !interfaceType) {
+        throw new error_middleware_2.AppError("Interface type is required for signup. Please specify 'admin' or 'customer'", 400, "INTERFACE_TYPE_REQUIRED");
+    }
+    const result = await authservice_1.authService.verifyOTP(email, otpCode, purpose, interfaceType);
     // Check if the user's role matches the interface they're trying to access
     if (interfaceType === "admin" && result.user.role !== "ADMIN") {
-        throw new error_middleware_2.AppError("Access denied. Admin interface is only accessible to administrators", 403, "ROLE_MISMATCH");
+        throw new error_middleware_2.AppError(`Access denied. This account (${result.user.email}) is registered as a customer, not an administrator. Please use the customer login interface instead.`, 403, "ROLE_MISMATCH");
     }
     if (interfaceType === "customer" && result.user.role !== "CUSTOMER") {
-        throw new error_middleware_2.AppError("Access denied. Customer interface is only accessible to customers", 403, "ROLE_MISMATCH");
+        throw new error_middleware_2.AppError(`Access denied. This account (${result.user.email}) is registered as an administrator, not a customer. Please use the admin login interface instead.`, 403, "ROLE_MISMATCH");
     }
     (0, logger_middleware_1.auditLog)(result.isNewUser ? "USER_REGISTERED" : "USER_LOGIN", result.user.email, {
         role: result.user.role,

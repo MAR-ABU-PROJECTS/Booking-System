@@ -24,6 +24,18 @@ async function main() {
         },
     });
     console.log(`✅ Admin created: ${superAdmin.email}`);
+    const superAdmin1 = await prisma.user.upsert({
+        where: { email: "support@marabuprojects.com" },
+        update: {},
+        create: {
+            email: "support@marabuprojects.com",
+            phone: "(+234) 803 619 4871",
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+        },
+    });
+    console.log(`✅ Admin created: ${superAdmin.email}`);
     const Admin = await prisma.user.upsert({
         where: { email: "soputa42@gmail.com" },
         update: {},

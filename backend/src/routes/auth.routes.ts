@@ -45,6 +45,14 @@ const validate = (req: any, res: any, next: any) => {
  *     summary: Request OTP for signup or login
  *     tags:
  *       - Auth
+ *     parameters:
+ *       - in: query
+ *         name: interface
+ *         schema:
+ *           type: string
+ *           enum: [admin, customer]
+ *         description: Interface type (optional for login, used for validation)
+ *         example: customer
  *     requestBody:
  *       required: true
  *       content:
@@ -143,6 +151,14 @@ router.post(
  *     summary: Verify OTP and authenticate user
  *     tags:
  *       - Auth
+ *     parameters:
+ *       - in: query
+ *         name: interface
+ *         schema:
+ *           type: string
+ *           enum: [admin, customer]
+ *         description: Interface type for role-based signup (required for signup)
+ *         example: customer
  *     requestBody:
  *       required: true
  *       content:
@@ -228,12 +244,35 @@ router.post(
     const interfaceType =
       req.query.interface || req.headers["x-interface-type"];
 
-    const result = await authService.verifyOTP(email, otpCode, purpose);
+    // Validate interface type
+    if (interfaceType && !["admin", "customer"].includes(interfaceType)) {
+      throw new AppError(
+        "Invalid interface type. Must be 'admin' or 'customer'",
+        400,
+        "INVALID_INTERFACE_TYPE"
+      );
+    }
+
+    // For signup, interface type is required
+    if (purpose === "signup" && !interfaceType) {
+      throw new AppError(
+        "Interface type is required for signup. Please specify 'admin' or 'customer'",
+        400,
+        "INTERFACE_TYPE_REQUIRED"
+      );
+    }
+
+    const result = await authService.verifyOTP(
+      email,
+      otpCode,
+      purpose,
+      interfaceType as "admin" | "customer"
+    );
 
     // Check if the user's role matches the interface they're trying to access
     if (interfaceType === "admin" && result.user.role !== "ADMIN") {
       throw new AppError(
-        "Access denied. Admin interface is only accessible to administrators",
+        `Access denied. This account (${result.user.email}) is registered as a customer, not an administrator. Please use the customer login interface instead.`,
         403,
         "ROLE_MISMATCH"
       );
@@ -241,7 +280,7 @@ router.post(
 
     if (interfaceType === "customer" && result.user.role !== "CUSTOMER") {
       throw new AppError(
-        "Access denied. Customer interface is only accessible to customers",
+        `Access denied. This account (${result.user.email}) is registered as an administrator, not a customer. Please use the admin login interface instead.`,
         403,
         "ROLE_MISMATCH"
       );
