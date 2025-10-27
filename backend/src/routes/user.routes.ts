@@ -364,7 +364,7 @@ router.put(
 
     auditLog(
       "PROFILE_UPDATED",
-      req.user.id,
+      req.user.email,
       {
         changes: updateData,
       },
@@ -559,7 +559,7 @@ router.delete(
         data: { avatar: null },
       });
 
-      auditLog("AVATAR_DELETED", req.user.id, {}, req.ip);
+      auditLog("AVATAR_DELETED", req.user.email, {}, req.ip);
     }
 
     res.json({

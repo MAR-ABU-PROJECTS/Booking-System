@@ -130,8 +130,7 @@ router.post("/request-otp", [
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { email, purpose } = req.body;
     const result = await authservice_1.authService.requestOTP(email, purpose);
-    (0, logger_middleware_1.auditLog)("OTP_REQUESTED", result.userId || "anonymous", {
-        email,
+    (0, logger_middleware_1.auditLog)("OTP_REQUESTED", email || "anonymous", {
         purpose,
         ip: req.ip,
     }, req.ip);
@@ -242,8 +241,7 @@ router.post("/verify-otp", [
     if (interfaceType === "customer" && result.user.role !== "CUSTOMER") {
         throw new error_middleware_2.AppError("Access denied. Customer interface is only accessible to customers", 403, "ROLE_MISMATCH");
     }
-    (0, logger_middleware_1.auditLog)(result.isNewUser ? "USER_REGISTERED" : "USER_LOGIN", result.user.id, {
-        email: result.user.email,
+    (0, logger_middleware_1.auditLog)(result.isNewUser ? "USER_REGISTERED" : "USER_LOGIN", result.user.email, {
         role: result.user.role,
         interfaceType,
         authMethod: "OTP",
@@ -615,8 +613,7 @@ router.put("/profile", (0, authservice_1.requireAuth)(), [
     (0, express_validator_1.body)("avatar").optional().isURL().withMessage("Valid avatar URL required"),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const updatedUser = await authservice_1.authService.updateProfile(req.user.id, req.body);
-    (0, logger_middleware_1.auditLog)("PROFILE_UPDATED", req.user.id, {
-        email: req.user.email,
+    (0, logger_middleware_1.auditLog)("PROFILE_UPDATED", req.user.email, {
         changes: req.body,
     }, req.ip);
     res.json({
