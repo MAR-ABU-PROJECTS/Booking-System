@@ -35,7 +35,7 @@ async function main() {
             emailVerified: new Date(),
         },
     });
-    console.log(`✅ Admin created: ${superAdmin.email}`);
+    console.log(`✅ Admin created: ${superAdmin1.email}`);
     const Admin = await prisma.user.upsert({
         where: { email: "soputa42@gmail.com" },
         update: {},

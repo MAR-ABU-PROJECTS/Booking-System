@@ -928,6 +928,125 @@ router.delete("/users/by-email/:email", [(0, express_validator_1.param)("email")
         },
     });
 }));
+/**
+ * @route   GET /api/v1/admin/users/deleted
+ * @desc    Get all soft deleted users
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/users/deleted:
+ *   get:
+ *     summary: Get all soft deleted users
+ *     description: Admin can view all users that have been soft deleted with pagination.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of deleted users per page
+ *     responses:
+ *       200:
+ *         description: Deleted users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedUsers:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           role:
+ *                             type: string
+ *                           status:
+ *                             type: string
+ *                           deletedAt:
+ *                             type: string
+ *                             format: date-time
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         limit:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         pages:
+ *                           type: integer
+ */
+router.get("/users/deleted", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const [deletedUsers, total] = await Promise.all([
+        server_1.prisma.user.findMany({
+            where: { status: client_1.UserStatus.DELETED },
+            orderBy: { deletedAt: "desc" },
+            skip: (pageNum - 1) * limitNum,
+            take: limitNum,
+            select: {
+                id: true,
+                email: true,
+                role: true,
+                status: true,
+                deletedAt: true,
+                createdAt: true,
+                _count: {
+                    select: {
+                        bookings: true,
+                        hostedProperties: true,
+                    },
+                },
+            },
+        }),
+        server_1.prisma.user.count({
+            where: { status: client_1.UserStatus.DELETED },
+        }),
+    ]);
+    (0, logger_middleware_1.auditLog)("DELETED_USERS_VIEWED", req.user.email, {
+        page: pageNum,
+        limit: limitNum,
+        totalDeleted: total,
+    }, req.ip);
+    res.json({
+        success: true,
+        data: {
+            deletedUsers,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                pages: Math.ceil(total / limitNum),
+            },
+        },
+    });
+}));
 // ===============================
 // PROPERTY MANAGEMENT
 // ===============================
