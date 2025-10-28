@@ -1546,6 +1546,34 @@ router.put(
  *           enum: [asc, desc]
  *           default: desc
  *         description: Sorting order
+ *       - in: query
+ *         name: checkInFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter bookings with check-in date from this date (YYYY-MM-DD)
+ *         example: "2024-12-01"
+ *       - in: query
+ *         name: checkInTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter bookings with check-in date up to this date (YYYY-MM-DD)
+ *         example: "2024-12-31"
+ *       - in: query
+ *         name: checkOutFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter bookings with check-out date from this date (YYYY-MM-DD)
+ *         example: "2024-12-05"
+ *       - in: query
+ *         name: checkOutTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter bookings with check-out date up to this date (YYYY-MM-DD)
+ *         example: "2025-01-15"
  *     responses:
  *       200:
  *         description: Bookings retrieved successfully
@@ -1566,6 +1594,56 @@ router.put(
  *                         $ref: '#/components/schemas/BookingSummary'
  *                     pagination:
  *                       $ref: '#/components/schemas/Pagination'
+ *                     filters:
+ *                       type: object
+ *                       description: Applied filters
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "APPROVED"
+ *                         paymentStatus:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "PAID"
+ *                         propertyId:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "prop_123"
+ *                         customerId:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "user_456"
+ *                         checkInFrom:
+ *                           type: string
+ *                           format: date
+ *                           nullable: true
+ *                           example: "2024-12-01"
+ *                         checkInTo:
+ *                           type: string
+ *                           format: date
+ *                           nullable: true
+ *                           example: "2024-12-31"
+ *                         checkOutFrom:
+ *                           type: string
+ *                           format: date
+ *                           nullable: true
+ *                           example: "2024-12-05"
+ *                         checkOutTo:
+ *                           type: string
+ *                           format: date
+ *                           nullable: true
+ *                           example: "2025-01-15"
+ *                     sorting:
+ *                       type: object
+ *                       description: Applied sorting
+ *                       properties:
+ *                         sortBy:
+ *                           type: string
+ *                           example: "createdAt"
+ *                         sortOrder:
+ *                           type: string
+ *                           example: "desc"
  *       401:
  *         description: Unauthorized
  *       403:
@@ -1586,6 +1664,10 @@ router.get(
       customerId,
       sortBy = "createdAt",
       sortOrder = "desc",
+      checkInFrom,
+      checkInTo,
+      checkOutFrom,
+      checkOutTo,
     } = req.query;
 
     const pageNum = Number(page) || 1;
@@ -1597,6 +1679,43 @@ router.get(
     if (paymentStatus) where.paymentStatus = paymentStatus;
     if (propertyId) where.propertyId = propertyId;
     if (customerId) where.customerId = customerId;
+
+    // Add date filters
+    if (checkInFrom || checkInTo) {
+      where.checkInDate = {};
+      if (checkInFrom) {
+        const fromDate = new Date(checkInFrom as string);
+        if (!isNaN(fromDate.getTime())) {
+          where.checkInDate.gte = fromDate;
+        }
+      }
+      if (checkInTo) {
+        const toDate = new Date(checkInTo as string);
+        if (!isNaN(toDate.getTime())) {
+          // Set to end of day for inclusive filtering
+          toDate.setHours(23, 59, 59, 999);
+          where.checkInDate.lte = toDate;
+        }
+      }
+    }
+
+    if (checkOutFrom || checkOutTo) {
+      where.checkOutDate = {};
+      if (checkOutFrom) {
+        const fromDate = new Date(checkOutFrom as string);
+        if (!isNaN(fromDate.getTime())) {
+          where.checkOutDate.gte = fromDate;
+        }
+      }
+      if (checkOutTo) {
+        const toDate = new Date(checkOutTo as string);
+        if (!isNaN(toDate.getTime())) {
+          // Set to end of day for inclusive filtering
+          toDate.setHours(23, 59, 59, 999);
+          where.checkOutDate.lte = toDate;
+        }
+      }
+    }
 
     const [bookings, total] = await Promise.all([
       prisma.booking.findMany({
@@ -1629,6 +1748,20 @@ router.get(
           limit: limitNum,
           total,
           pages: Math.ceil(total / limitNum),
+        },
+        filters: {
+          status: status || null,
+          paymentStatus: paymentStatus || null,
+          propertyId: propertyId || null,
+          customerId: customerId || null,
+          checkInFrom: checkInFrom || null,
+          checkInTo: checkInTo || null,
+          checkOutFrom: checkOutFrom || null,
+          checkOutTo: checkOutTo || null,
+        },
+        sorting: {
+          sortBy: sortBy as string,
+          sortOrder: sortOrder as string,
         },
       },
     });
