@@ -93,7 +93,7 @@ const OtpStep = ({
 					type="button"
 					onClick={onResend}
 					disabled={isResendDisabled}
-					className="w-full bg-transparent outline-none text-amber-500 font-medium mt-5 !cursor-pointer"
+					className="w-full bg-transparent outline-none text-amber-500 font-medium mt-5 !cursor-pointer disabled:text-gray-400 disabled:!cursor-not-allowed"
 				>
 					{timer > 0 ? (
 						<span>
