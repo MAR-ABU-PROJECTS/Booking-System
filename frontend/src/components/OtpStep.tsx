@@ -11,9 +11,11 @@ import { Loader2 } from "lucide-react";
 type props = {
 	onSubmit: (otp: string) => void;
 	isLoading: boolean;
+	timer: number;
+	onResend: () => void;
 };
 
-const OtpStep = ({ isLoading, onSubmit }: props) => {
+const OtpStep = ({ isLoading, onSubmit, timer, onResend }: props) => {
 	const form = useForm<z.infer<typeof AuthOtpSchema>>({
 		resolver: zodResolver(AuthOtpSchema),
 		defaultValues: {
@@ -25,6 +27,8 @@ const OtpStep = ({ isLoading, onSubmit }: props) => {
 	const onSubmitForm = async (data: { otp: string }) => {
 		await onSubmit(data.otp);
 	};
+
+	const isResendDisabled = timer > 0 || isLoading;
 	return (
 		<motion.div
 			initial={{ opacity: 0, x: 40 }}
@@ -77,6 +81,22 @@ const OtpStep = ({ isLoading, onSubmit }: props) => {
 					) : null}
 					Continue
 				</Button>
+
+				<button
+					type="button"
+					onClick={onResend}
+					disabled={isResendDisabled}
+					className="w-full bg-transparent outline-none text-amber-500 font-medium mt-5 !cursor-pointer"
+				>
+					{timer > 0 ? (
+						<span>
+							Resend OTP in{" "}
+							<span className="font-semibold ml-1">{timer}s</span>
+						</span>
+					) : (
+						"Resend OTP"
+					)}
+				</button>
 			</form>
 		</motion.div>
 	);

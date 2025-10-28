@@ -10,11 +10,22 @@ import { setUser } from "@lib/features/authSlice";
 import { AnimatePresence } from "framer-motion";
 import EmailStep from "@components/EmailStep";
 import OtpStep from "@components/OtpStep";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const AdminLogIn = () => {
 	const [step, setStep] = useState<"email" | "otp">("email");
 	const [email, setEmail] = useState("");
+	const [timer, setTimer] = useState(240);
+
+	useEffect(() => {
+		if (timer <= 0) return;
+		const interval = setInterval(() => {
+			setTimer((prev) => prev - 1);
+		}, 1000);
+		return () => clearInterval(interval);
+	}, [timer]);
+
+
 	const handleNext = () => {
 		setStep("otp");
 	};
@@ -37,7 +48,12 @@ const AdminLogIn = () => {
 					progress: undefined,
 				});
 				setEmail(variable);
-				handleNext();
+				if (step === "email") {
+					handleNext();
+					setTimer(240);
+				} else {
+					setTimer(240);
+				}
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
@@ -141,6 +157,9 @@ const AdminLogIn = () => {
 	const mutateOtp = (otp: string) => {
 		OtpMutation.mutate(otp);
 	};
+	const handleResendOtp = async () => {
+    await mutateEmail(email)
+  }
 	return (
 		<div className="flex justify-center items-start h-svh bg-[#FDF7F1]">
 			<div className="w-full max-w-xl mx-auto px-4 pt-14">
@@ -175,6 +194,8 @@ const AdminLogIn = () => {
 							<OtpStep
 								onSubmit={mutateOtp}
 								isLoading={OtpMutation.isPending}
+								timer={timer}
+								onResend={handleResendOtp}
 							/>
 						)}
 					</AnimatePresence>

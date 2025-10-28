@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
@@ -18,6 +18,15 @@ const SignUp = () => {
 	const router = useRouter();
 	const [step, setStep] = useState<"email" | "otp">("email");
 	const [email, setEmail] = useState("");
+	const [timer, setTimer] = useState(240);
+
+	useEffect(() => {
+		if (timer <= 0) return;
+		const interval = setInterval(() => {
+			setTimer((prev) => prev - 1);
+		}, 1000);
+		return () => clearInterval(interval);
+	}, [timer]);
 
 	const handleNext = () => {
 		setStep("otp");
@@ -25,10 +34,13 @@ const SignUp = () => {
 
 	const verifyEmailMutation = useMutation({
 		mutationFn: async (email: string) => {
-			const response = await apiService.post("/auth/request-otp?interface=customer", {
-				email: email,
-				purpose: "signup",
-			});
+			const response = await apiService.post(
+				"/auth/request-otp?interface=customer",
+				{
+					email: email,
+					purpose: "signup",
+				}
+			);
 			return response;
 		},
 		onSuccess: async (res, variable) => {
@@ -39,7 +51,12 @@ const SignUp = () => {
 					progress: undefined,
 				});
 				setEmail(variable);
-				handleNext();
+				if (step === "email") {
+					handleNext();
+					setTimer(240);
+				} else {
+					setTimer(240);
+				}
 			} else {
 				const message = res?.message as string;
 				toast.success(message, {
@@ -70,11 +87,14 @@ const SignUp = () => {
 
 	const OtpMutation = useMutation({
 		mutationFn: async (otp: string) => {
-			const response = await apiService.post("/auth/verify-otp?interface=customer", {
-				email: email,
-				otpCode: otp,
-				purpose: "signup",
-			});
+			const response = await apiService.post(
+				"/auth/verify-otp?interface=customer",
+				{
+					email: email,
+					otpCode: otp,
+					purpose: "signup",
+				}
+			);
 			return response;
 		},
 		onSuccess: async (res) => {
@@ -130,6 +150,11 @@ const SignUp = () => {
 	const mutateOtp = async (otp: string) => {
 		OtpMutation.mutate(otp);
 	};
+
+	const handleResendOtp = async () => {
+    await mutateEmail(email)
+  }
+	
 	return (
 		<div className="w-full max-w-2xl mx-auto pt-8 pb-6">
 			<div className="mt-10 sm:mt-20 mb-10">
@@ -155,6 +180,8 @@ const SignUp = () => {
 						<OtpStep
 							onSubmit={mutateOtp}
 							isLoading={OtpMutation.isPending}
+							onResend={handleResendOtp}
+							timer={timer}
 						/>
 					)}
 				</AnimatePresence>
