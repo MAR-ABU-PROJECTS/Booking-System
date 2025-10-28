@@ -30,6 +30,7 @@ const Payments = () => {
 	const getPayments = useQuery({
 		queryKey: ["pending-verifications", { pagination , debouncedValue}],
 		queryFn: async () => {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const params: Record<string, any> = {
 				page: pagination.pageIndex + 1,
 				limit: pagination.pageSize,
