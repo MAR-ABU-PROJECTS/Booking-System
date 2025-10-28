@@ -12,13 +12,11 @@ import EmailStep from "@components/EmailStep";
 import OtpStep from "@components/OtpStep";
 import { useState } from "react";
 import useCountdownTimer from "@hooks/use-countdown-timer";
-import { AUTH_OTP_TIME } from "@lib/utils";
 
 const AdminLogIn = () => {
 	const [step, setStep] = useState<"email" | "otp">("email");
 	const [email, setEmail] = useState("");
-	const { resetTimer, timeLeft, isRunning } =
-		useCountdownTimer(AUTH_OTP_TIME);
+	const { resetTimer, timeLeft, isRunning } = useCountdownTimer();
 
 	const handleNext = () => {
 		setStep("otp");

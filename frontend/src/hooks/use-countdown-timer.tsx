@@ -1,6 +1,7 @@
+import { AUTH_OTP_TIME } from '@lib/utils';
 import { useState, useEffect } from 'react';
 
-function useCountdownTimer(initialTime = 240) {
+function useCountdownTimer(initialTime = AUTH_OTP_TIME) {
   const [timeLeft, setTimeLeft] = useState(initialTime);
 
   useEffect(() => {
