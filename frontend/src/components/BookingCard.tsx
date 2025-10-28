@@ -44,7 +44,6 @@ const BookingCard = ({
 	cautionFee,
 	baseAmount,
 	id,
-	cleaningFee,
 }: BookingCardType) => {
 	dayjs.extend(advancedFormat);
 
@@ -183,15 +182,6 @@ const BookingCard = ({
 							</p>
 						</div>
 
-						<div>
-							<p className="text-sm font-medium text-muted-foreground">
-								Cleaning Fee
-							</p>
-							<p className="mt-1 font-semibold">
-								{formatCurrency(cleaningFee)}
-							</p>
-						</div>
-
 						{/* Total */}
 						<div>
 							<p className="text-sm font-medium text-muted-foreground">
@@ -221,16 +211,49 @@ const BookingCard = ({
 
 					{/* Action Buttons */}
 
-					{status.toLowerCase() != "cancelled" ? (
-						<div className="mt-6 flex gap-2">
+					{status.toLowerCase() !== "cancelled" ? (
+						// Booking is NOT cancelled
+						<div className="mt-6 flex gap-2 w-full">
 							<Button
-								variant={"destructive"}
+								variant="destructive"
 								onClick={() => setConfirm(true)}
 								size="sm"
-								className="flex-1 h-[40px] text-[15px] w-full"
+								className="flex-1 h-[40px] text-[15px]"
 							>
 								Cancel Booking
 							</Button>
+
+							{paymentStatus.toLowerCase() === "pending" ? (
+								<Button
+									size="sm"
+									className="flex-1 h-[40px] text-[14px] bg-green-400 hover:bg-green-400"
+									asChild
+								>
+									<Link
+										href={`/complete-booking?id=${id}&apartmentId=${property.id}`}
+										className="text-[15px] w-full"
+									>
+										Complete Booking
+									</Link>
+								</Button>
+							) : (
+								<Button
+									size="sm"
+									className="flex-1 h-[40px] text-[14px]"
+									asChild
+								>
+									<Link
+										href={`/booking?id=${property.id}`}
+										className="text-[15px] w-full"
+									>
+										Book Again
+									</Link>
+								</Button>
+							)}
+						</div>
+					) : (
+						// Booking IS cancelled
+						<div className="mt-6 flex gap-2 w-full">
 							<Button
 								size="sm"
 								className="flex-1 h-[40px] text-[14px]"
@@ -244,39 +267,7 @@ const BookingCard = ({
 								</Link>
 							</Button>
 						</div>
-					) : (
-						<Button
-							size="sm"
-							className="flex-1 h-[40px] text-[14px] mt-6 w-full"
-							asChild
-						>
-							<Link
-								href={`/booking?id=${property.id}`}
-								className="w-full text-[15px]"
-							>
-								Book Again
-							</Link>
-						</Button>
 					)}
-					{/* <div className="mt-6 flex gap-2">
-						<Button
-							variant={"destructive"}
-							onClick={() => setConfirm(true)}
-							size="sm"
-							className="flex-1 h-[40px] text-sm"
-						>
-							Cancel Booking
-						</Button>
-						<Button
-							size="sm"
-							className="flex-1 h-[40px] text-sm"
-							asChild
-						>
-							<Link href={`/booking?id=${property.id}`}>
-								Book Again
-							</Link>
-						</Button>
-					</div> */}
 				</CardContent>
 			</Card>
 

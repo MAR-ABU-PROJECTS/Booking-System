@@ -11,12 +11,14 @@ import dayjs from "dayjs";
 import { Bath, Bed, Share, Heart } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { updateBooking } from "@lib/features/bookingSlice";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { formatCurrency, toTitleCase } from "@lib/utils";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useIsMobile } from "@hooks/use-mobile";
-
+import { useQuery } from "@tanstack/react-query";
+import { apiService } from "@lib/apiService";
+import { isAxiosError } from "axios";
 
 const SingleProperty = ({ property }: { property: Property }) => {
 	const router = useRouter();
@@ -93,6 +95,42 @@ const SingleProperty = ({ property }: { property: Property }) => {
 	};
 
 	const isMobile = useIsMobile();
+
+	const getProperty = useQuery({
+		queryKey: ["property-by-id", property.id],
+		queryFn: async () => {
+			try {
+				const response = await apiService.get(
+					`/properties/${property.id}`
+				);
+				return response;
+			} catch (error) {
+				let errorMessage = "";
+				if (isAxiosError(error)) {
+					errorMessage = error.response
+						? error.response.data.message
+						: error.message;
+				} else if (error instanceof Error) {
+					errorMessage = error.message;
+				}
+				toast.error(errorMessage, {
+					closeOnClick: true,
+					progress: undefined,
+				});
+				throw new Error(errorMessage);
+			}
+		},
+	});
+
+	const [reservedDates, setReservedDates] = useState<
+		{ checkIn: string; checkOut: string }[]
+	>([]);
+
+	useEffect(() => {
+		if (getProperty.data) {
+			setReservedDates(getProperty.data?.data?.unavailableDates);
+		}
+	}, [reservedDates, setReservedDates, getProperty.data]);
 
 	return (
 		<section className="mt-[160px] lg:mt-[110px]">
@@ -220,8 +258,40 @@ const SingleProperty = ({ property }: { property: Property }) => {
 														dayjs(date).startOf(
 															"day"
 														);
-													return selectedDate.isBefore(
-														today
+
+													if (getProperty.isPending) {
+														return true;
+													}
+													if (
+														selectedDate.isBefore(
+															today
+														)
+													) {
+														return true;
+													}
+													return reservedDates.some(
+														(range) => {
+															const start = dayjs(
+																range.checkIn
+															).startOf("day");
+															const end = dayjs(
+																range.checkOut
+															).startOf("day");
+															return (
+																selectedDate.isSame(
+																	start
+																) ||
+																selectedDate.isSame(
+																	end
+																) ||
+																(selectedDate.isAfter(
+																	start
+																) &&
+																	selectedDate.isBefore(
+																		end
+																	))
+															);
+														}
 													);
 												}}
 												onSelect={(dateRange) => {

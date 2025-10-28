@@ -64,3 +64,6 @@ export const getBase64ImageFromUrl = async (url: string): Promise<string> => {
 		reader.readAsDataURL(blob);
 	});
 };
+
+
+export const AUTH_OTP_TIME = 240

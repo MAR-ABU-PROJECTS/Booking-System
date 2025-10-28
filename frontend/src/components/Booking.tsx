@@ -37,9 +37,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		status: undefined,
 		paymentStatus: undefined,
 		baseAmount: 0,
-		cleaningFee: 0,
 		cautionFee: 0,
-		taxes: 0,
 		discount: 0,
 		total: 0,
 		paidAmount: 0,
@@ -232,13 +230,13 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			<Navbar />
 			<FormProvider {...form}>
 				<div className="bg-[#F1F1F1]">
-					<div className="mx-auto max-w-5xl px-[20px] lg:px-12 pt-[100px]">
+					<div className="mx-auto max-w-4xl px-[20px] lg:px-12 pt-[100px]">
 						<BookingStep activeStep={step} />
 					</div>
 
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="mx-auto max-w-5xl px-[20px] lg:px-12 pt-[20px] pb-[30px]"
+						className="mx-auto max-w-4xl px-[20px] lg:px-12 pt-[20px] pb-[30px]"
 					>
 						<div className="mb-4">
 							{step != 1 && (
@@ -254,7 +252,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 						</div>
 
 						{step === 1 && (
-							<BookingForm isSubmitting={mutation.isPending} />
+							<BookingForm isSubmitting={mutation.isPending} id={propertyId} />
 						)}
 
 						{step === 2 && (

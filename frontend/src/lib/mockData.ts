@@ -15,7 +15,7 @@ export const properties: Property[] = [
 			"Private Access",
 		],
 		bed: 2,
-		baths: 3,
+		baths: 2,
 		roomStatus: "AVAILABLE",
 		price: 200000,
 		images: [
@@ -137,7 +137,7 @@ export const properties: Property[] = [
 			"/apartment-images/obudu/IMG_3647.jpeg",
 		],
 		bed: 2,
-		baths: 3,
+		baths: 2,
 		guests: 6,
 		roomStatus: "LIMITED",
 		specials: [
@@ -170,7 +170,6 @@ export const properties: Property[] = [
 			"Netflix and dstv",
 			"Aquarium",
 			"Dining area",
-			"Free parking Swimming pool",
 		],
 		price: 160000,
 		rating: 4.9,
@@ -193,7 +192,7 @@ export const properties: Property[] = [
 			"/apartment-images/zircon/IMG_5268.jpeg",
 		],
 		bed: 4,
-		baths: 5,
+		baths: 4,
 		guests: 10,
 		roomStatus: "AVAILABLE",
 		specials: [
@@ -205,7 +204,6 @@ export const properties: Property[] = [
 			"Stay fresh with an in-unit washing machine",
 			"Explore the underwater world from the comfort of your stay &ndash; on-site aquarium included",
 			"Dine in style with a spacious and elegant dining area",
-			"Make a splash in the swimming pool with free on-site parking for your convenience",
 		],
 	},
 ];

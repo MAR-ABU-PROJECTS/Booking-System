@@ -33,12 +33,23 @@ import advancedFormat from "dayjs/plugin/advancedFormat";
 dayjs.extend(advancedFormat);
 
 const UsersManagement = () => {
+	const [pagination, setPagination] = useState<PaginationState>({
+		pageIndex: 0,
+		pageSize: 10,
+	});
 	const [open, setOpen] = useState(false);
 	const queryClient = useQueryClient();
+
 	const getUsers = useQuery({
-		queryKey: ["admin-users"],
+		queryKey: ["admin-users", { pagination }],
+			 
 		queryFn: async () => {
-			const response = await apiService.get(`/admin/users`);
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const params: Record<string, any> = {
+				page: pagination.pageIndex + 1,
+				limit: pagination.pageSize,
+			};
+			const response = await apiService.get(`/admin/users`, { params });
 			return response;
 		},
 	});
@@ -57,14 +68,10 @@ const UsersManagement = () => {
 		}
 	}, [getUsers.error]);
 
-	const [pagination, setPagination] = useState<PaginationState>({
-		pageIndex: 0,
-		pageSize: 10,
-	});
-
 	const [selectedUser, setSelectedUser] = useState({
 		id: "",
 		name: "",
+		email: "",
 	});
 
 	useEffect(() => {
@@ -72,14 +79,16 @@ const UsersManagement = () => {
 			setSelectedUser({
 				id: "",
 				name: "",
+				email: "",
 			});
 		}
 	}, [open]);
 
-	const handldeTrashMenuClick = (id: string, name: string) => {
+	const handldeTrashMenuClick = (id: string, name: string, email: string) => {
 		setSelectedUser({
 			id,
 			name,
+			email,
 		});
 		setOpen(true);
 	};
@@ -91,21 +100,6 @@ const UsersManagement = () => {
 	};
 
 	const columns: ColumnDef<Users>[] = [
-		{
-			id: "firstName",
-			header: "Name",
-			cell: ({ row }) => {
-				const user = row.original;
-				return (
-					<div className="flex items-center">
-						<p>
-							{user.firstName} {user.lastName}
-						</p>
-					</div>
-				);
-			},
-		},
-
 		{
 			accessorKey: "email",
 			header: "Email",
@@ -190,7 +184,8 @@ const UsersManagement = () => {
 									onClick={() =>
 										handldeTrashMenuClick(
 											user.id,
-											`${user.firstName} ${user.lastName}`
+											`${user.firstName} ${user.lastName}`,
+											user.email
 										)
 									}
 								>
@@ -215,6 +210,15 @@ const UsersManagement = () => {
 			});
 			setOpen(false);
 			toast.success(`${data.message}`, { progress: undefined });
+		},
+		onError: (error) => {
+			if (isAxiosError(error)) {
+				toast.error(error.response?.data.message as string, {
+					progress: undefined,
+				});
+			} else {
+				toast.error(error.message as string, { progress: undefined });
+			}
 		},
 	});
 
@@ -251,7 +255,7 @@ const UsersManagement = () => {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete User</AlertDialogTitle>
 						<AlertDialogDescription className="text-[15px]">
-							Are you sure you want to delete {selectedUser.name}{" "}
+							Are you sure you want to delete {selectedUser.email}{" "}
 							?
 						</AlertDialogDescription>
 
