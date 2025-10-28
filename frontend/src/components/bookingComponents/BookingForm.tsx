@@ -20,16 +20,55 @@ import { Controller, useFormContext } from "react-hook-form";
 import { createBookingSchema } from "@lib/schemas";
 import { z } from "zod";
 import GuestCounterTwo from "@components/GuestCounterTwo";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
+import { useQuery } from "@tanstack/react-query";
+import { apiService } from "@lib/apiService";
+import { isAxiosError } from "axios";
+import { toast } from "react-toastify";
 
 type Props = {
 	isSubmitting: boolean;
+	id: string;
 };
-const BookingForm = ({ isSubmitting }: Props) => {
+const BookingForm = ({ isSubmitting, id }: Props) => {
 	const { control } = useFormContext<z.infer<typeof createBookingSchema>>();
 	const [open, setOpen] = useState(false);
 	const [openSec, setOpenSec] = useState(false);
+
+	const getProperty = useQuery({
+		queryKey: ["property-by-id", { id }],
+		queryFn: async () => {
+			try {
+				const response = await apiService.get(`/properties/${id}`);
+				return response;
+			} catch (error) {
+				let errorMessage = "";
+				if (isAxiosError(error)) {
+					errorMessage = error.response
+						? error.response.data.message
+						: error.message;
+				} else if (error instanceof Error) {
+					errorMessage = error.message;
+				}
+				toast.error(errorMessage, {
+					closeOnClick: true,
+					progress: undefined,
+				});
+				throw new Error(errorMessage);
+			}
+		},
+	});
+
+	const [reservedDates, setReservedDates] = useState<
+		{ checkIn: string; checkOut: string }[]
+	>([]);
+
+	useEffect(() => {
+		if (getProperty.data) {
+			setReservedDates(getProperty.data?.data?.unavailableDates);
+		}
+	}, [reservedDates, setReservedDates, getProperty.data]);
 
 	return (
 		<div className="flex flex-col w-full py-[40px] px-[20px] bg-white rounded-xl border-2 border-[#f7d5b0] self-start">
@@ -56,7 +95,6 @@ const BookingForm = ({ isSubmitting }: Props) => {
 						<div className="flex w-full items-center gap-[10px]">
 							<Controller
 								control={control}
-								
 								name="checkIn"
 								render={({ field, fieldState }) => (
 									<div className="flex flex-col w-full gap-1">
@@ -99,8 +137,48 @@ const BookingForm = ({ isSubmitting }: Props) => {
 															dayjs(date).startOf(
 																"day"
 															);
-														return selectedDate.isBefore(
-															today
+														if (
+															getProperty.isPending
+														) {
+															return true;
+														}
+														if (
+															selectedDate.isBefore(
+																today
+															)
+														) {
+															return true;
+														}
+
+														return reservedDates.some(
+															(range) => {
+																const start =
+																	dayjs(
+																		range.checkIn
+																	).startOf(
+																		"day"
+																	);
+																const end =
+																	dayjs(
+																		range.checkOut
+																	).startOf(
+																		"day"
+																	);
+																return (
+																	selectedDate.isSame(
+																		start
+																	) ||
+																	selectedDate.isSame(
+																		end
+																	) ||
+																	(selectedDate.isAfter(
+																		start
+																	) &&
+																		selectedDate.isBefore(
+																			end
+																		))
+																);
+															}
 														);
 													}}
 													onSelect={(date) => {
@@ -163,8 +241,48 @@ const BookingForm = ({ isSubmitting }: Props) => {
 															dayjs(date).startOf(
 																"day"
 															);
-														return selectedDate.isBefore(
-															today
+														if (
+															getProperty.isPending
+														) {
+															return true;
+														}
+														if (
+															selectedDate.isBefore(
+																today
+															)
+														) {
+															return true;
+														}
+
+														return reservedDates.some(
+															(range) => {
+																const start =
+																	dayjs(
+																		range.checkIn
+																	).startOf(
+																		"day"
+																	);
+																const end =
+																	dayjs(
+																		range.checkOut
+																	).startOf(
+																		"day"
+																	);
+																return (
+																	selectedDate.isSame(
+																		start
+																	) ||
+																	selectedDate.isSame(
+																		end
+																	) ||
+																	(selectedDate.isAfter(
+																		start
+																	) &&
+																		selectedDate.isBefore(
+																			end
+																		))
+																);
+															}
 														);
 													}}
 													onSelect={(date) => {

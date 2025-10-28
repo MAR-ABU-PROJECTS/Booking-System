@@ -252,7 +252,7 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 						</div>
 
 						{step === 1 && (
-							<BookingForm isSubmitting={mutation.isPending} />
+							<BookingForm isSubmitting={mutation.isPending} id={propertyId} />
 						)}
 
 						{step === 2 && (
