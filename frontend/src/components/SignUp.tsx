@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useMutation } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
@@ -12,21 +12,15 @@ import { useRouter } from "next/navigation";
 import { setUser } from "@lib/features/authSlice";
 import EmailStep from "./EmailStep";
 import OtpStep from "./OtpStep";
+import useCountdownTimer from "@hooks/use-countdown-timer";
+import { AUTH_OTP_TIME } from "@lib/utils";
 
 const SignUp = () => {
 	const dispatch = useDispatch();
 	const router = useRouter();
 	const [step, setStep] = useState<"email" | "otp">("email");
 	const [email, setEmail] = useState("");
-	const [timer, setTimer] = useState(240);
-
-	useEffect(() => {
-		if (timer <= 0) return;
-		const interval = setInterval(() => {
-			setTimer((prev) => prev - 1);
-		}, 1000);
-		return () => clearInterval(interval);
-	}, [timer]);
+	const { resetTimer, timeLeft, isRunning } = useCountdownTimer(AUTH_OTP_TIME);
 
 	const handleNext = () => {
 		setStep("otp");
@@ -53,9 +47,9 @@ const SignUp = () => {
 				setEmail(variable);
 				if (step === "email") {
 					handleNext();
-					setTimer(240);
+					resetTimer();
 				} else {
-					setTimer(240);
+					resetTimer();
 				}
 			} else {
 				const message = res?.message as string;
@@ -152,9 +146,9 @@ const SignUp = () => {
 	};
 
 	const handleResendOtp = async () => {
-    await mutateEmail(email)
-  }
-	
+		await mutateEmail(email);
+	};
+
 	return (
 		<div className="w-full max-w-2xl mx-auto pt-8 pb-6">
 			<div className="mt-10 sm:mt-20 mb-10">
@@ -181,7 +175,8 @@ const SignUp = () => {
 							onSubmit={mutateOtp}
 							isLoading={OtpMutation.isPending}
 							onResend={handleResendOtp}
-							timer={timer}
+							timer={timeLeft}
+							isRunning={isRunning}
 						/>
 					)}
 				</AnimatePresence>

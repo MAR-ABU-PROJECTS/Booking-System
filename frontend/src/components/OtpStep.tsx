@@ -13,9 +13,16 @@ type props = {
 	isLoading: boolean;
 	timer: number;
 	onResend: () => void;
+	isRunning: boolean;
 };
 
-const OtpStep = ({ isLoading, onSubmit, timer, onResend }: props) => {
+const OtpStep = ({
+	isLoading,
+	onSubmit,
+	timer,
+	onResend,
+	isRunning,
+}: props) => {
 	const form = useForm<z.infer<typeof AuthOtpSchema>>({
 		resolver: zodResolver(AuthOtpSchema),
 		defaultValues: {
@@ -28,7 +35,7 @@ const OtpStep = ({ isLoading, onSubmit, timer, onResend }: props) => {
 		await onSubmit(data.otp);
 	};
 
-	const isResendDisabled = timer > 0 || isLoading;
+	const isResendDisabled = isRunning || isLoading;
 	return (
 		<motion.div
 			initial={{ opacity: 0, x: 40 }}

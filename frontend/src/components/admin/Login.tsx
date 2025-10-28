@@ -10,21 +10,15 @@ import { setUser } from "@lib/features/authSlice";
 import { AnimatePresence } from "framer-motion";
 import EmailStep from "@components/EmailStep";
 import OtpStep from "@components/OtpStep";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useCountdownTimer from "@hooks/use-countdown-timer";
+import { AUTH_OTP_TIME } from "@lib/utils";
 
 const AdminLogIn = () => {
 	const [step, setStep] = useState<"email" | "otp">("email");
 	const [email, setEmail] = useState("");
-	const [timer, setTimer] = useState(240);
-
-	useEffect(() => {
-		if (timer <= 0) return;
-		const interval = setInterval(() => {
-			setTimer((prev) => prev - 1);
-		}, 1000);
-		return () => clearInterval(interval);
-	}, [timer]);
-
+	const { resetTimer, timeLeft, isRunning } =
+		useCountdownTimer(AUTH_OTP_TIME);
 
 	const handleNext = () => {
 		setStep("otp");
@@ -34,10 +28,13 @@ const AdminLogIn = () => {
 
 	const verifyEmailMutation = useMutation({
 		mutationFn: async (email: string) => {
-			const response = await apiService.post("/auth/request-otp?interface=admin", {
-				email: email,
-				purpose: "login",
-			});
+			const response = await apiService.post(
+				"/auth/request-otp?interface=admin",
+				{
+					email: email,
+					purpose: "login",
+				}
+			);
 			return response;
 		},
 		onSuccess: async (res, variable) => {
@@ -50,9 +47,9 @@ const AdminLogIn = () => {
 				setEmail(variable);
 				if (step === "email") {
 					handleNext();
-					setTimer(240);
+					resetTimer();
 				} else {
-					setTimer(240);
+					resetTimer();
 				}
 			} else {
 				const message = res?.message as string;
@@ -158,8 +155,9 @@ const AdminLogIn = () => {
 		OtpMutation.mutate(otp);
 	};
 	const handleResendOtp = async () => {
-    await mutateEmail(email)
-  }
+		await mutateEmail(email);
+	};
+	
 	return (
 		<div className="flex justify-center items-start h-svh bg-[#FDF7F1]">
 			<div className="w-full max-w-xl mx-auto px-4 pt-14">
@@ -194,7 +192,8 @@ const AdminLogIn = () => {
 							<OtpStep
 								onSubmit={mutateOtp}
 								isLoading={OtpMutation.isPending}
-								timer={timer}
+								timer={timeLeft}
+								isRunning={isRunning}
 								onResend={handleResendOtp}
 							/>
 						)}
