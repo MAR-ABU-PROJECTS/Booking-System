@@ -860,16 +860,77 @@ router.post("/:id/reject-manual", (0, authservice_1.requireAuth)(), async (req, 
  * @swagger
  * /payment/pending-verification:
  *   get:
- *     summary: Get all payments pending manual verification
+ *     summary: Get all payments pending manual verification with pagination and booking date filtering
  *     description: |
  *       Admin endpoint to retrieve all payments that have uploaded receipts and are pending verification.
- *       Returns payment details, booking information, customer details, and property information.
+ *       Supports pagination, booking code filtering, and filtering by guest stay dates (check-in/check-out dates).
+ *       This allows admins to see pending payments organized by when guests will actually stay at properties.
+ *       Returns payment details, booking information with stay dates, customer details, and property information.
  *       Only accessible by admin users.
  *     tags:
  *       - Manual Payments
  *       - Admin
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         description: Page number (starts from 1)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *           example: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         description: Number of results per page (max 100)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *           example: 20
+ *       - in: query
+ *         name: bookingCode
+ *         required: false
+ *         description: Filter by booking code (partial match supported)
+ *         schema:
+ *           type: string
+ *           example: "MAB-2024-001"
+ *       - in: query
+ *         name: checkInFrom
+ *         required: false
+ *         description: Filter by guest check-in date from this date - shows payments for bookings where guests check in from this date onwards (YYYY-MM-DD)
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-12-01"
+ *       - in: query
+ *         name: checkInTo
+ *         required: false
+ *         description: Filter by guest check-in date up to this date - shows payments for bookings where guests check in up to this date (YYYY-MM-DD)
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-12-31"
+ *       - in: query
+ *         name: checkOutFrom
+ *         required: false
+ *         description: Filter by guest check-out date from this date - shows payments for bookings where guests check out from this date onwards (YYYY-MM-DD)
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-12-05"
+ *       - in: query
+ *         name: checkOutTo
+ *         required: false
+ *         description: Filter by guest check-out date up to this date - shows payments for bookings where guests check out up to this date (YYYY-MM-DD)
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2025-01-15"
  *     responses:
  *       200:
  *         description: Pending payments retrieved successfully
@@ -967,7 +1028,78 @@ router.post("/:id/reject-manual", (0, authservice_1.requireAuth)(), async (req, 
  *                                 example: "+234-801-234-5678"
  *                 count:
  *                   type: integer
+ *                   description: Number of records in current page
+ *                   example: 15
+ *                 totalCount:
+ *                   type: integer
+ *                   description: Total number of records matching the filter
+ *                   example: 45
+ *                 totalPages:
+ *                   type: integer
+ *                   description: Total number of pages available
+ *                   example: 3
+ *                 currentPage:
+ *                   type: integer
+ *                   description: Current page number
  *                   example: 1
+ *                 hasNextPage:
+ *                   type: boolean
+ *                   description: Whether there are more pages available
+ *                   example: true
+ *                 hasPreviousPage:
+ *                   type: boolean
+ *                   description: Whether there are previous pages available
+ *                   example: false
+ *                 pagination:
+ *                   type: object
+ *                   description: Detailed pagination information
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 20
+ *                     totalCount:
+ *                       type: integer
+ *                       example: 45
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 3
+ *                     hasNextPage:
+ *                       type: boolean
+ *                       example: true
+ *                     hasPreviousPage:
+ *                       type: boolean
+ *                       example: false
+ *                 filters:
+ *                   type: object
+ *                   description: Applied filters
+ *                   properties:
+ *                     bookingCode:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "MAB-2024-001"
+ *                     checkInFrom:
+ *                       type: string
+ *                       format: date
+ *                       nullable: true
+ *                       example: "2024-12-01"
+ *                     checkInTo:
+ *                       type: string
+ *                       format: date
+ *                       nullable: true
+ *                       example: "2024-12-31"
+ *                     checkOutFrom:
+ *                       type: string
+ *                       format: date
+ *                       nullable: true
+ *                       example: "2024-12-05"
+ *                     checkOutTo:
+ *                       type: string
+ *                       format: date
+ *                       nullable: true
+ *                       example: "2025-01-15"
  *       403:
  *         description: Admin access required
  *         content:
@@ -1007,13 +1139,92 @@ router.get("/pending-verification", (0, authservice_1.requireAuth)(), async (req
                 message: "Admin access required",
             });
         }
-        const pendingPayments = await server_1.prisma.payment.findMany({
-            where: {
-                status: "PROCESSING",
-                receiptUrl: {
-                    not: null,
-                },
+        // Parse query parameters with defaults
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+        const bookingCode = req.query.bookingCode;
+        const checkInFrom = req.query.checkInFrom;
+        const checkInTo = req.query.checkInTo;
+        const checkOutFrom = req.query.checkOutFrom;
+        const checkOutTo = req.query.checkOutTo;
+        // Calculate pagination offset
+        const offset = (page - 1) * limit;
+        // Build where clause
+        const whereClause = {
+            status: "PROCESSING",
+            receiptUrl: {
+                not: null,
             },
+        };
+        // Add booking code and date filters if provided
+        if (bookingCode && bookingCode.trim()) {
+            whereClause.booking = {
+                bookingCode: {
+                    contains: bookingCode.trim(),
+                    mode: "insensitive", // Case-insensitive search
+                },
+            };
+        }
+        // Add date filters for booking dates
+        const bookingFilters = {};
+        // Check-in date range filter
+        if (checkInFrom || checkInTo) {
+            bookingFilters.checkInDate = {};
+            if (checkInFrom) {
+                const fromDate = new Date(checkInFrom);
+                if (!isNaN(fromDate.getTime())) {
+                    bookingFilters.checkInDate.gte = fromDate;
+                }
+            }
+            if (checkInTo) {
+                const toDate = new Date(checkInTo);
+                if (!isNaN(toDate.getTime())) {
+                    // Set to end of day
+                    toDate.setHours(23, 59, 59, 999);
+                    bookingFilters.checkInDate.lte = toDate;
+                }
+            }
+        }
+        // Check-out date range filter
+        if (checkOutFrom || checkOutTo) {
+            bookingFilters.checkOutDate = {};
+            if (checkOutFrom) {
+                const fromDate = new Date(checkOutFrom);
+                if (!isNaN(fromDate.getTime())) {
+                    bookingFilters.checkOutDate.gte = fromDate;
+                }
+            }
+            if (checkOutTo) {
+                const toDate = new Date(checkOutTo);
+                if (!isNaN(toDate.getTime())) {
+                    // Set to end of day
+                    toDate.setHours(23, 59, 59, 999);
+                    bookingFilters.checkOutDate.lte = toDate;
+                }
+            }
+        }
+        // Merge booking filters with existing booking filter
+        if (Object.keys(bookingFilters).length > 0) {
+            if (whereClause.booking) {
+                whereClause.booking = {
+                    AND: [whereClause.booking, bookingFilters],
+                };
+            }
+            else {
+                whereClause.booking = bookingFilters;
+            }
+        }
+        // Get total count for pagination info
+        const totalCount = await server_1.prisma.payment.count({
+            where: whereClause,
+        });
+        // Calculate pagination info
+        const totalPages = Math.ceil(totalCount / limit);
+        const hasNextPage = page < totalPages;
+        const hasPreviousPage = page > 1;
+        // Fetch paginated payments
+        const pendingPayments = await server_1.prisma.payment.findMany({
+            where: whereClause,
             include: {
                 booking: {
                     include: {
@@ -1037,12 +1248,34 @@ router.get("/pending-verification", (0, authservice_1.requireAuth)(), async (req
             orderBy: {
                 updatedAt: "desc",
             },
+            skip: offset,
+            take: limit,
         });
         res.json({
             success: true,
             message: "Pending payments retrieved successfully",
             data: pendingPayments,
             count: pendingPayments.length,
+            totalCount,
+            totalPages,
+            currentPage: page,
+            hasNextPage,
+            hasPreviousPage,
+            pagination: {
+                page,
+                limit,
+                totalCount,
+                totalPages,
+                hasNextPage,
+                hasPreviousPage,
+            },
+            filters: {
+                bookingCode: bookingCode || null,
+                checkInFrom: checkInFrom || null,
+                checkInTo: checkInTo || null,
+                checkOutFrom: checkOutFrom || null,
+                checkOutTo: checkOutTo || null,
+            },
         });
     }
     catch (error) {
