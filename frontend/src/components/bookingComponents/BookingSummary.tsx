@@ -47,10 +47,9 @@ const BookingSummary = ({
 		: "";
 	const ratePerNight = summaryData.baseAmount;
 	const subtotal = ratePerNight * nights;
-	const cleaningFee = summaryData.cleaningFee;
 	const cautionFee = summaryData.cautionFee;
-	const taxes = summaryData.taxes;
-	const totalAmount = subtotal + cleaningFee + cautionFee + taxes;
+
+	const totalAmount = subtotal + cautionFee;
 	const location = booking.location;
 	const images = getPropertyImages(propertyId);
 
@@ -312,7 +311,7 @@ const BookingSummary = ({
 				<div className="flex justify-between items-center">
 					<div>
 						<p className="text-[14px] text-[#667085]">
-							Caution Fee (5%):
+							Caution Fee:
 						</p>
 					</div>
 					<div>
@@ -323,31 +322,9 @@ const BookingSummary = ({
 					</div>
 				</div>
 
-				<div className="flex justify-between items-center">
-					<div>
-						<p className="text-[14px] text-[#667085]">
-							Cleaning Fee:
-						</p>
-					</div>
-					<div>
-						<p className="text-[14px] font-[500]">
-							{" "}
-							{formatCurrency(cleaningFee)}
-						</p>
-					</div>
-				</div>
+				
 
-				<div className="flex justify-between items-center">
-					<div>
-						<p className="text-[14px] text-[#667085]">Taxes:</p>
-					</div>
-					<div>
-						<p className="text-[14px] font-[500]">
-							{" "}
-							{formatCurrency(taxes)}
-						</p>
-					</div>
-				</div>
+				
 
 				<div className="flex justify-between items-center">
 					<div>

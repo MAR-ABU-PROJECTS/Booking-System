@@ -26,10 +26,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@components/ui/select";
-import { Label } from "@components/ui/label";
 import { DataTableSkeleton } from "@components/ui/data-table-skeleton";
 import { formatCurrency } from "@lib/utils";
-import { Loader2 } from "lucide-react";
+import { CalendarMinus2, Copy, Loader2 } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
 	AlertDialog,
@@ -38,6 +37,13 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@components/ui/alert-dialog";
+import { DateRange } from "react-day-picker";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@components/ui/popover";
+import { Calendar } from "@components/ui/calendar";
 dayjs.extend(advancedFormat);
 
 const Bookings = () => {
@@ -49,10 +55,14 @@ const Bookings = () => {
 		paymentStatus?: PaymentStatus;
 		bookingStatus?: BookingStatus;
 		propertyID?: string;
+		dateFrom?: string;
+		dateTo?: string;
 	}>({
 		paymentStatus: undefined,
 		bookingStatus: undefined,
 		propertyID: undefined,
+		dateFrom: undefined,
+		dateTo: undefined,
 	});
 
 	const getBookings = useQuery({
@@ -68,6 +78,8 @@ const Bookings = () => {
 			if (paymentStatus) params.paymentStatus = paymentStatus;
 			if (bookingStatus) params.status = bookingStatus;
 			if (propertyID) params.propertyId = propertyID;
+			if (filter.dateFrom) params.checkInFrom = filter.dateFrom;
+			if (filter.dateTo) params.checkInTo = filter.dateTo;
 
 			const response = await apiService.get(`/admin/bookings`, {
 				params,
@@ -90,6 +102,25 @@ const Bookings = () => {
 	const [confirm, setConfirm] = useState(false);
 	const [selectedId, setSelectedId] = useState("");
 	const [reason, setReason] = useState("");
+
+	const handleCopy = async (text: string) => {
+		try {
+			await navigator.clipboard.writeText(text);
+			toast.success("Booking Code copied!.", {
+				closeOnClick: true,
+				progress: undefined,
+			});
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} catch (error: any) {
+			toast.error(
+				`failed to copy!: ${error?.message ?? "unknown error"}`,
+				{
+					closeOnClick: true,
+					progress: undefined,
+				}
+			);
+		}
+	};
 
 	const columns: ColumnDef<Booking>[] = [
 		{
@@ -153,18 +184,18 @@ const Bookings = () => {
 		{
 			accessorKey: "bookingCode",
 			header: "Booking Code",
-		},
-
-		{
-			accessorKey: "createdAt",
-			header: "Created At",
 			cell: ({ row }) => {
-				const date = row.original.createdAt;
-				const formattedDate = dayjs(date).format("Do MMM YYYY");
+				const bookingCode = row.original.bookingCode;
 				return (
-					<span className={`py-1 rounded-full text-sm font-medium`}>
-						{formattedDate}
-					</span>
+					<div className="flex items-center">
+						<h3>{bookingCode}</h3>{" "}
+						<button
+							className="outline-none ml-2"
+							onClick={() => handleCopy(bookingCode)}
+						>
+							<Copy className="size-4 !cursor-pointer" />
+						</button>
+					</div>
 				);
 			},
 		},
@@ -184,6 +215,38 @@ const Bookings = () => {
 				);
 			},
 		},
+		{
+			accessorKey: "paymentStatus",
+			header: "Payment Status",
+			cell: ({ row }) => {
+				const status = row.original.paymentStatus;
+				return (
+					<span
+						className={`px-3 py-1 rounded-full text-sm font-medium ${
+							paymentStatusColors[status] ??
+							"bg-gray-100 text-gray-800"
+						}`}
+					>
+						{status.replace("_", " ")}
+					</span>
+				);
+			},
+		},
+
+		{
+			accessorKey: "createdAt",
+			header: "Created At",
+			cell: ({ row }) => {
+				const date = row.original.createdAt;
+				const formattedDate = dayjs(date).format("Do MMM YYYY");
+				return (
+					<span className={`py-1 rounded-full text-sm font-medium`}>
+						{formattedDate}
+					</span>
+				);
+			},
+		},
+
 		{
 			id: "checkDate",
 			header: "Check In - Out Date",
@@ -220,23 +283,7 @@ const Bookings = () => {
 				return <div>{formatCurrency(totalAmount)}</div>;
 			},
 		},
-		{
-			accessorKey: "paymentStatus",
-			header: "Payment Status",
-			cell: ({ row }) => {
-				const status = row.original.paymentStatus;
-				return (
-					<span
-						className={`px-3 py-1 rounded-full text-sm font-medium ${
-							paymentStatusColors[status] ??
-							"bg-gray-100 text-gray-800"
-						}`}
-					>
-						{status.replace("_", " ")}
-					</span>
-				);
-			},
-		},
+
 		{
 			id: "action",
 			cell: ({ row }) => {
@@ -254,6 +301,9 @@ const Bookings = () => {
 			},
 		},
 	];
+
+
+
 
 	useEffect(() => {
 		if (!confirm) {
@@ -328,13 +378,80 @@ const Bookings = () => {
 			return response;
 		},
 	});
+	const [uiDateRange, setUiDateRange] = useState<DateRange | undefined>(
+		undefined
+	);
+	const [open, setOpen] = useState(false);
+
+	const handleDateChange = (range: DateRange | undefined) => {
+		setUiDateRange(range);
+
+		if (range?.from && range?.to) {
+			setFilter((prev) => ({
+				...prev,
+				dateFrom: dayjs(range.from).format("YYYY-MM-DD"),
+				dateTo: dayjs(range.to).format("YYYY-MM-DD"),
+			}));
+		} else {
+			setFilter((prev) => ({
+				...prev,
+				dateFrom: undefined,
+				dateTo: undefined,
+			}));
+		}
+	};
 
 	return (
 		<div>
 			<div className="flex gap-5 mb-6 flex-wrap items-center">
 				<h1>Filter:</h1>
 				<div className="flex flex-col gap-1">
-					<Label>Property</Label>
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Date
+					</label>
+					<Popover open={open} onOpenChange={setOpen}>
+						<PopoverTrigger asChild>
+							<button
+								className="border-[#f7d5b0] bg-background rounded-md w-full min-w-[150px] justify-between text-[14px] font-normal border-2 flex text-muted-foreground px-2 py-1.5 outline-none"
+								disabled={getBookings.isPending}
+							>
+								{uiDateRange?.from && uiDateRange?.to ? (
+									<p>
+										<span className="text-black">
+											{dayjs(uiDateRange.from).format(
+												"MMM D, YYYY"
+											)}{" "}
+											-{" "}
+											{dayjs(uiDateRange.to).format(
+												"MMM D, YYYY"
+											)}
+										</span>
+									</p>
+								) : (
+									<p>Filter Date</p>
+								)}
+								<CalendarMinus2 className="size-5" />
+							</button>
+						</PopoverTrigger>
+						<PopoverContent
+							className="w-auto overflow-hidden p-0"
+							align="start"
+						>
+							<Calendar
+								mode="range"
+								numberOfMonths={1}
+								captionLayout="dropdown"
+								selected={uiDateRange}
+								onSelect={handleDateChange}
+							/>
+						</PopoverContent>
+					</Popover>
+				</div>
+				<div className="flex flex-col gap-1">
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Property
+					</label>
+
 					<Select
 						onValueChange={(value) =>
 							setFilter((prev) => ({
@@ -376,7 +493,9 @@ const Bookings = () => {
 				</div>
 
 				<div className="flex flex-col gap-1">
-					<Label>Booking Status</Label>
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Booking Status
+					</label>
 					<Select
 						value={filter.bookingStatus ?? ""}
 						onValueChange={(value) =>
@@ -406,7 +525,9 @@ const Bookings = () => {
 					</Select>
 				</div>
 				<div className="flex flex-col gap-1">
-					<Label>Payment Status</Label>
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Payment Status
+					</label>
 					<Select
 						value={filter.paymentStatus ?? ""}
 						onValueChange={(value) =>

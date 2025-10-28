@@ -36,6 +36,14 @@ export const Routes: Paths = {
 			dynamic: true,
 		},
 	},
+	"audit-logs": {
+		"audit-logs": {
+			name: "Audit Logs",
+			href: "/audit-logs",
+			desc: "View and track system activities",
+			dynamic: true,
+		},
+	},
 };
 type Routes = Record<
 	string,
