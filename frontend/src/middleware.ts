@@ -4,8 +4,6 @@ import { cookies } from "next/headers";
 import { SessionData, sessionOptions } from "@lib/session";
 
 export async function middleware(request: NextRequest) {
-	const headers = new Headers(request.headers);
-	headers.set("x-current-path", request.nextUrl.pathname);
 	const session = await getIronSession<SessionData>(
 		await cookies(),
 		sessionOptions
@@ -15,7 +13,7 @@ export async function middleware(request: NextRequest) {
 		return NextResponse.redirect(new URL("/log-in", request.url));
 	}
 
-	return NextResponse.next({ headers });
+	return NextResponse.next();
 }
 
 export const config = {
