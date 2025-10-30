@@ -320,7 +320,7 @@ class AuthService {
             role: user.role,
         };
         const accessToken = jwt.sign(payload, this.JWT_SECRET, {
-            expiresIn: "1h",
+            expiresIn: "24h", // Extended to 24 hours - you can also use "8h", "12h", etc.
         });
         const refreshToken = jwt.sign(payload, this.JWT_REFRESH_SECRET, {
             expiresIn: "7d",
