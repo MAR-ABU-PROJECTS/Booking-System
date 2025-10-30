@@ -9,7 +9,7 @@ import { useState } from "react";
 import { DataTable } from "./DataTable";
 import { Button } from "@components/ui/button";
 import Link from "next/link";
-import { Edit, Eye, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import { formatCurrency } from "@lib/utils";
 import {
 	DropdownMenu,
@@ -34,9 +34,14 @@ const Properties = () => {
 		pageSize: 10,
 	});
 	const getProperties = useQuery({
-		queryKey: ["admin-properties"],
+		queryKey: ["admin-properties", {pagination}],
 		queryFn: async () => {
-			const response = await apiService.get(`/admin/properties`);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const params: Record<string, any> = {
+				page: pagination.pageIndex + 1,
+				limit: pagination.pageSize,
+			};
+			const response = await apiService.get(`/admin/properties`, {params});
 			return response;
 		},
 	});
@@ -226,14 +231,14 @@ const Properties = () => {
 	return (
 		<div>
 			<div className="flex items-center justify-end mb-6">
-				<Button asChild>
+				{/* <Button asChild>
 					<Link
 						href={"/admin-properties/add-property"}
 						className="text-base font-semibold"
 					>
 						<Plus /> Add Property
 					</Link>
-				</Button>
+				</Button> */}
 			</div>
 
 			<QueryStateHandler
