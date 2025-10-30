@@ -57,12 +57,17 @@ const Bookings = () => {
 		propertyID?: string;
 		dateFrom?: string;
 		dateTo?: string;
+		outFrom?: string;
+		outTo?: string;
+
 	}>({
 		paymentStatus: undefined,
 		bookingStatus: undefined,
 		propertyID: undefined,
 		dateFrom: undefined,
 		dateTo: undefined,
+		outFrom: undefined,
+		outTo: undefined,
 	});
 
 	const getBookings = useQuery({
@@ -80,6 +85,8 @@ const Bookings = () => {
 			if (propertyID) params.propertyId = propertyID;
 			if (filter.dateFrom) params.checkInFrom = filter.dateFrom;
 			if (filter.dateTo) params.checkInTo = filter.dateTo;
+			if (filter.outFrom) params.checkOutFrom = filter.outFrom;
+			if (filter.outTo) params.checkOutTo = filter.outTo;
 
 			const response = await apiService.get(`/admin/bookings`, {
 				params,
@@ -381,7 +388,11 @@ const Bookings = () => {
 	const [uiDateRange, setUiDateRange] = useState<DateRange | undefined>(
 		undefined
 	);
+	const [uiDateRangeTo, setUiDateRangeTo] = useState<DateRange | undefined>(
+		undefined
+	);
 	const [open, setOpen] = useState(false);
+	const [openTo, setOpenTo] = useState(false);
 
 	const handleDateChange = (range: DateRange | undefined) => {
 		setUiDateRange(range);
@@ -401,13 +412,32 @@ const Bookings = () => {
 		}
 	};
 
+	
+	const handleDateChangeTo = (range: DateRange | undefined) => {
+		setUiDateRangeTo(range);
+
+		if (range?.from && range?.to) {
+			setFilter((prev) => ({
+				...prev,
+				outFrom: dayjs(range.from).format("YYYY-MM-DD"),
+				outTo: dayjs(range.to).format("YYYY-MM-DD"),
+			}));
+		} else {
+			setFilter((prev) => ({
+				...prev,
+				outFrom: undefined,
+				outTo: undefined,
+			}));
+		}
+	};
+
 	return (
 		<div>
 			<div className="flex gap-5 mb-6 flex-wrap items-center">
 				<h1>Filter:</h1>
 				<div className="flex flex-col gap-1">
 					<label className="text-[15px] font-medium text-muted-foreground">
-						Date
+						Check In
 					</label>
 					<Popover open={open} onOpenChange={setOpen}>
 						<PopoverTrigger asChild>
@@ -443,6 +473,49 @@ const Bookings = () => {
 								captionLayout="dropdown"
 								selected={uiDateRange}
 								onSelect={handleDateChange}
+							/>
+						</PopoverContent>
+					</Popover>
+				</div>
+
+				<div className="flex flex-col gap-1">
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Check Out
+					</label>
+					<Popover open={openTo} onOpenChange={setOpenTo}>
+						<PopoverTrigger asChild>
+							<button
+								className="border-[#f7d5b0] bg-background rounded-md w-full min-w-[150px] justify-between text-[14px] font-normal border-2 flex text-muted-foreground px-2 py-1.5 outline-none"
+								disabled={getBookings.isPending}
+							>
+								{uiDateRangeTo?.from && uiDateRangeTo?.to ? (
+									<p>
+										<span className="text-black">
+											{dayjs(uiDateRangeTo.from).format(
+												"MMM D, YYYY"
+											)}{" "}
+											-{" "}
+											{dayjs(uiDateRangeTo.to).format(
+												"MMM D, YYYY"
+											)}
+										</span>
+									</p>
+								) : (
+									<p>Filter Date</p>
+								)}
+								<CalendarMinus2 className="size-5" />
+							</button>
+						</PopoverTrigger>
+						<PopoverContent
+							className="w-auto overflow-hidden p-0"
+							align="start"
+						>
+							<Calendar
+								mode="range"
+								numberOfMonths={1}
+								captionLayout="dropdown"
+								selected={uiDateRangeTo}
+								onSelect={handleDateChangeTo}
 							/>
 						</PopoverContent>
 					</Popover>

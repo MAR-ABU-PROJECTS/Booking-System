@@ -17,6 +17,14 @@ import { QueryStateHandler } from "@components/QueryStateHandler";
 import { paymentStatusColors } from "@components/PaymentStatus";
 import { Input } from "@components/ui/input";
 import useDebounce from "@hooks/use-debounce";
+import { DateRange } from "react-day-picker";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@components/ui/popover";
+import { CalendarMinus2 } from "lucide-react";
+import { Calendar } from "@components/ui/calendar";
 dayjs.extend(advancedFormat);
 
 const Payments = () => {
@@ -26,15 +34,34 @@ const Payments = () => {
 	});
 	const [code, setCode] = useState("");
 	const debouncedValue = useDebounce(code, 2000);
-	
+
+	const [filter, setFilter] = useState<{
+		dateFrom?: string;
+		dateTo?: string;
+		outFrom?: string;
+		outTo?: string;
+	}>({
+		dateFrom: undefined,
+		dateTo: undefined,
+		outFrom: undefined,
+		outTo: undefined,
+	});
+
 	const getPayments = useQuery({
-		queryKey: ["pending-verifications", { pagination , debouncedValue}],
+		queryKey: ["pending-verifications", { pagination, debouncedValue, ...filter }],
 		queryFn: async () => {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const params: Record<string, any> = {
 				page: pagination.pageIndex + 1,
 				limit: pagination.pageSize,
 			};
+			if (debouncedValue) {
+				params.bookingCode = debouncedValue;
+			}
+			if (filter.dateFrom) params.checkInFrom = filter.dateFrom;
+			if (filter.dateTo) params.checkInTo = filter.dateTo;
+			if (filter.outFrom) params.checkOutFrom = filter.outFrom;
+			if (filter.outTo) params.checkOutTo = filter.outTo;
 			try {
 				const response = await apiService.get(
 					"/payment/pending-verification",
@@ -61,7 +88,7 @@ const Payments = () => {
 		retry: true,
 	});
 
-	const [open, setOpen] = useState(false);
+	const [openModal, setOpenModal] = useState(false);
 
 	const [selectedReceipt, setSelectedReceipt] = useState({
 		receiptUrl: "",
@@ -138,7 +165,7 @@ const Payments = () => {
 									receiptUrl: payment.receiptUrl as string,
 									paymentId: payment.id,
 								});
-								setOpen(true);
+								setOpenModal(true);
 							}}
 						>
 							View Receipt
@@ -149,20 +176,154 @@ const Payments = () => {
 		},
 	];
 
+	const [uiDateRange, setUiDateRange] = useState<DateRange | undefined>(
+		undefined
+	);
+	const [uiDateRangeTo, setUiDateRangeTo] = useState<DateRange | undefined>(
+		undefined
+	);
+	const [open, setOpen] = useState(false);
+	const [openTo, setOpenTo] = useState(false);
+
+	const handleDateChange = (range: DateRange | undefined) => {
+		setUiDateRange(range);
+
+		if (range?.from && range?.to) {
+			setFilter((prev) => ({
+				...prev,
+				dateFrom: dayjs(range.from).format("YYYY-MM-DD"),
+				dateTo: dayjs(range.to).format("YYYY-MM-DD"),
+			}));
+		} else {
+			setFilter((prev) => ({
+				...prev,
+				dateFrom: undefined,
+				dateTo: undefined,
+			}));
+		}
+	};
+
+	const handleDateChangeTo = (range: DateRange | undefined) => {
+		setUiDateRangeTo(range);
+
+		if (range?.from && range?.to) {
+			setFilter((prev) => ({
+				...prev,
+				outFrom: dayjs(range.from).format("YYYY-MM-DD"),
+				outTo: dayjs(range.to).format("YYYY-MM-DD"),
+			}));
+		} else {
+			setFilter((prev) => ({
+				...prev,
+				outFrom: undefined,
+				outTo: undefined,
+			}));
+		}
+	};
+
 	return (
 		<div>
-			<div className="space-y-2 mb-4 w-full max-w-[300px]">
-				<label className="text-[15px] font-medium text-muted-foreground">
-					Search
-				</label>
-				<Input
-					className="bg-background rounded-md w-full min-w-[150px] justify-between text-[15px] font-normal border-2 border-[#f7d5b0]  flex text-muted-foreground px-2 py-1.5 outline-none"
-					disabled={getPayments.isPending}
-					placeholder="Enter / paste booking code"
-					value={code}
-					onChange={(e) => setCode(e.target.value)}
-				/>
+			<div className="flex gap-5 mb-6 flex-wrap items-center">
+				<div className=" w-full max-w-[300px]">
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Search
+					</label>
+					<Input
+						className="bg-background rounded-md w-full min-w-[150px] justify-between text-[15px] font-normal border-2 border-[#f7d5b0]  flex text-muted-foreground px-2 py-1.5 outline-none"
+						disabled={getPayments.isPending}
+						placeholder="Enter / paste booking code"
+						value={code}
+						onChange={(e) => setCode(e.target.value)}
+					/>
+				</div>
+
+				<div className="flex flex-col gap-1">
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Check In
+					</label>
+					<Popover open={open} onOpenChange={setOpen}>
+						<PopoverTrigger asChild>
+							<button
+								className="border-[#f7d5b0] bg-background rounded-md w-full min-w-[150px] justify-between text-[14px] font-normal border-2 flex text-muted-foreground px-2 py-1.5 outline-none"
+								disabled={getPayments.isPending}
+							>
+								{uiDateRange?.from && uiDateRange?.to ? (
+									<p>
+										<span className="text-black">
+											{dayjs(uiDateRange.from).format(
+												"MMM D, YYYY"
+											)}{" "}
+											-{" "}
+											{dayjs(uiDateRange.to).format(
+												"MMM D, YYYY"
+											)}
+										</span>
+									</p>
+								) : (
+									<p>Filter Date</p>
+								)}
+								<CalendarMinus2 className="size-5" />
+							</button>
+						</PopoverTrigger>
+						<PopoverContent
+							className="w-auto overflow-hidden p-0"
+							align="start"
+						>
+							<Calendar
+								mode="range"
+								numberOfMonths={1}
+								captionLayout="dropdown"
+								selected={uiDateRange}
+								onSelect={handleDateChange}
+							/>
+						</PopoverContent>
+					</Popover>
+				</div>
+
+				<div className="flex flex-col gap-1">
+					<label className="text-[15px] font-medium text-muted-foreground">
+						Check Out
+					</label>
+					<Popover open={openTo} onOpenChange={setOpenTo}>
+						<PopoverTrigger asChild>
+							<button
+								className="border-[#f7d5b0] bg-background rounded-md w-full min-w-[150px] justify-between text-[14px] font-normal border-2 flex text-muted-foreground px-2 py-1.5 outline-none"
+								disabled={getPayments.isPending}
+							>
+								{uiDateRangeTo?.from && uiDateRangeTo?.to ? (
+									<p>
+										<span className="text-black">
+											{dayjs(uiDateRangeTo.from).format(
+												"MMM D, YYYY"
+											)}{" "}
+											-{" "}
+											{dayjs(uiDateRangeTo.to).format(
+												"MMM D, YYYY"
+											)}
+										</span>
+									</p>
+								) : (
+									<p>Filter Date</p>
+								)}
+								<CalendarMinus2 className="size-5" />
+							</button>
+						</PopoverTrigger>
+						<PopoverContent
+							className="w-auto overflow-hidden p-0"
+							align="start"
+						>
+							<Calendar
+								mode="range"
+								numberOfMonths={1}
+								captionLayout="dropdown"
+								selected={uiDateRangeTo}
+								onSelect={handleDateChangeTo}
+							/>
+						</PopoverContent>
+					</Popover>
+				</div>
 			</div>
+
 			<QueryStateHandler
 				query={getPayments}
 				emptyMessage="No payment found"
@@ -195,8 +356,8 @@ const Payments = () => {
 			/>
 
 			<ReceiptModal
-				open={open}
-				onClose={() => setOpen(false)}
+				open={openModal}
+				onClose={() => setOpenModal(false)}
 				receiptUrl={selectedReceipt.receiptUrl}
 				paymentId={selectedReceipt.paymentId}
 			/>
