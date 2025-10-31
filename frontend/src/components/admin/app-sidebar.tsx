@@ -7,6 +7,7 @@ import {
 } from "@components/ui/sidebar";
 import SideBarLinks from "./SidebarLinks";
 import Image from "next/image";
+import LogoutBtn from "./logout";
 
 export function AppSidebar() {
 	return (
@@ -22,8 +23,9 @@ export function AppSidebar() {
 				/>
 				<SidebarGroup />
 
-				<SidebarContent>
+				<SidebarContent className="flex justify-between flex-col">
 					<SideBarLinks />
+					<LogoutBtn />
 				</SidebarContent>
 			</SidebarContent>
 			<SidebarFooter />

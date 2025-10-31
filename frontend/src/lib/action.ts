@@ -3,7 +3,6 @@ import { getIronSession } from "iron-session";
 import { SessionData, defaultSession, sessionOptions } from "./session";
 import { cookies } from "next/headers";
 
-
 export async function getSession() {
 	const session = await getIronSession<SessionData>(
 		await cookies(),
@@ -28,7 +27,7 @@ export async function getSessionUser() {
 			name: session.user?.name,
 			email: session.user?.email,
 			isLoggedIn: session.user?.isLoggedIn,
-			role: session.user?.role
+			role: session.user?.role,
 		},
 	};
 }
@@ -40,7 +39,7 @@ export async function setSession(data: {
 	token: string;
 	refreshToken: string;
 	rememberMe?: boolean;
-	role:string
+	role: string;
 }) {
 	const session = await getIronSession<SessionData>(
 		await cookies(),
@@ -54,10 +53,11 @@ export async function setSession(data: {
 		email: data.email,
 		token: data.token,
 		refreshToken: data.refreshToken,
-		role:data.role
+		role: data.role,
 	};
 
-	const ttl = data.rememberMe ? 60 * 60 * 24 * 7 : 60 * 60 * 24;
+	// const ttl = data.rememberMe ? 60 * 60 * 24 * 7 : 60 * 60 * 24;
+	const ttl = 60 * 60 * 24 * 7;
 
 	session.updateConfig({
 		...sessionOptions,
@@ -79,7 +79,6 @@ export async function updateSession(updates: Partial<SessionData["user"]>) {
 	};
 
 	await session.save();
-
 }
 
 export async function removeSession() {

@@ -526,3 +526,11 @@ export type Audit = {
 	timestamp: string;
 	userEmail: string;
 };
+
+export type CancellationType = {
+	approvedAt: string;
+	bookingCode: string;
+	customerName: string;
+	propertyName: string;
+	timeUntilCancellation: number;
+};

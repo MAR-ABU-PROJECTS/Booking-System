@@ -41,7 +41,15 @@ export const Routes: Paths = {
 			name: "Audit Logs",
 			href: "/audit-logs",
 			desc: "View and track system activities",
-			dynamic: true,
+		
+		},
+	},
+	"scheduled-cancellations": {
+		"scheduled-cancellations": {
+			name: "Schedules Cancellations",
+			href: "/scheduled-cancellations",
+			desc: "View and track system activities",
+		
 		},
 	},
 };
