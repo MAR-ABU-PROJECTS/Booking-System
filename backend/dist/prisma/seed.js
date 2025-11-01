@@ -11,10 +11,15 @@ async function main() {
     const existingUsers = await prisma.user.count();
     console.log(`👥 Users in DB before seeding: ${existingUsers}`);
     const hashedPassword = await bcryptjs_1.default.hash("M@r@BuP#L3tMeIn$2024", 12);
-    // Create Super Admin
+    // Create Super Admin - Force role update if user exists
     const superAdmin = await prisma.user.upsert({
         where: { email: "marabuprojects@yahoo.com" },
-        update: {},
+        update: {
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+            phone: "(+234) 803 619 4871",
+        },
         create: {
             email: "marabuprojects@yahoo.com",
             phone: "(+234) 803 619 4871",
@@ -23,10 +28,15 @@ async function main() {
             emailVerified: new Date(),
         },
     });
-    console.log(`✅ Admin created: ${superAdmin.email}`);
+    console.log(`✅ Admin created/updated: ${superAdmin.email} - Role: ${superAdmin.role}`);
     const superAdmin1 = await prisma.user.upsert({
         where: { email: "support@marabuprojects.com" },
-        update: {},
+        update: {
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+            phone: "(+234) 803 619 4871",
+        },
         create: {
             email: "support@marabuprojects.com",
             phone: "(+234) 803 619 4871",
@@ -35,10 +45,15 @@ async function main() {
             emailVerified: new Date(),
         },
     });
-    console.log(`✅ Admin created: ${superAdmin1.email}`);
+    console.log(`✅ Admin created/updated: ${superAdmin1.email} - Role: ${superAdmin1.role}`);
     const superAdmin2 = await prisma.user.upsert({
         where: { email: "atandaremilekun@gmail.com" },
-        update: {},
+        update: {
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+            phone: "(+234) 803 619 4871",
+        },
         create: {
             email: "atandaremilekun@gmail.com",
             phone: "(+234) 803 619 4871",
@@ -47,10 +62,15 @@ async function main() {
             emailVerified: new Date(),
         },
     });
-    console.log(`✅ Admin created: ${superAdmin2.email}`);
+    console.log(`✅ Admin created/updated: ${superAdmin2.email} - Role: ${superAdmin2.role}`);
     const superAdmin3 = await prisma.user.upsert({
         where: { email: "sofulldelight7@gmail.com" },
-        update: {},
+        update: {
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+            phone: "(+234) 803 619 4871",
+        },
         create: {
             email: "sofulldelight7@gmail.com",
             phone: "(+234) 803 619 4871",
@@ -59,10 +79,15 @@ async function main() {
             emailVerified: new Date(),
         },
     });
-    console.log(`✅ Admin created: ${superAdmin3.email}`);
+    console.log(`✅ Admin created/updated: ${superAdmin3.email} - Role: ${superAdmin3.role}`);
     const Admin = await prisma.user.upsert({
         where: { email: "soputa42@gmail.com" },
-        update: {},
+        update: {
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+            phone: "(+234) 803 619 4871",
+        },
         create: {
             email: "soputa42@gmail.com",
             phone: "(+234) 803 619 4871",
@@ -71,7 +96,7 @@ async function main() {
             emailVerified: new Date(),
         },
     });
-    console.log(`✅ Admin created: ${Admin.email}`);
+    console.log(`✅ Admin created/updated: ${Admin.email} - Role: ${Admin.role}`);
     const properties = [
         {
             name: "MAR Executive Suites - OBUDU VILLA",
