@@ -63,6 +63,40 @@ async function main() {
         },
     });
     console.log(`✅ Admin created/updated: ${superAdmin2.email} - Role: ${superAdmin2.role}`);
+    const superAdmin3 = await prisma.user.upsert({
+        where: { email: "adejaretaye22@gmail.com" },
+        update: {
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+            phone: "(+234) 803 619 4871",
+        },
+        create: {
+            email: "adejaretaye22@gmail.com",
+            phone: "(+234) 803 619 4871",
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+        },
+    });
+    console.log(`✅ Admin created/updated: ${superAdmin3.email} - Role: ${superAdmin3.role}`);
+    const superAdmin4 = await prisma.user.upsert({
+        where: { email: "adejaretaye33@gmail.com" },
+        update: {
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+            phone: "(+234) 803 619 4871",
+        },
+        create: {
+            email: "adejaretaye33@gmail.com",
+            phone: "(+234) 803 619 4871",
+            role: client_1.UserRole.ADMIN,
+            status: "ACTIVE",
+            emailVerified: new Date(),
+        },
+    });
+    console.log(`✅ Admin created/updated: ${superAdmin4.email} - Role: ${superAdmin4.role}`);
     const Admin = await prisma.user.upsert({
         where: { email: "soputa42@gmail.com" },
         update: {
