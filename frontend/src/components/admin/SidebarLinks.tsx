@@ -45,11 +45,11 @@ const SideBarLinks = () => {
 				href: "/audit-logs",
 				isActive: splittedPath[1] === "audit-logs",
 			},
-			{
-				title: "Scheduled Cancellations",
-				href: "/scheduled-cancellations",
-				isActive: splittedPath[1] === "scheduled-cancellations"
-			},
+			// {
+			// 	title: "Scheduled Cancellations",
+			// 	href: "/scheduled-cancellations",
+			// 	isActive: splittedPath[1] === "scheduled-cancellations"
+			// },
 		];
 	}, [splittedPath]);
 

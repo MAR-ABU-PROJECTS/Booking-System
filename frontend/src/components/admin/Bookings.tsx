@@ -59,7 +59,6 @@ const Bookings = () => {
 		dateTo?: string;
 		outFrom?: string;
 		outTo?: string;
-
 	}>({
 		paymentStatus: undefined,
 		bookingStatus: undefined,
@@ -299,7 +298,8 @@ const Bookings = () => {
 						variant="destructive"
 						onClick={() => {
 							setConfirm(true);
-							setSelectedId(row.original.id);
+							setSelectedId(row.original.bookingCode);
+							// alert("clicked");
 						}}
 					>
 						Cancel
@@ -309,20 +309,11 @@ const Bookings = () => {
 		},
 	];
 
-
-
-
 	useEffect(() => {
 		if (!confirm) {
 			setSelectedId("");
 			setReason("");
 		}
-
-		return () => {
-			setConfirm(false);
-			setSelectedId("");
-			setReason("");
-		};
 	}, [confirm, selectedId]);
 	const queryClient = useQueryClient();
 
@@ -412,7 +403,6 @@ const Bookings = () => {
 		}
 	};
 
-	
 	const handleDateChangeTo = (range: DateRange | undefined) => {
 		setUiDateRangeTo(range);
 
