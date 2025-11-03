@@ -58,7 +58,7 @@ const BookingCard = ({
 
 	const mutation = useMutation({
 		mutationFn: async () => {
-			return await apiService.post(`/bookings/${id}/cancel`, {
+			return await apiService.post(`/bookings/${bookingCode}/cancel`, {
 				reason,
 			});
 		},
@@ -90,6 +90,7 @@ const BookingCard = ({
 					closeOnClick: true,
 				});
 		},
+	
 	});
 
 	useEffect(() => {

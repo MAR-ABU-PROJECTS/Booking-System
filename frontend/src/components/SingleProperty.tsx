@@ -211,7 +211,7 @@ const SingleProperty = ({ property }: { property: Property }) => {
 
 								<div className="py-5 sm:py-7 border-b-[1px] border-black/20">
 									<p className="font-semibold mb-3 text-[18px] sm:text-[22px] lg:text-[30px] text-black">
-										Ameneties
+										Amenities
 									</p>
 
 									<ul className="grid grid-cols-2 gap-4 list-disc">

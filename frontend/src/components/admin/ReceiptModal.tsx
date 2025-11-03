@@ -18,6 +18,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import ReceiptViewer from "./ReceiptViewer";
 import { toast } from "react-toastify";
+import { isAxiosError } from "axios";
 
 interface ReceiptModalProps {
 	open: boolean;
@@ -50,10 +51,23 @@ export const ReceiptModal = ({
 		onSuccess: (data) => {
 			queryClient.invalidateQueries({
 				queryKey: ["pending-verifications"],
+				exact: false,
 			});
 			onClose();
 			setConfirm(false);
 			toast.success(data.message as string, {
+				closeOnClick: true,
+				progress: undefined,
+			});
+		},
+		onError(error) {
+			let message = "";
+			if (isAxiosError(error)) {
+				message = error.response?.data.message;
+			} else {
+				message = error.message;
+			}
+			toast.error(message as string, {
 				closeOnClick: true,
 				progress: undefined,
 			});
