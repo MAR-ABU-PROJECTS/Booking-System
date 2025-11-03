@@ -104,7 +104,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmgz4kxp40002en4tk40comq5",
+		id: "cmhi80phg0007fk4u73pxj2gt",
 		name: "OBUDU VILLA 8",
 		type: "Short Let",
 		location: "lakowe lakes golf & country estate, ibeju-lekki",
@@ -208,7 +208,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmgz4kxp40002en4tk40comq5",
+		id: "cmhi80phw0011fk4uc5ghteny",
 		name: "OBUDU VILLA 10",
 		type: "Short Let",
 		location: "lakowe lakes golf & country estate, ibeju-lekki",
