@@ -12,6 +12,7 @@ import { asyncHandler } from "../middlewares/error.middleware";
 import { AppError } from "../middlewares/error.middleware";
 import { prisma } from "../server";
 import { auditLog } from "../middlewares/logger.middleware";
+import { auditService } from "../services/auditservice";
 import { dbQueries } from "../config/database";
 import { schedulerService } from "../services/schedulerservice";
 import * as bcryptjs from "bcryptjs";
@@ -2211,15 +2212,15 @@ router.delete(
 
 /**
  * @route   GET /api/v1/admin/audit-logs
- * @desc    Get audit logs with filters and pagination
+ * @desc    Get audit logs from database with filters and pagination
  * @access  Admin only
  */
 /**
  * @swagger
  * /admin/audit-logs:
  *   get:
- *     summary: Get audit logs with filters
- *     description: Retrieve audit logs with filtering, searching, and pagination capabilities for administrators.
+ *     summary: Get audit logs from database
+ *     description: Retrieve audit logs from database with comprehensive filtering. Database-backed for better performance and reliability.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -2235,12 +2236,27 @@ router.delete(
  *         schema:
  *           type: integer
  *           default: 50
- *         description: Number of logs per page (max 200)
+ *         description: Number of logs per page
  *       - in: query
  *         name: action
  *         schema:
  *           type: string
- *         description: Filter by specific action type
+ *         description: Filter by action type (e.g., USER_SOFT_DELETED, BOOKING_CREATED)
+ *       - in: query
+ *         name: entity
+ *         schema:
+ *           type: string
+ *         description: Filter by entity type (e.g., USER, BOOKING, PROPERTY)
+ *       - in: query
+ *         name: entityId
+ *         schema:
+ *           type: string
+ *         description: Filter by specific entity ID
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by user ID who performed the action
  *       - in: query
  *         name: userEmail
  *         schema:
@@ -2258,11 +2274,6 @@ router.delete(
  *           type: string
  *           format: date
  *         description: Filter logs until this date (YYYY-MM-DD)
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Search in log details and user emails
  *     responses:
  *       200:
  *         description: Audit logs retrieved successfully
@@ -2282,17 +2293,35 @@ router.delete(
  *                       items:
  *                         type: object
  *                         properties:
- *                           timestamp:
+ *                           id:
  *                             type: string
- *                             format: date-time
  *                           action:
  *                             type: string
- *                           userEmail:
+ *                           entity:
  *                             type: string
- *                           details:
+ *                           entityId:
+ *                             type: string
+ *                           userId:
+ *                             type: string
+ *                           changes:
  *                             type: object
- *                           ip:
+ *                           metadata:
+ *                             type: object
+ *                             properties:
+ *                               userEmail:
+ *                                 type: string
+ *                               ip:
+ *                                 type: string
+ *                           createdAt:
  *                             type: string
+ *                             format: date-time
+ *                           user:
+ *                             type: object
+ *                             properties:
+ *                               email:
+ *                                 type: string
+ *                               role:
+ *                                 type: string
  *                     pagination:
  *                       type: object
  *                       properties:
@@ -2304,9 +2333,6 @@ router.delete(
  *                           type: integer
  *                         pages:
  *                           type: integer
- *                     summary:
- *                       type: object
- *                       properties:
  *                         totalLogs:
  *                           type: integer
  *                         dateRange:
@@ -2323,47 +2349,48 @@ router.get(
       page = 1,
       limit = 50,
       action,
+      entity,
+      entityId,
+      userId,
       userEmail,
       startDate,
       endDate,
-      search,
     } = req.query;
 
-    // Validate pagination
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(200, Math.max(1, parseInt(limit))); // Max 200 logs per page
+    const result = await auditService.getAuditLogs({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      action,
+      entity,
+      entityId,
+      userId,
+      userEmail,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    });
 
-    try {
-      const auditLogs = await getAuditLogs({
-        page: pageNum,
-        limit: limitNum,
-        action,
-        userEmail,
-        startDate,
-        endDate,
-        search,
-      });
-
-      auditLog(
-        "AUDIT_LOGS_VIEWED",
-        req.user.email,
-        {
-          filters: { action, userEmail, startDate, endDate, search },
-          pagination: { page: pageNum, limit: limitNum },
+    await auditLog(
+      "AUDIT_LOGS_VIEWED",
+      req.user.email,
+      {
+        filters: {
+          action,
+          entity,
+          entityId,
+          userId,
+          userEmail,
+          startDate,
+          endDate,
         },
-        req.ip
-      );
+        resultCount: result.logs.length,
+      },
+      req.ip
+    );
 
-      res.json({
-        success: true,
-        data: auditLogs,
-      });
-    } catch (error: any) {
-      throw new AppError(
-        `Failed to retrieve audit logs: ${error.message}`,
-        500
-      );
-    }
+    res.json({
+      success: true,
+      data: result,
+    });
   })
 );
 
@@ -2445,14 +2472,30 @@ router.get(
     const limitNum = Math.min(50000, Math.max(1, parseInt(limit))); // Max 50K logs for download
 
     try {
-      const auditLogs = await getAuditLogs({
+      // Use audit service to get logs from database
+      const result = await auditService.getAuditLogs({
         page: 1,
         limit: limitNum,
         action,
         userEmail,
-        startDate,
-        endDate,
-        download: true,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+      });
+
+      const logs = result.logs.map((log) => {
+        const metadata = log.metadata as any;
+        return {
+          timestamp: log.createdAt,
+          action: log.action,
+          userEmail: metadata?.userEmail || "",
+          ip: metadata?.ip || "",
+          details: {
+            entity: log.entity,
+            entityId: log.entityId,
+            changes: log.changes,
+            ...metadata,
+          },
+        };
       });
 
       const timestamp = new Date().toISOString().split("T")[0];
@@ -2464,10 +2507,26 @@ router.get(
           "Content-Disposition",
           `attachment; filename="${filename}.json"`
         );
-        res.json(auditLogs.logs);
+        res.json(logs);
       } else {
         // CSV format
-        const csv = convertLogsToCSV(auditLogs.logs);
+        const csvRows = [
+          "timestamp,action,userEmail,ip,entity,entityId,details",
+        ];
+        logs.forEach((log) => {
+          const row = [
+            log.timestamp.toISOString(),
+            log.action,
+            log.userEmail,
+            log.ip,
+            log.details.entity || "",
+            log.details.entityId || "",
+            JSON.stringify(log.details).replace(/"/g, '""'),
+          ];
+          csvRows.push(row.map((field) => `"${field}"`).join(","));
+        });
+        const csv = csvRows.join("\n");
+
         res.setHeader("Content-Type", "text/csv");
         res.setHeader(
           "Content-Disposition",
@@ -2476,13 +2535,13 @@ router.get(
         res.send(csv);
       }
 
-      auditLog(
+      await auditLog(
         "AUDIT_LOGS_DOWNLOADED",
         req.user.email,
         {
           format,
           filters: { action, userEmail, startDate, endDate },
-          count: auditLogs.logs.length,
+          count: logs.length,
         },
         req.ip
       );
@@ -2527,9 +2586,75 @@ router.get(
     const daysNum = Math.min(365, Math.max(1, parseInt(days)));
 
     try {
-      const stats = await getAuditLogStats(daysNum);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysNum);
 
-      auditLog("AUDIT_STATS_VIEWED", req.user.email, { days: daysNum }, req.ip);
+      // Get logs from database
+      const result = await auditService.getAuditLogs({
+        page: 1,
+        limit: 100000, // Get all logs for stats
+        startDate: cutoffDate,
+      });
+
+      const logs = result.logs;
+
+      // Action frequency
+      const actionCounts: Record<string, number> = {};
+      const userActivity: Record<string, number> = {};
+      const dailyActivity: Record<string, number> = {};
+
+      logs.forEach((log) => {
+        // Count actions
+        actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
+
+        // Count user activity
+        const metadata = log.metadata as any;
+        const userEmail = metadata?.userEmail;
+        if (userEmail) {
+          userActivity[userEmail] = (userActivity[userEmail] || 0) + 1;
+        }
+
+        // Count daily activity
+        const day = log.createdAt.toISOString().split("T")[0];
+        dailyActivity[day] = (dailyActivity[day] || 0) + 1;
+      });
+
+      // Top actions
+      const topActions = Object.entries(actionCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10)
+        .map(([action, count]) => ({ action, count }));
+
+      // Top users
+      const topUsers = Object.entries(userActivity)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10)
+        .map(([email, count]) => ({ email, count }));
+
+      const stats = {
+        period: {
+          days: daysNum,
+          from: cutoffDate.toISOString(),
+          to: new Date().toISOString(),
+        },
+        totals: {
+          totalActions: logs.length,
+          uniqueActions: Object.keys(actionCounts).length,
+          uniqueUsers: Object.keys(userActivity).length,
+          activeDays: Object.keys(dailyActivity).length,
+        },
+        topActions,
+        topUsers,
+        dailyActivity,
+        actionBreakdown: actionCounts,
+      };
+
+      await auditLog(
+        "AUDIT_STATS_VIEWED",
+        req.user.email,
+        { days: daysNum },
+        req.ip
+      );
 
       res.json({
         success: true,
@@ -2544,242 +2669,227 @@ router.get(
   })
 );
 
-// Helper functions for audit log processing
-import * as fs from "fs/promises";
-import * as path from "path";
+// ===============================
+// GDPR-COMPLIANT AUDIT LOG MANAGEMENT
+// ===============================
 
-async function getAuditLogs(options: {
-  page: number;
-  limit: number;
-  action?: string;
-  userEmail?: string;
-  startDate?: string;
-  endDate?: string;
-  search?: string;
-  download?: boolean;
-}) {
-  const {
-    page,
-    limit,
-    action,
-    userEmail,
-    startDate,
-    endDate,
-    search,
-    download,
-  } = options;
+/**
+ * @route   GET /api/v1/admin/audit-logs/stats/detailed
+ * @desc    Get detailed audit log statistics with GDPR retention info
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/audit-logs/stats/detailed:
+ *   get:
+ *     summary: Get detailed audit log statistics
+ *     description: Comprehensive audit statistics including GDPR retention status and upcoming deletions
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *         description: Number of days to analyze
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ */
+router.get(
+  "/audit-logs/stats/detailed",
+  asyncHandler(async (req: any, res: any) => {
+    const { days = 30 } = req.query;
+    const daysNum = Math.min(365, Math.max(1, parseInt(days)));
 
-  try {
-    // Read audit log files
-    const logsDir = path.join(process.cwd(), "logs");
-    const auditLogPath = path.join(logsDir, "audit.log");
+    const stats = await auditService.getAuditLogStats(daysNum);
 
-    let allLogs: any[] = [];
-
-    // Check if audit log file exists
-    try {
-      const auditLogContent = await fs.readFile(auditLogPath, "utf-8");
-      const logLines = auditLogContent
-        .split("\n")
-        .filter((line) => line.trim());
-
-      for (const line of logLines) {
-        try {
-          const logEntry = JSON.parse(line);
-          if (logEntry.message === "AUDIT_ENTRY" && logEntry.action) {
-            // Extract audit data from the log entry
-            const auditData = {
-              timestamp: logEntry.timestamp,
-              action: logEntry.action,
-              userEmail: logEntry.userEmail,
-              details: logEntry.details || {},
-              ip: logEntry.ip,
-            };
-            allLogs.push(auditData);
-          }
-        } catch (parseError) {
-          // Skip malformed log entries
-          continue;
-        }
-      }
-    } catch (fileError: any) {
-      // If file doesn't exist, return empty results
-      console.warn("Audit log file not found:", fileError.message);
-    }
-
-    // Apply filters
-    let filteredLogs = allLogs;
-
-    if (action) {
-      filteredLogs = filteredLogs.filter((log) =>
-        log.action.toLowerCase().includes(action.toLowerCase())
-      );
-    }
-
-    if (userEmail) {
-      filteredLogs = filteredLogs.filter(
-        (log) =>
-          log.userEmail &&
-          log.userEmail.toLowerCase().includes(userEmail.toLowerCase())
-      );
-    }
-
-    if (startDate) {
-      const start = new Date(startDate);
-      filteredLogs = filteredLogs.filter(
-        (log) => new Date(log.timestamp) >= start
-      );
-    }
-
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999); // Include full end date
-      filteredLogs = filteredLogs.filter(
-        (log) => new Date(log.timestamp) <= end
-      );
-    }
-
-    if (search) {
-      const searchTerm = search.toLowerCase();
-      filteredLogs = filteredLogs.filter(
-        (log) =>
-          log.action.toLowerCase().includes(searchTerm) ||
-          (log.userEmail && log.userEmail.toLowerCase().includes(searchTerm)) ||
-          JSON.stringify(log.details).toLowerCase().includes(searchTerm)
-      );
-    }
-
-    // Sort by timestamp (newest first)
-    filteredLogs.sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    await auditLog(
+      "AUDIT_STATS_DETAILED_VIEWED",
+      req.user.email,
+      { days: daysNum },
+      req.ip
     );
 
-    const total = filteredLogs.length;
-
-    // Apply pagination (unless downloading)
-    if (!download) {
-      const startIndex = (page - 1) * limit;
-      filteredLogs = filteredLogs.slice(startIndex, startIndex + limit);
-    }
-
-    // Generate summary
-    const uniqueActions = [...new Set(allLogs.map((log) => log.action))];
-    const uniqueUsers = new Set(allLogs.map((log) => log.userEmail)).size;
-    const dateRange = {
-      earliest:
-        allLogs.length > 0 ? allLogs[allLogs.length - 1].timestamp : null,
-      latest: allLogs.length > 0 ? allLogs[0].timestamp : null,
-    };
-
-    return {
-      logs: filteredLogs,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-      summary: {
-        totalLogs: allLogs.length,
-        filteredLogs: total,
-        dateRange,
-        uniqueActions: uniqueActions.sort(),
-        uniqueUsers,
-      },
-    };
-  } catch (error: any) {
-    throw new Error(`Failed to process audit logs: ${error.message}`);
-  }
-}
-
-async function getAuditLogStats(days: number) {
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - days);
-
-  try {
-    const logsData = await getAuditLogs({
-      page: 1,
-      limit: 100000, // Get all logs for stats
-      startDate: cutoffDate.toISOString().split("T")[0],
-      download: true,
+    res.json({
+      success: true,
+      data: stats,
     });
+  })
+);
 
-    const logs = logsData.logs;
+/**
+ * @route   POST /api/v1/admin/audit-logs/archive
+ * @desc    Manually archive old audit logs before cleanup
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/audit-logs/archive:
+ *   post:
+ *     summary: Archive old audit logs
+ *     description: Manually trigger archiving of old audit logs to file before they are deleted. Useful for compliance and backup.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logs archived successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     archivedFile:
+ *                       type: string
+ *                       description: Path to archived file
+ *                     count:
+ *                       type: integer
+ *                       description: Number of logs archived
+ */
+router.post(
+  "/audit-logs/archive",
+  asyncHandler(async (req: any, res: any) => {
+    const result = await auditService.archiveOldAuditLogs();
 
-    // Action frequency
-    const actionCounts: Record<string, number> = {};
-    const userActivity: Record<string, number> = {};
-    const dailyActivity: Record<string, number> = {};
+    await auditLog(
+      "AUDIT_LOGS_ARCHIVED",
+      req.user.email,
+      {
+        archivedFile: result.archivedFile,
+        count: result.count,
+      },
+      req.ip
+    );
 
-    logs.forEach((log) => {
-      // Count actions
-      actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
-
-      // Count user activity
-      if (log.userEmail) {
-        userActivity[log.userEmail] = (userActivity[log.userEmail] || 0) + 1;
-      }
-
-      // Count daily activity
-      const day = log.timestamp.split("T")[0];
-      dailyActivity[day] = (dailyActivity[day] || 0) + 1;
+    res.json({
+      success: true,
+      message: `Archived ${result.count} audit logs`,
+      data: result,
     });
+  })
+);
 
-    // Top actions
-    const topActions = Object.entries(actionCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([action, count]) => ({ action, count }));
+/**
+ * @route   POST /api/v1/admin/audit-logs/cleanup
+ * @desc    Manually trigger GDPR-compliant audit log cleanup
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/audit-logs/cleanup:
+ *   post:
+ *     summary: Manually cleanup old audit logs
+ *     description: |
+ *       Trigger immediate cleanup of audit logs based on GDPR retention policies:
+ *       - Financial logs: 7 years
+ *       - User management: 3 years
+ *       - Security logs: 1 year
+ *       - Admin actions: 2 years
+ *       - General logs: 6 months
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Cleanup completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedByCategory:
+ *                       type: object
+ *                       description: Count of deleted logs by retention category
+ *                     totalDeleted:
+ *                       type: integer
+ */
+router.post(
+  "/audit-logs/cleanup",
+  asyncHandler(async (req: any, res: any) => {
+    // Archive first
+    const archived = await auditService.archiveOldAuditLogs();
 
-    // Top users
-    const topUsers = Object.entries(userActivity)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([email, count]) => ({ email, count }));
+    // Then cleanup
+    const result = await auditService.cleanupOldAuditLogs();
 
-    return {
-      period: {
-        days,
-        from: cutoffDate.toISOString(),
-        to: new Date().toISOString(),
+    await auditLog(
+      "AUDIT_LOGS_MANUAL_CLEANUP",
+      req.user.email,
+      {
+        deletedByCategory: result.deletedByCategory,
+        totalDeleted: result.totalDeleted,
+        archivedCount: archived.count,
+        triggeredBy: req.user.email,
       },
-      totals: {
-        totalActions: logs.length,
-        uniqueActions: Object.keys(actionCounts).length,
-        uniqueUsers: Object.keys(userActivity).length,
-        activeDays: Object.keys(dailyActivity).length,
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      message: `Cleanup complete: ${result.totalDeleted} logs deleted, ${archived.count} logs archived`,
+      data: {
+        ...result,
+        archived,
       },
-      topActions,
-      topUsers,
-      dailyActivity,
-      actionBreakdown: actionCounts,
-    };
-  } catch (error: any) {
-    throw new Error(`Failed to generate audit statistics: ${error.message}`);
-  }
-}
+    });
+  })
+);
 
-function convertLogsToCSV(logs: any[]): string {
-  if (logs.length === 0) {
-    return "timestamp,action,userEmail,ip,details\n";
-  }
+/**
+ * @route   GET /api/v1/admin/audit-logs/retention-policy
+ * @desc    Get GDPR retention policy information
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/audit-logs/retention-policy:
+ *   get:
+ *     summary: Get GDPR retention policy
+ *     description: View the audit log retention policies and which actions fall under each category
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Retention policy retrieved
+ */
+router.get(
+  "/audit-logs/retention-policy",
+  asyncHandler(async (req: any, res: any) => {
+    const { AUDIT_RETENTION_POLICIES } = require("../services/auditservice");
 
-  const headers = ["timestamp", "action", "userEmail", "ip", "details"];
-  const csvRows = [headers.join(",")];
+    await auditLog("AUDIT_RETENTION_POLICY_VIEWED", req.user.email, {}, req.ip);
 
-  logs.forEach((log) => {
-    const row = [
-      log.timestamp || "",
-      log.action || "",
-      log.userEmail || "",
-      log.ip || "",
-      JSON.stringify(log.details || {}).replace(/"/g, '""'), // Escape quotes
-    ];
-    csvRows.push(row.map((field) => `"${field}"`).join(","));
-  });
-
-  return csvRows.join("\n");
-}
+    res.json({
+      success: true,
+      data: {
+        policies: AUDIT_RETENTION_POLICIES,
+        explanation: {
+          FINANCIAL: "Booking/payment logs kept for 7 years (tax/accounting)",
+          USER_MANAGEMENT:
+            "User data actions kept for 3 years (accountability)",
+          SECURITY: "Login/access logs kept for 1 year (security monitoring)",
+          ADMIN_ACTIONS: "Admin operations kept for 2 years (compliance)",
+          GENERAL: "Other logs kept for 6 months (general operations)",
+        },
+      },
+    });
+  })
+);
 
 export default router;

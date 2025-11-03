@@ -1,6 +1,7 @@
 // MAR ABU PROJECTS SERVICES LLC - Scheduler Service
 import { prisma } from "../server";
 import { auditLog } from "../middlewares/logger.middleware";
+import { auditService } from "./auditservice";
 import { emailService } from "./emailservice";
 import { BookingStatus, PaymentStatus, NotificationType } from "@prisma/client";
 
@@ -43,10 +44,12 @@ const SCHEDULER_CONFIG = {
   CANCELLATION_TIMEOUT_HOURS: 1,
   STARTUP_DELAY_SECONDS: 5,
   CLEANUP_DAYS: 30,
+  AUDIT_CLEANUP_INTERVAL_HOURS: 24, // Run audit cleanup daily
 } as const;
 
 export class SchedulerService {
   private intervalId: NodeJS.Timeout | null = null;
+  private auditCleanupIntervalId: NodeJS.Timeout | null = null;
 
   /**
    * Start the scheduler to run booking cleanup tasks
@@ -81,6 +84,9 @@ export class SchedulerService {
     console.log(
       `Booking scheduler started (runs every ${SCHEDULER_CONFIG.INTERVAL_MINUTES} minutes)`
     );
+
+    // Start audit log cleanup job (runs daily)
+    this.startAuditLogCleanup();
   }
 
   /**
@@ -91,6 +97,76 @@ export class SchedulerService {
       clearInterval(this.intervalId);
       this.intervalId = null;
       console.log("Booking scheduler stopped");
+    }
+    if (this.auditCleanupIntervalId) {
+      clearInterval(this.auditCleanupIntervalId);
+      this.auditCleanupIntervalId = null;
+      console.log("Audit cleanup scheduler stopped");
+    }
+  }
+
+  /**
+   * Start the audit log cleanup job (runs daily)
+   */
+  private startAuditLogCleanup() {
+    console.log("Starting audit log cleanup scheduler...");
+
+    // Run daily
+    this.auditCleanupIntervalId = setInterval(
+      async () => {
+        try {
+          await this.cleanupAuditLogs();
+        } catch (error) {
+          console.error("Audit cleanup error:", error);
+        }
+      },
+      SCHEDULER_CONFIG.AUDIT_CLEANUP_INTERVAL_HOURS * 60 * 60 * 1000
+    );
+
+    // Run on startup after a delay (30 seconds)
+    setTimeout(async () => {
+      await this.cleanupAuditLogs();
+    }, 30 * 1000);
+
+    console.log(
+      `Audit log cleanup started (runs every ${SCHEDULER_CONFIG.AUDIT_CLEANUP_INTERVAL_HOURS} hours)`
+    );
+  }
+
+  /**
+   * Clean up old audit logs based on GDPR retention policies
+   */
+  private async cleanupAuditLogs() {
+    try {
+      console.log("Running GDPR-compliant audit log cleanup...");
+
+      // Archive logs before deletion
+      const archived = await auditService.archiveOldAuditLogs();
+      if (archived.count > 0) {
+        console.log(
+          `Archived ${archived.count} audit logs to ${archived.archivedFile}`
+        );
+      }
+
+      // Clean up old logs
+      const result = await auditService.cleanupOldAuditLogs();
+
+      auditLog(
+        "AUDIT_LOGS_CLEANUP",
+        "system",
+        {
+          deletedByCategory: result.deletedByCategory,
+          totalDeleted: result.totalDeleted,
+          archivedCount: archived.count,
+        },
+        "system"
+      );
+
+      console.log(
+        `Audit log cleanup complete: ${result.totalDeleted} logs deleted`
+      );
+    } catch (error) {
+      console.error("Failed to cleanup audit logs:", error);
     }
   }
 
