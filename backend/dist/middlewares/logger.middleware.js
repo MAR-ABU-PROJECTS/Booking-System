@@ -85,7 +85,7 @@ const errorLogger = (err, req, res, next) => {
 };
 exports.errorLogger = errorLogger;
 // Audit log function
-const auditLog = (action, userEmail, details, ip) => {
+const auditLog = async (action, userEmail, details, ip) => {
     const auditEntry = {
         action,
         userEmail,
@@ -96,6 +96,28 @@ const auditLog = (action, userEmail, details, ip) => {
     // Log to both regular logger and dedicated audit logger
     logger.info("Audit", auditEntry);
     auditLogger.info("AUDIT_ENTRY", auditEntry);
+    // Also write to database for better querying and retention management
+    try {
+        const { prisma } = require("../server");
+        await prisma.auditLog.create({
+            data: {
+                action,
+                entity: details?.entity || "SYSTEM",
+                entityId: details?.entityId || details?.targetUserId || null,
+                userId: details?.userId || null,
+                changes: details,
+                metadata: {
+                    userEmail,
+                    ip: ip || "unknown",
+                    timestamp: auditEntry.timestamp,
+                },
+            },
+        });
+    }
+    catch (dbError) {
+        // Don't break the application if audit DB write fails
+        logger.error("Failed to write audit log to database:", dbError);
+    }
 };
 exports.auditLog = auditLog;
 exports.stream = {
