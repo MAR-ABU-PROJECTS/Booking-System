@@ -51,7 +51,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmgz4kxpn001qen4thm3opn2r",
+		id: "cmhi80pii002rfk4ub0x22xin",
 		name: "WHITE-STONE",
 		type: "Short Let",
 		location: "Whitestone by Schlepp, Perchstone & Graeys Close, Lekki",
@@ -104,7 +104,7 @@ export const properties: Property[] = [
 	},
 
 	{
-		id: "cmhi80phg0007fk4u73pxj2gt",
+		id: "cmhi80phg0007fk4u73pxj2g",
 		name: "OBUDU VILLA 8",
 		type: "Short Let",
 		location: "lakowe lakes golf & country estate, ibeju-lekki",
