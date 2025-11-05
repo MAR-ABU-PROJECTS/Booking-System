@@ -516,15 +516,22 @@ export type AdminProperty = {
 };
 
 export type Audit = {
-	action: string;
-	details: {
-		authMethod: string;
-		interfaceType: string;
-		role: string;
-	};
-	ip: string;
-	timestamp: string;
-	userEmail: string;
+	id: string;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  changes: {
+    filters: Record<string, unknown>;
+    resultCount: number;
+  };
+  metadata: {
+    ip: string;
+    timestamp: string; // ISO date string
+    userEmail: string;
+  };
+  createdAt: string; // ISO date string
+  userId: string | null;
+  user: string | null;
 };
 
 export type CancellationType = {
