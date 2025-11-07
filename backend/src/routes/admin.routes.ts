@@ -1769,6 +1769,388 @@ router.get(
   })
 );
 
+/**
+ * @route   GET /api/v1/admin/bookings/with-ids
+ * @desc    Get all bookings with uploaded ID documents
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/bookings/with-ids:
+ *   get:
+ *     summary: Get all bookings with uploaded ID documents
+ *     description: Admin can retrieve all bookings that have ID documents uploaded, with filters and pagination.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of results per page
+ *       - in: query
+ *         name: idType
+ *         schema:
+ *           type: string
+ *           enum: [passport, drivers_license, national_id, voters_card]
+ *         description: Filter by ID document type
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, APPROVED, REJECTED, CANCELLED]
+ *         description: Filter by booking status
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: createdAt
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sorting order
+ *     responses:
+ *       200:
+ *         description: Bookings with IDs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     bookings:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "booking_123"
+ *                           bookingCode:
+ *                             type: string
+ *                             example: "BK-20240115-001"
+ *                           guestIdType:
+ *                             type: string
+ *                             enum: [passport, drivers_license, national_id, voters_card]
+ *                             example: "passport"
+ *                           guestIdNumber:
+ *                             type: string
+ *                             example: "A12345678"
+ *                           guestIdDocumentUrl:
+ *                             type: string
+ *                             example: "/uploads/id-documents/booking_123_id.jpg"
+ *                           status:
+ *                             type: string
+ *                             example: "APPROVED"
+ *                           checkInDate:
+ *                             type: string
+ *                             format: date-time
+ *                           checkOutDate:
+ *                             type: string
+ *                             format: date-time
+ *                           property:
+ *                             type: object
+ *                             properties:
+ *                               name:
+ *                                 type: string
+ *                               city:
+ *                                 type: string
+ *                           customer:
+ *                             type: object
+ *                             properties:
+ *                               email:
+ *                                 type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 20
+ *                         total:
+ *                           type: integer
+ *                           example: 50
+ *                         pages:
+ *                           type: integer
+ *                           example: 3
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Server error
+ */
+router.get(
+  "/bookings/with-ids",
+  asyncHandler(async (req: any, res: any) => {
+    const {
+      page = 1,
+      limit = 20,
+      idType,
+      status,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 20;
+
+    // Build where clause - must have ID document uploaded
+    const where: Record<string, any> = {
+      guestIdDocumentUrl: { not: null },
+    };
+
+    if (idType) where.guestIdType = idType;
+    if (status) where.status = status;
+
+    const [bookings, total] = await Promise.all([
+      prisma.booking.findMany({
+        where,
+        orderBy: { [sortBy as string]: sortOrder },
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
+        select: {
+          id: true,
+          bookingCode: true,
+          guestIdType: true,
+          guestIdNumber: true,
+          guestIdDocumentUrl: true,
+          status: true,
+          checkInDate: true,
+          checkOutDate: true,
+          createdAt: true,
+          property: {
+            select: {
+              name: true,
+              city: true,
+              type: true,
+            },
+          },
+          customer: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      }),
+      prisma.booking.count({ where }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        bookings,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          pages: Math.ceil(total / limitNum),
+        },
+        filters: {
+          idType: idType || null,
+          status: status || null,
+        },
+      },
+    });
+  })
+);
+
+/**
+ * @route   GET /api/v1/admin/bookings/:bookingCode/id-document
+ * @desc    View or download a booking's ID document
+ * @access  Admin only
+ */
+/**
+ * @swagger
+ * /admin/bookings/{bookingCode}/id-document:
+ *   get:
+ *     summary: View or download a booking's ID document
+ *     description: Admin can view or download the ID document for a specific booking using the booking code.
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: bookingCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The booking code (e.g., BK-20240115-001)
+ *       - in: query
+ *         name: download
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Set to true to download the file, false to view inline
+ *     responses:
+ *       200:
+ *         description: ID document retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     bookingId:
+ *                       type: string
+ *                       example: "booking_123"
+ *                     bookingCode:
+ *                       type: string
+ *                       example: "BK-20240115-001"
+ *                     idType:
+ *                       type: string
+ *                       example: "passport"
+ *                     idNumber:
+ *                       type: string
+ *                       example: "A12345678"
+ *                     documentUrl:
+ *                       type: string
+ *                       example: "/uploads/id-documents/booking_123_id.jpg"
+ *                     absoluteUrl:
+ *                       type: string
+ *                       example: "http://localhost:5000/uploads/id-documents/booking_123_id.jpg"
+ *                     uploadedAt:
+ *                       type: string
+ *                       format: date-time
+ *           image/*:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: No ID document found for this booking
+ *       404:
+ *         description: Booking not found or file not found
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Server error
+ */
+router.get(
+  "/bookings/:bookingCode/id-document",
+  asyncHandler(async (req: any, res: any) => {
+    const { bookingCode } = req.params;
+    const { download } = req.query;
+
+    // Get booking with ID document using booking code
+    const booking = await prisma.booking.findUnique({
+      where: { bookingCode },
+      select: {
+        id: true,
+        bookingCode: true,
+        guestIdType: true,
+        guestIdNumber: true,
+        guestIdDocumentUrl: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    if (!booking.guestIdDocumentUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "No ID document found for this booking",
+      });
+    }
+
+    // If download query param is not set, return JSON with document info
+    if (download !== "true") {
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      return res.json({
+        success: true,
+        data: {
+          bookingId: booking.id,
+          bookingCode: booking.bookingCode,
+          idType: booking.guestIdType,
+          idNumber: booking.guestIdNumber,
+          documentUrl: booking.guestIdDocumentUrl,
+          absoluteUrl: `${baseUrl}${booking.guestIdDocumentUrl}`,
+          uploadedAt: booking.updatedAt,
+        },
+      });
+    }
+
+    // If download=true, serve the file
+    const path = require("path");
+    const fs = require("fs").promises;
+
+    // Get absolute file path
+    const filePath = path.join(
+      process.cwd(),
+      booking.guestIdDocumentUrl.replace(/^\//, "")
+    );
+
+    try {
+      // Check if file exists
+      await fs.access(filePath);
+
+      // Get file extension to set correct content type
+      const ext = path.extname(filePath).toLowerCase();
+      const contentTypes: Record<string, string> = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".pdf": "application/pdf",
+      };
+
+      const contentType = contentTypes[ext] || "application/octet-stream";
+
+      // Set headers for download
+      res.setHeader("Content-Type", contentType);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="booking_${booking.bookingCode}_id${ext}"`
+      );
+
+      // Send file
+      res.sendFile(filePath);
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        message: "ID document file not found on server",
+      });
+    }
+  })
+);
+
 // ===============================
 // SYSTEM SETTINGS
 // ===============================
