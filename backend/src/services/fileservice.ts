@@ -37,6 +37,7 @@ export class FileService {
       path.join(this.uploadsDir, "properties"),
       path.join(this.uploadsDir, "receipts"),
       path.join(this.uploadsDir, "avatars"),
+      path.join(this.uploadsDir, "id-documents"),
       path.join(this.uploadsDir, "temp"),
     ];
 
@@ -151,6 +152,19 @@ export class FileService {
       allowedTypes: ["image/jpeg", "image/jpg", "image/png"],
       generateUniqueName: true,
       resizeImages: true,
+    });
+  }
+
+  /**
+   * ID Document uploader (for KYC verification)
+   */
+  idDocumentUploader(): multer.Multer {
+    return this.createUploader({
+      destination: "id-documents",
+      maxSize: 5 * 1024 * 1024, // 5MB
+      allowedTypes: ["image/jpeg", "image/jpg", "image/png", "application/pdf"],
+      generateUniqueName: true,
+      resizeImages: false, // Don't resize ID documents to preserve quality
     });
   }
 

@@ -31,8 +31,10 @@ model User {
   emailVerified    DateTime?
   phoneVerified    DateTime?
   identityVerified DateTime?
-  idType           String?
-  idNumber         String?
+  idType           String? // Type of ID (passport, drivers_license, national_id, voters_card)
+  idNumber         String? // ID document number
+  idDocumentFront  String? // URL to front of ID document (REQUIRED for registration)
+  idDocumentBack   String? // URL to back of ID document (optional for some IDs)
 
   // OTP Authentication fields
   otpCode     String? // Current OTP code
