@@ -576,39 +576,79 @@ router.delete(
  */
 /**
  * @swagger
- * /users/requireAuth(),
+ * /users/password:
+ *   put:
+ *     summary: Change user password
+ *     description: Change the authenticated user's password (not available in passwordless authentication)
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *               - confirmPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *               confirmPassword:
+ *                 type: string
+ *     responses:
+ *       400:
+ *         description: Password functionality not available
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.put(
+  "/password",
+  requireAuth(),
   [
-    body('currentPassword').notEmpty().withMessage('Current password required'),
-    body('newPassword')
+    body("currentPassword").notEmpty().withMessage("Current password required"),
+    body("newPassword")
       .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number and special character'),
-    body('confirmPassword').custom((value, { req }) => {
+      .withMessage("Password must be at least 8 characters")
+      .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+      )
+      .withMessage(
+        "Password must contain uppercase, lowercase, number and special character"
+      ),
+    body("confirmPassword").custom((value, { req }) => {
       if (value !== req.body.newPassword) {
-        throw new Error('Password confirmation does not match')
+        throw new Error("Password confirmation does not match");
       }
-      return true
+      return true;
     }),
   ],
   validate,
   asyncHandler(async (req: any, res: any) => {
-    const { currentPassword, newPassword } = req.body
+    const { currentPassword, newPassword } = req.body;
 
     // Get current user with password
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true,email: true },
-    })
+      select: { id: true, email: true },
+    });
 
     if (!user) {
-      throw new AppError('User not found', 404)
+      throw new AppError("User not found", 404);
     }
 
     // Password functionality removed in passwordless authentication
     res.status(400).json({
       success: false,
-      message: 'Password functionality is not available in passwordless authentication',
+      message:
+        "Password functionality is not available in passwordless authentication",
     });
   })
 );

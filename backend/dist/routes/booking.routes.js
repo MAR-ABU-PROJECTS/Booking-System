@@ -10,6 +10,7 @@ const error_middleware_2 = require("../middlewares/error.middleware");
 const server_1 = require("../server");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
+const fileservice_1 = require("../services/fileservice");
 const zod_1 = require("zod");
 const bookingservice_1 = require("../services/bookingservice");
 const router = (0, express_1.Router)();
@@ -620,7 +621,7 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
             (1000 * 60 * 60 * 24));
         // Generate booking number
         const bookingCode = `MAR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-        // Create booking with status APPROVED
+        // Create booking with status PENDING (requires ID upload before approval)
         const booking = await server_1.prisma.booking.create({
             data: {
                 bookingCode,
@@ -642,10 +643,8 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
                 taxes: pricing.taxes,
                 discount: pricing.discounts,
                 total: pricing.totalAmount,
-                status: client_1.BookingStatus.APPROVED, // <-- Auto-approve
+                status: client_1.BookingStatus.PENDING, // Pending until ID is uploaded
                 paymentStatus: client_1.PaymentStatus.PENDING,
-                approvedBy: req.user.id,
-                approvedAt: new Date(),
             },
             include: {
                 property: {
@@ -661,8 +660,6 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
                 },
             },
         });
-        // Send single confirmation email (includes approval since booking is auto-approved)
-        await emailservice_1.emailService.sendBookingConfirmation(data.guestEmail, booking);
         (0, logger_middleware_1.auditLog)("BOOKING_CREATED", req.user.id, {
             bookingId: booking.id,
             bookingCode: booking.bookingCode,
@@ -670,7 +667,7 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
         }, req.ip);
         res.status(201).json({
             success: true,
-            message: "Booking created and Approved. Please check your email for confirmation.",
+            message: "Booking created successfully. Please upload your valid ID to confirm booking.",
             data: booking,
         });
     }
@@ -684,6 +681,144 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
         }
         throw error;
     }
+}));
+/**
+ * @route   POST /api/v1/bookings/:id/upload-id
+ * @desc    Upload valid ID document for booking
+ * @access  Protected (booking owner only)
+ */
+/**
+ * @swagger
+ * /bookings/{id}/upload-id:
+ *   post:
+ *     summary: Upload valid ID document for booking
+ *     description: Upload a government-issued ID document to confirm booking. Required before booking can be approved.
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - guestIdType
+ *               - guestIdNumber
+ *               - idDocument
+ *             properties:
+ *               guestIdType:
+ *                 type: string
+ *                 enum: [passport, drivers_license, national_id, voters_card]
+ *                 description: Type of ID document
+ *               guestIdNumber:
+ *                 type: string
+ *                 description: ID document number
+ *               idDocument:
+ *                 type: string
+ *                 format: binary
+ *                 description: ID document file (JPEG, PNG, or PDF, max 5MB)
+ *     responses:
+ *       200:
+ *         description: ID uploaded successfully, booking approved
+ *       400:
+ *         description: Invalid request or ID already uploaded
+ *       404:
+ *         description: Booking not found
+ */
+router.post("/:id/upload-id", (0, authservice_1.requireAuth)(), fileservice_1.fileService.idDocumentUploader().single("idDocument"), [
+    (0, express_validator_1.body)("guestIdType")
+        .isIn(["passport", "drivers_license", "national_id", "voters_card"])
+        .withMessage("ID type must be one of: passport, drivers_license, national_id, voters_card"),
+    (0, express_validator_1.body)("guestIdNumber")
+        .trim()
+        .notEmpty()
+        .withMessage("ID number is required")
+        .isLength({ min: 5, max: 50 })
+        .withMessage("ID number must be between 5 and 50 characters"),
+], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { id } = req.params;
+    const { guestIdType, guestIdNumber } = req.body;
+    // Check if booking exists and belongs to user
+    const booking = await server_1.prisma.booking.findFirst({
+        where: {
+            id,
+            customerId: req.user.id,
+        },
+        include: {
+            property: {
+                select: { name: true },
+            },
+        },
+    });
+    if (!booking) {
+        throw new error_middleware_2.AppError("Booking not found or unauthorized", 404);
+    }
+    // Check if ID already uploaded
+    if (booking.guestIdDocumentUrl) {
+        throw new error_middleware_2.AppError("ID document already uploaded for this booking", 400, "ID_ALREADY_UPLOADED");
+    }
+    // Check if booking is in correct status
+    if (booking.status !== client_1.BookingStatus.PENDING) {
+        throw new error_middleware_2.AppError("ID can only be uploaded for pending bookings", 400, "INVALID_BOOKING_STATUS");
+    }
+    // Validate file upload
+    if (!req.file) {
+        throw new error_middleware_2.AppError("ID document file is required", 400, "ID_FILE_REQUIRED");
+    }
+    // Generate public URL for ID document
+    const baseUrl = process.env.BASE_URL || "http://localhost:5000";
+    const guestIdDocumentUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    // Update booking with ID and approve it
+    const updatedBooking = await server_1.prisma.booking.update({
+        where: { id },
+        data: {
+            guestIdType,
+            guestIdNumber,
+            guestIdDocumentUrl,
+            status: client_1.BookingStatus.APPROVED, // Auto-approve after ID upload
+            approvedBy: req.user.id,
+            approvedAt: new Date(),
+        },
+        include: {
+            property: {
+                select: {
+                    name: true,
+                    host: {
+                        select: { email: true },
+                    },
+                },
+            },
+            customer: {
+                select: { email: true },
+            },
+        },
+    });
+    // Send approval confirmation email
+    await emailservice_1.emailService.sendBookingConfirmation(updatedBooking.guestEmail, updatedBooking);
+    await (0, logger_middleware_1.auditLog)("BOOKING_ID_UPLOADED", req.user.email, {
+        bookingId: id,
+        bookingCode: booking.bookingCode,
+        idType: guestIdType,
+    }, req.ip);
+    res.json({
+        success: true,
+        message: "ID uploaded successfully. Your booking has been approved. Check your email for confirmation.",
+        data: {
+            bookingId: updatedBooking.id,
+            bookingCode: updatedBooking.bookingCode,
+            status: updatedBooking.status,
+            idType: updatedBooking.guestIdType,
+            approvedAt: updatedBooking.approvedAt,
+        },
+    });
 }));
 /**
  * @swagger

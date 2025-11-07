@@ -17,7 +17,7 @@ const validate = (req, res, next) => {
     if (!errors.isEmpty()) {
         return res.status(400).json({
             success: false,
-            message: 'Validation failed',
+            message: "Validation failed",
             errors: errors.array(),
         });
     }
@@ -124,79 +124,74 @@ const validate = (req, res, next) => {
  *                             properties:
  *                               id:
  *                                 type: string
- *asyncHandler(async (req: any, res: any) => {
-    const {
-      page = 1,
-      limit = 20,
-      propertyId,
-      customerId,
-      rating,
-      approved,
-      featured,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-    } = req.query
-
+ *                     pagination:
+ *                       type: object
+ *       500:
+ *         description: Server error
+ */
+router.get("/", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { page = 1, limit = 20, propertyId, customerId, rating, approved, featured, sortBy = "createdAt", sortOrder = "desc", } = req.query;
     // Build where clause
-    const where: any = {}
-    if (propertyId) where.propertyId = propertyId
-    if (customerId) where.customerId = customerId
-    if (rating) where.rating = parseInt(rating)
-    if (approved !== undefined) where.approved = approved === 'true'
-    if (featured !== undefined) where.featured = featured === 'true'
-
+    const where = {};
+    if (propertyId)
+        where.propertyId = propertyId;
+    if (customerId)
+        where.customerId = customerId;
+    if (rating)
+        where.rating = parseInt(rating);
+    if (approved !== undefined)
+        where.approved = approved === "true";
+    if (featured !== undefined)
+        where.featured = featured === "true";
     // For public view, only show approved reviews
-    if (!req.user || req.user.role === UserRole.CUSTOMER) {
-      where.approved = true
+    if (!req.user || req.user.role === client_1.UserRole.CUSTOMER) {
+        where.approved = true;
     }
-
     const [reviews, total] = await Promise.all([
-      prisma.review.findMany({
-        where,
-        orderBy: { [sortBy]: sortOrder },
-        skip: (parseInt(page) - 1) * parseInt(limit),
-        take: parseInt(limit),
-        include: {
-          customer: {
-            select: {
-              id: true,avatar: true,
+        server_1.prisma.review.findMany({
+            where,
+            orderBy: { [sortBy]: sortOrder },
+            skip: (parseInt(page) - 1) * parseInt(limit),
+            take: parseInt(limit),
+            include: {
+                customer: {
+                    select: {
+                        id: true,
+                        avatar: true,
+                    },
+                },
+                property: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                        images: true,
+                    },
+                },
+                booking: {
+                    select: {
+                        bookingCode: true,
+                        checkInDate: true,
+                        checkOutDate: true,
+                    },
+                },
             },
-          },
-          property: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              images: true,
-            },
-          },
-          booking: {
-            select: {
-              bookingCode: true,
-              checkInDate: true,
-              checkOutDate: true,
-            },
-          },
-        },
-      }),
-      prisma.review.count({ where }),
-    ])
-
+        }),
+        server_1.prisma.review.count({ where }),
+    ]);
     res.json({
-      success: true,
-      data: {
-        reviews,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit)),
+        success: true,
+        data: {
+            reviews,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / parseInt(limit)),
+            },
         },
-      },
-    })
-  })
-)
-
+    });
+}));
 /**
  * @route   GET /reviews/:id
  * @desc    Get review details
@@ -254,60 +249,59 @@ const validate = (req, res, next) => {
  *                         id:
  *                           type: string
  *                           example: "user_5678"
- *asyncHandler(async (req: any, res: any) => {
-    const review = await prisma.review.findUnique({
-      where: { id: req.params.id },
-      include: {
-        customer: {
-          select: {
-            id: true,avatar: true,
-          },
+ *       404:
+ *         description: Review not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/:id", (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const review = await server_1.prisma.review.findUnique({
+        where: { id: req.params.id },
+        include: {
+            customer: {
+                select: {
+                    id: true,
+                    avatar: true,
+                },
+            },
+            property: {
+                select: {
+                    id: true,
+                    name: true,
+                    type: true,
+                    images: true,
+                    hostId: true,
+                },
+            },
+            booking: {
+                select: {
+                    bookingCode: true,
+                    checkInDate: true,
+                    checkOutDate: true,
+                },
+            },
         },
-        property: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            images: true,
-            hostId: true,
-          },
-        },
-        booking: {
-          select: {
-            bookingCode: true,
-            checkInDate: true,
-            checkOutDate: true,
-          },
-        },
-      },
-    })
-
+    });
     if (!review) {
-      throw new AppError('Review not found', 404)
+        throw new error_middleware_2.AppError("Review not found", 404);
     }
-
     // Check if review is approved or user has permission to view
     if (!review.approved) {
-      if (!req.user) {
-        throw new AppError('Review not found', 404)
-      }
-
-      const isOwner = review.customerId === req.user.id
-      const isHost = review.property.hostId === req.user.id
-      const isAdmin = req.user.role === UserRole.ADMIN
-
-      if (!isOwner && !isHost && !isAdmin) {
-        throw new AppError('Review not found', 404)
-      }
+        if (!req.user) {
+            throw new error_middleware_2.AppError("Review not found", 404);
+        }
+        const isOwner = review.customerId === req.user.id;
+        const isHost = review.property.hostId === req.user.id;
+        const isAdmin = req.user.role === client_1.UserRole.ADMIN;
+        if (!isOwner && !isHost && !isAdmin) {
+            throw new error_middleware_2.AppError("Review not found", 404);
+        }
     }
-
     res.json({
-      success: true,
-      data: review,
-    })
-  })
-)
-
+        success: true,
+        data: review,
+    });
+}));
 /**
  * @route   POST /reviews
  * @desc    Create new review
@@ -437,17 +431,19 @@ const validate = (req, res, next) => {
  *       404:
  *         description: Booking not found
  */
-router.post('/', (0, authservice_1.requireAuth)(), [
-    (0, express_validator_1.body)('bookingId').isString().withMessage('Booking ID required'),
-    (0, express_validator_1.body)('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
-    (0, express_validator_1.body)('title').trim().notEmpty().withMessage('Review title required'),
-    (0, express_validator_1.body)('comment').trim().notEmpty().withMessage('Review comment required'),
-    (0, express_validator_1.body)('cleanliness').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('communication').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('checkIn').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('accuracy').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('location').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('value').optional().isInt({ min: 1, max: 5 }),
+router.post("/", (0, authservice_1.requireAuth)(), [
+    (0, express_validator_1.body)("bookingId").isString().withMessage("Booking ID required"),
+    (0, express_validator_1.body)("rating")
+        .isInt({ min: 1, max: 5 })
+        .withMessage("Rating must be between 1 and 5"),
+    (0, express_validator_1.body)("title").trim().notEmpty().withMessage("Review title required"),
+    (0, express_validator_1.body)("comment").trim().notEmpty().withMessage("Review comment required"),
+    (0, express_validator_1.body)("cleanliness").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("communication").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("checkIn").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("accuracy").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("location").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("value").optional().isInt({ min: 1, max: 5 }),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { bookingId, rating, title, comment, cleanliness, communication, checkIn, accuracy, location, value, } = req.body;
     // Check booking exists and is completed
@@ -460,8 +456,7 @@ router.post('/', (0, authservice_1.requireAuth)(), [
                     name: true,
                     hostId: true,
                     host: {
-                        select: { email: true,
-                        },
+                        select: { email: true },
                     },
                 },
             },
@@ -469,23 +464,23 @@ router.post('/', (0, authservice_1.requireAuth)(), [
         },
     });
     if (!booking) {
-        throw new error_middleware_2.AppError('Booking not found', 404);
+        throw new error_middleware_2.AppError("Booking not found", 404);
     }
     // Only booking owner can create review
     if (booking.customerId !== req.user.id) {
-        throw new error_middleware_2.AppError('Not authorized to review this booking', 403);
+        throw new error_middleware_2.AppError("Not authorized to review this booking", 403);
     }
     // Booking must be completed
     if (booking.status !== client_1.BookingStatus.COMPLETED) {
-        throw new error_middleware_2.AppError('Can only review completed bookings', 400);
+        throw new error_middleware_2.AppError("Can only review completed bookings", 400);
     }
     // Check if review already exists
     if (booking.review?.comment && booking.review.comment.length > 0) {
-        throw new error_middleware_2.AppError('Review already exists for this booking', 400);
+        throw new error_middleware_2.AppError("Review already exists for this booking", 400);
     }
     // Check if checkout date has passed
     if (new Date() < booking.checkOutDate) {
-        throw new error_middleware_2.AppError('Cannot review booking before checkout date', 400);
+        throw new error_middleware_2.AppError("Cannot review booking before checkout date", 400);
     }
     // Create review
     const review = await server_1.prisma.review.create({
@@ -516,8 +511,8 @@ router.post('/', (0, authservice_1.requireAuth)(), [
     await server_1.prisma.notification.create({
         data: {
             userId: booking.property.hostId,
-            type: 'REVIEW_RECEIVED',
-            title: 'New Review Received',
+            type: "REVIEW_RECEIVED",
+            title: "New Review Received",
             message: `${req.user.email} left a review for ${booking.property.name}`,
             metadata: {
                 reviewId: review.id,
@@ -534,7 +529,7 @@ router.post('/', (0, authservice_1.requireAuth)(), [
         rating,
         title,
     });
-    (0, logger_middleware_1.auditLog)('REVIEW_CREATED', req.user.id, {
+    (0, logger_middleware_1.auditLog)("REVIEW_CREATED", req.user.id, {
         reviewId: review.id,
         bookingId,
         propertyId: booking.propertyId,
@@ -542,7 +537,7 @@ router.post('/', (0, authservice_1.requireAuth)(), [
     }, req.ip);
     res.status(201).json({
         success: true,
-        message: 'Review submitted successfully. It will be reviewed before publication.',
+        message: "Review submitted successfully. It will be reviewed before publication.",
         data: review,
     });
 }));
@@ -639,43 +634,43 @@ router.post('/', (0, authservice_1.requireAuth)(), [
  *       404:
  *         description: Review not found
  */
-router.put('/:id', (0, authservice_1.requireAuth)(), [
-    (0, express_validator_1.param)('id').isString(),
-    (0, express_validator_1.body)('rating').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('title').optional().trim().notEmpty(),
-    (0, express_validator_1.body)('comment').optional().trim().notEmpty(),
-    (0, express_validator_1.body)('cleanliness').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('communication').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('checkIn').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('accuracy').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('location').optional().isInt({ min: 1, max: 5 }),
-    (0, express_validator_1.body)('value').optional().isInt({ min: 1, max: 5 }),
+router.put("/:id", (0, authservice_1.requireAuth)(), [
+    (0, express_validator_1.param)("id").isString(),
+    (0, express_validator_1.body)("rating").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("title").optional().trim().notEmpty(),
+    (0, express_validator_1.body)("comment").optional().trim().notEmpty(),
+    (0, express_validator_1.body)("cleanliness").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("communication").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("checkIn").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("accuracy").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("location").optional().isInt({ min: 1, max: 5 }),
+    (0, express_validator_1.body)("value").optional().isInt({ min: 1, max: 5 }),
 ], validate, (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const review = await server_1.prisma.review.findUnique({
         where: { id: req.params.id },
     });
     if (!review) {
-        throw new error_middleware_2.AppError('Review not found', 404);
+        throw new error_middleware_2.AppError("Review not found", 404);
     }
     // Only review owner can update
     if (review.customerId !== req.user.id) {
-        throw new error_middleware_2.AppError('Not authorized to update this review', 403);
+        throw new error_middleware_2.AppError("Not authorized to update this review", 403);
     }
     // Can only update unapproved reviews
     if (review.approved) {
-        throw new error_middleware_2.AppError('Cannot update approved review', 400);
+        throw new error_middleware_2.AppError("Cannot update approved review", 400);
     }
     const updatedReview = await server_1.prisma.review.update({
         where: { id: req.params.id },
         data: req.body,
     });
-    (0, logger_middleware_1.auditLog)('REVIEW_UPDATED', req.user.id, {
+    (0, logger_middleware_1.auditLog)("REVIEW_UPDATED", req.user.id, {
         reviewId: req.params.id,
         changes: req.body,
     }, req.ip);
     res.json({
         success: true,
-        message: 'Review updated successfully',
+        message: "Review updated successfully",
         data: updatedReview,
     });
 }));
@@ -719,28 +714,28 @@ router.put('/:id', (0, authservice_1.requireAuth)(), [
  *       404:
  *         description: Review not found
  */
-router.delete('/:id', (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.delete("/:id", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const review = await server_1.prisma.review.findUnique({
         where: { id: req.params.id },
     });
     if (!review) {
-        throw new error_middleware_2.AppError('Review not found', 404);
+        throw new error_middleware_2.AppError("Review not found", 404);
     }
     // Check authorization
     const isOwner = review.customerId === req.user.id;
     const isAdmin = req.user.role === client_1.UserRole.ADMIN;
     if (!isOwner && !isAdmin) {
-        throw new error_middleware_2.AppError('Not authorized to delete this review', 403);
+        throw new error_middleware_2.AppError("Not authorized to delete this review", 403);
     }
     await server_1.prisma.review.delete({
         where: { id: req.params.id },
     });
-    (0, logger_middleware_1.auditLog)('REVIEW_DELETED', req.user.id, {
+    (0, logger_middleware_1.auditLog)("REVIEW_DELETED", req.user.id, {
         reviewId: req.params.id,
     }, req.ip);
     res.json({
         success: true,
-        message: 'Review deleted successfully',
+        message: "Review deleted successfully",
     });
 }));
 // ===============================
@@ -828,8 +823,7 @@ router.put("/:id/approve", (0, authservice_1.requireAuth)({ role: client_1.UserR
         where: { id: req.params.id },
         include: {
             customer: {
-                select: { email: true,
-                },
+                select: { email: true },
             },
             property: {
                 select: {
@@ -956,60 +950,59 @@ router.put("/:id/approve", (0, authservice_1.requireAuth)({ role: client_1.UserR
  *                           customer:
  *                             type: object
  *                             properties:
- *requireAuth({ role: UserRole.ADMIN }),
-  asyncHandler(async (req: any, res: any) => {
-    const {
-      page = 1,
-      limit = 20,
-      sortBy = "createdAt",
-      sortOrder = "desc",
-    } = req.query;
-
+ *                               id:
+ *                                 type: string
+ *                     pagination:
+ *                       type: object
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (Admin only)
+ *       500:
+ *         description: Server error
+ */
+router.get("/pending", (0, authservice_1.requireAuth)({ role: client_1.UserRole.ADMIN }), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+    const { page = 1, limit = 20, sortBy = "createdAt", sortOrder = "desc", } = req.query;
     const [reviews, total] = await Promise.all([
-      prisma.review.findMany({
-        where: { approved: false },
-        orderBy: { [sortBy]: sortOrder },
-        skip: (parseInt(page) - 1) * parseInt(limit),
-        take: parseInt(limit),
-        include: {
-          customer: {
-            select: {email: true,
-              avatar: true,
+        server_1.prisma.review.findMany({
+            where: { approved: false },
+            orderBy: { [sortBy]: sortOrder },
+            skip: (parseInt(page) - 1) * parseInt(limit),
+            take: parseInt(limit),
+            include: {
+                customer: {
+                    select: { email: true, avatar: true },
+                },
+                property: {
+                    select: {
+                        name: true,
+                        type: true,
+                    },
+                },
+                booking: {
+                    select: {
+                        bookingCode: true,
+                        checkInDate: true,
+                        checkOutDate: true,
+                    },
+                },
             },
-          },
-          property: {
-            select: {
-              name: true,
-              type: true,
-            },
-          },
-          booking: {
-            select: {
-              bookingCode: true,
-              checkInDate: true,
-              checkOutDate: true,
-            },
-          },
-        },
-      }),
-      prisma.review.count({ where: { approved: false } }),
+        }),
+        server_1.prisma.review.count({ where: { approved: false } }),
     ]);
-
     res.json({
-      success: true,
-      data: {
-        reviews,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit)),
+        success: true,
+        data: {
+            reviews,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / parseInt(limit)),
+            },
         },
-      },
     });
-  })
-);
-
+}));
 /**
  * @route   GET /reviews/property/:propertyId/stats
  * @desc    Get review statistics for property
@@ -1087,7 +1080,7 @@ router.put("/:id/approve", (0, authservice_1.requireAuth)({ role: client_1.UserR
  *       500:
  *         description: Internal server error
  */
-router.get('/property/:propertyId/stats', (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.get("/property/:propertyId/stats", (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { propertyId } = req.params;
     const [reviews, ratingDistribution] = await Promise.all([
         server_1.prisma.review.findMany({
@@ -1106,7 +1099,7 @@ router.get('/property/:propertyId/stats', (0, error_middleware_1.asyncHandler)(a
             },
         }),
         server_1.prisma.review.groupBy({
-            by: ['rating'],
+            by: ["rating"],
             where: {
                 propertyId,
                 approved: true,

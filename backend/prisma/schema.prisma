@@ -16,23 +16,20 @@ datasource db {
 // ===============================
 
 model User {
-  id               String     @id @default(cuid())
-  email            String     @unique
-  phone            String?
-  avatar           String?
-  bio              String? // NEW: Added bio field
-  dateOfBirth      DateTime?
-  address          String?
-  city             String?
-  state            String?
-  country          String?    @default("Nigeria")
-  role             UserRole   @default(CUSTOMER)
-  status           UserStatus @default(ACTIVE) // Changed: No verification needed for passwordless
-  emailVerified    DateTime?
-  phoneVerified    DateTime?
-  identityVerified DateTime?
-  idType           String?
-  idNumber         String?
+  id            String     @id @default(cuid())
+  email         String     @unique
+  phone         String?
+  avatar        String?
+  bio           String? // NEW: Added bio field
+  dateOfBirth   DateTime?
+  address       String?
+  city          String?
+  state         String?
+  country       String?    @default("Nigeria")
+  role          UserRole   @default(CUSTOMER)
+  status        UserStatus @default(ACTIVE) // Changed: No verification needed for passwordless
+  emailVerified DateTime?
+  phoneVerified DateTime?
 
   // OTP Authentication fields
   otpCode     String? // Current OTP code
@@ -177,6 +174,11 @@ model Booking {
   guestEmail   String
   guestPhone   String
   guestAddress String?
+
+  // Valid ID for booking (REQUIRED for new bookings, optional for legacy)
+  guestIdType        String? // Type of ID (passport, drivers_license, national_id, voters_card)
+  guestIdNumber      String? // ID document number
+  guestIdDocumentUrl String? // URL to ID document image (front side required, back optional)
 
   // Additional info
   specialRequests String?
