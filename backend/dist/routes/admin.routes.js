@@ -1373,7 +1373,9 @@ router.put("/properties/:id/status", [
  * /admin/bookings:
  *   get:
  *     summary: Get all bookings with filters
- *     description: Admin can retrieve all bookings with optional filters, sorting, and pagination.
+ *     description: |
+ *       Admin can retrieve all bookings with optional filters, sorting, and pagination.
+ *       Each booking includes guest ID document information if uploaded (guestIdType, guestIdNumber, guestIdDocumentUrl).
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -1597,6 +1599,8 @@ router.get("/bookings", (0, error_middleware_1.asyncHandler)(async (req, res) =>
                     select: { email: true },
                 },
             },
+            // Note: guestIdType, guestIdNumber, and guestIdDocumentUrl are automatically included
+            // as they are direct fields on the Booking model
         }),
         server_1.prisma.booking.count({ where }),
     ]);
