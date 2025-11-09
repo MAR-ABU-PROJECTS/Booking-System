@@ -18,6 +18,7 @@ import type { SummaryData } from "@lib/type";
 import BookingStep from "@components/bookingComponents/BookingStep";
 import { ChevronLeft } from "lucide-react";
 import BookingPayment from "./BookingPayment";
+import { getBase64ImageFromUrl } from "@lib/utils";
 
 const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
@@ -91,6 +92,9 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			infants: 0,
 			guestPhone: "",
 			guestName: "",
+			guestIdNumber: "",
+			guestIdType: "",
+			idDocument: undefined,
 		},
 		mode: "onChange",
 	});
@@ -111,6 +115,16 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			const checkIn = dayjs(formData.checkIn).format("YYYY-MM-DD");
 			const checkOut = dayjs(formData.checkOut).format("YYYY-MM-DD");
 
+			const fileBase64 = formData.idDocument
+				? await getBase64ImageFromUrl(
+						URL.createObjectURL(formData.idDocument)
+					)
+				: undefined;
+
+			const base64 = fileBase64
+				? fileBase64.split(",")[1]
+				: null;
+
 			const response = await apiService.post("/bookings", {
 				propertyId: formData.propertyId,
 				checkIn: checkIn,
@@ -122,6 +136,9 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 				guestEmail: formData.guestEmail,
 				guestPhone: formData.guestPhone,
 				specialRequests: formData?.specialRequests,
+				guestIdNumber: formData.guestIdNumber,
+				guestIdType: formData.guestIdType,
+				idDocument: base64,
 			});
 			return response;
 		},
@@ -252,7 +269,10 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 						</div>
 
 						{step === 1 && (
-							<BookingForm isSubmitting={mutation.isPending} id={propertyId} />
+							<BookingForm
+								isSubmitting={mutation.isPending}
+								id={propertyId}
+							/>
 						)}
 
 						{step === 2 && (

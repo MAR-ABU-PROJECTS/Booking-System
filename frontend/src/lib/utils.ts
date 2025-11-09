@@ -65,5 +65,6 @@ export const getBase64ImageFromUrl = async (url: string): Promise<string> => {
 	});
 };
 
+export const AUTH_OTP_TIME = 240;
 
-export const AUTH_OTP_TIME = 240
+export const idType = ["Passport", "Driver's license", "Voter's card"];
