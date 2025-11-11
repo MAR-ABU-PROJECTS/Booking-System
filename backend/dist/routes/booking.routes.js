@@ -19,9 +19,9 @@ const createBookingSchema = zod_1.z.object({
     propertyId: zod_1.z.string(),
     checkIn: zod_1.z.string().transform((str) => new Date(str)),
     checkOut: zod_1.z.string().transform((str) => new Date(str)),
-    adults: zod_1.z.number().int().min(1),
-    children: zod_1.z.number().int().min(0).optional().default(0),
-    infants: zod_1.z.number().int().min(0).optional().default(0),
+    adults: zod_1.z.coerce.number().int().min(1), // Coerce string to number for multipart/form-data
+    children: zod_1.z.coerce.number().int().min(0).optional().default(0),
+    infants: zod_1.z.coerce.number().int().min(0).optional().default(0),
     guestName: zod_1.z.string().min(2),
     guestEmail: zod_1.z.string().email(),
     guestPhone: zod_1.z.string().min(10),
