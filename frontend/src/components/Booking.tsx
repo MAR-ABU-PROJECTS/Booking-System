@@ -18,7 +18,6 @@ import type { SummaryData } from "@lib/type";
 import BookingStep from "@components/bookingComponents/BookingStep";
 import { ChevronLeft } from "lucide-react";
 import BookingPayment from "./BookingPayment";
-import { getBase64ImageFromUrl } from "@lib/utils";
 
 const Booking = ({ propertyId }: { propertyId: string }) => {
 	const booking = useSelector((state: RootState) => state.booking);
@@ -114,32 +113,24 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		mutationFn: async (formData: z.infer<typeof createBookingSchema>) => {
 			const checkIn = dayjs(formData.checkIn).format("YYYY-MM-DD");
 			const checkOut = dayjs(formData.checkOut).format("YYYY-MM-DD");
+			const form_data = new FormData();
 
-			const fileBase64 = formData.idDocument
-				? await getBase64ImageFromUrl(
-						URL.createObjectURL(formData.idDocument)
-					)
-				: undefined;
+			form_data.append("propertyId", formData.propertyId);
+			form_data.append("checkIn", checkIn);
+			form_data.append("checkOut", checkOut);
+			form_data.append("adults", String(formData.adults));
+			form_data.append("children", String(formData.children));
+			form_data.append("infants", String(formData.infants));
+			form_data.append("guestName", formData.guestName);
+			form_data.append("guestEmail", formData.guestEmail);
+			form_data.append("guestPhone", formData.guestPhone);
+			form_data.append("agree", String(formData.agree));
+			form_data.append("specialRequests", formData.specialRequests ?? "");
+			form_data.append("idDocument", formData.idDocument);
+			form_data.append("guestIdType", formData.guestIdType);
+			form_data.append("guestIdNumber", String(formData.guestIdNumber));
 
-			const base64 = fileBase64
-				? fileBase64.split(",")[1]
-				: null;
-
-			const response = await apiService.post("/bookings", {
-				propertyId: formData.propertyId,
-				checkIn: checkIn,
-				checkOut: checkOut,
-				adults: formData.adults,
-				children: formData.children,
-				infants: formData.infants,
-				guestName: formData.guestName,
-				guestEmail: formData.guestEmail,
-				guestPhone: formData.guestPhone,
-				specialRequests: formData?.specialRequests,
-				guestIdNumber: formData.guestIdNumber,
-				guestIdType: formData.guestIdType,
-				idDocument: base64,
-			});
+			const response = await apiService.post("/bookings", form_data);
 			return response;
 		},
 

@@ -37,7 +37,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@components/ui/select";
-import { idType } from "@lib/utils";
+import { idTypes } from "@lib/utils";
 
 type Props = {
 	isSubmitting: boolean;
@@ -510,12 +510,12 @@ const BookingForm = ({ isSubmitting, id }: Props) => {
 													<SelectLabel>
 														Select ID Type
 													</SelectLabel>
-													{idType.map((option) => (
+													{idTypes.map((option) => (
 														<SelectItem
-															key={option}
-															value={option}
+															key={option.value}
+															value={option.value}
 														>
-															{option}
+															{option.label}
 														</SelectItem>
 													))}
 												</SelectGroup>

@@ -155,6 +155,18 @@ const Bookings = () => {
 						<p>{booking.guestName}</p>
 						<p className="text-gray-500">{booking.guestEmail}</p>
 						<p className="text-gray-500">{booking.guestPhone}</p>
+						<div className="flex gap-4">
+							<h4>ID type: </h4>{" "}
+							<p className="text-gray-500">
+								{booking.guestIdType ?? 'N/A'}
+							</p>
+						</div>
+						<div className="flex gap-4">
+							<h4>ID Number: </h4>{" "}
+							<p className="text-gray-500">
+								{booking.guestIdNumber ?? 'N/A'}
+							</p>
+						</div>
 					</div>
 				);
 			},

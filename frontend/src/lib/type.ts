@@ -122,6 +122,9 @@ export interface Booking {
 		type: string;
 		city: string;
 	};
+	guestIdType: string;
+	guestIdNumber: string;
+	guestIdDocumentUrl: string;
 }
 
 export type SummaryData = {
@@ -517,21 +520,21 @@ export type AdminProperty = {
 
 export type Audit = {
 	id: string;
-  action: string;
-  entity: string;
-  entityId: string | null;
-  changes: {
-    filters: Record<string, unknown>;
-    resultCount: number;
-  };
-  metadata: {
-    ip: string;
-    timestamp: string; // ISO date string
-    userEmail: string;
-  };
-  createdAt: string; // ISO date string
-  userId: string | null;
-  user: string | null;
+	action: string;
+	entity: string;
+	entityId: string | null;
+	changes: {
+		filters: Record<string, unknown>;
+		resultCount: number;
+	};
+	metadata: {
+		ip: string;
+		timestamp: string; // ISO date string
+		userEmail: string;
+	};
+	createdAt: string; // ISO date string
+	userId: string | null;
+	user: string | null;
 };
 
 export type CancellationType = {

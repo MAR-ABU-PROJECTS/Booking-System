@@ -67,4 +67,13 @@ export const getBase64ImageFromUrl = async (url: string): Promise<string> => {
 
 export const AUTH_OTP_TIME = 240;
 
-export const idType = ["Passport", "Driver's license", "Voter's card"];
+
+
+
+export	const idTypes = [
+	{ label: "International passport", value: 'passport' },
+	{ label: "Voter's Card", value: "voters_card" },
+	{ label: "National Id", value: "national_id"},
+	{ label: "Driver's License", value: "drivers_license"},
+
+];
