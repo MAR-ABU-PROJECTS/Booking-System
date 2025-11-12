@@ -1827,15 +1827,18 @@ router.get("/bookings/with-ids", (0, error_middleware_1.asyncHandler)(async (req
 }));
 /**
  * @route   GET /api/v1/admin/bookings/:bookingCode/id-document
- * @desc    View or download a booking's ID document
+ * @desc    View a booking's ID document
  * @access  Admin only
  */
 /**
  * @swagger
  * /admin/bookings/{bookingCode}/id-document:
  *   get:
- *     summary: View or download a booking's ID document
- *     description: Admin can view or download the ID document for a specific booking using the booking code.
+ *     summary: View a booking's ID document
+ *     description: |
+ *       Retrieve and view the ID document for a specific booking using the booking code.
+ *       Returns the actual file (image or PDF) for inline viewing in the browser, similar to the receipt viewing endpoint.
+ *       Access is restricted to admin users only.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -1845,49 +1848,17 @@ router.get("/bookings/with-ids", (0, error_middleware_1.asyncHandler)(async (req
  *         required: true
  *         schema:
  *           type: string
- *         description: The booking code (e.g., BK-20240115-001)
- *       - in: query
- *         name: download
- *         schema:
- *           type: boolean
- *           default: false
- *         description: Set to true to download the file, false to view inline
+ *         description: The booking code (e.g., MAR-1762953945906-MD677)
+ *         example: "MAR-1762953945906-MD677"
  *     responses:
  *       200:
- *         description: ID document retrieved successfully
+ *         description: ID document file returned successfully for viewing
  *         content:
- *           application/json:
+ *           image/jpeg:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     bookingId:
- *                       type: string
- *                       example: "booking_123"
- *                     bookingCode:
- *                       type: string
- *                       example: "BK-20240115-001"
- *                     idType:
- *                       type: string
- *                       example: "passport"
- *                     idNumber:
- *                       type: string
- *                       example: "A12345678"
- *                     documentUrl:
- *                       type: string
- *                       example: "/uploads/id-documents/booking_123_id.jpg"
- *                     absoluteUrl:
- *                       type: string
- *                       example: "http://localhost:5000/uploads/id-documents/booking_123_id.jpg"
- *                     uploadedAt:
- *                       type: string
- *                       format: date-time
- *           image/*:
+ *               type: string
+ *               format: binary
+ *           image/png:
  *             schema:
  *               type: string
  *               format: binary
@@ -1908,7 +1879,8 @@ router.get("/bookings/with-ids", (0, error_middleware_1.asyncHandler)(async (req
  */
 router.get("/bookings/:bookingCode/id-document", (0, error_middleware_1.asyncHandler)(async (req, res) => {
     const { bookingCode } = req.params;
-    const { download } = req.query;
+    const path = require("path");
+    const fs = require("fs");
     // Get booking with ID document using booking code
     const booking = await server_1.prisma.booking.findUnique({
         where: { bookingCode },
@@ -1933,51 +1905,41 @@ router.get("/bookings/:bookingCode/id-document", (0, error_middleware_1.asyncHan
             message: "No ID document found for this booking",
         });
     }
-    // If download query param is not set, return JSON with document info
-    if (download !== "true") {
-        const baseUrl = `${req.protocol}://${req.get("host")}`;
-        return res.json({
-            success: true,
-            data: {
-                bookingId: booking.id,
-                bookingCode: booking.bookingCode,
-                idType: booking.guestIdType,
-                idNumber: booking.guestIdNumber,
-                documentUrl: booking.guestIdDocumentUrl,
-                absoluteUrl: `${baseUrl}${booking.guestIdDocumentUrl}`,
-                uploadedAt: booking.updatedAt,
-            },
-        });
-    }
-    // If download=true, serve the file
-    const path = require("path");
-    const fs = require("fs").promises;
     // Get absolute file path
     const filePath = path.join(process.cwd(), booking.guestIdDocumentUrl.replace(/^\//, ""));
-    try {
-        // Check if file exists
-        await fs.access(filePath);
-        // Get file extension to set correct content type
-        const ext = path.extname(filePath).toLowerCase();
-        const contentTypes = {
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".png": "image/png",
-            ".pdf": "application/pdf",
-        };
-        const contentType = contentTypes[ext] || "application/octet-stream";
-        // Set headers for download
-        res.setHeader("Content-Type", contentType);
-        res.setHeader("Content-Disposition", `attachment; filename="booking_${booking.bookingCode}_id${ext}"`);
-        // Send file
-        res.sendFile(filePath);
-    }
-    catch (error) {
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
         return res.status(404).json({
             success: false,
             message: "ID document file not found on server",
+            debug: process.env.NODE_ENV === "development"
+                ? {
+                    bookingCode,
+                    expectedPath: filePath,
+                    documentUrl: booking.guestIdDocumentUrl,
+                }
+                : undefined,
         });
     }
+    // Get file stats and extension
+    const stats = fs.statSync(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const contentTypes = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".pdf": "application/pdf",
+    };
+    const contentType = contentTypes[ext] || "application/octet-stream";
+    // Set headers for inline viewing (like receipt endpoint)
+    res.set({
+        "Content-Type": contentType,
+        "Content-Length": stats.size.toString(),
+        "Content-Disposition": `inline; filename="booking_${booking.bookingCode}_id${ext}"`,
+        "Cache-Control": "private, max-age=3600", // Cache for 1 hour
+    });
+    // Send file
+    res.sendFile(path.resolve(filePath));
 }));
 // ===============================
 // SYSTEM SETTINGS

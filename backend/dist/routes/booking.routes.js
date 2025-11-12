@@ -664,9 +664,9 @@ router.post("/", (0, authservice_1.requireAuth)(), fileservice_1.fileService.idD
             (1000 * 60 * 60 * 24));
         // Generate booking number
         const bookingCode = `MAR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-        // Prepare ID document URL
-        const baseUrl = process.env.BASE_URL || "http://localhost:5000";
-        const guestIdDocumentUrl = `${baseUrl}/uploads/${req.file.filename}`;
+        // Prepare ID document URL (store relative path so server can serve and admin can download)
+        // Files are saved under uploads/id-documents by the FileService, so use that subpath.
+        const guestIdDocumentUrl = `/uploads/id-documents/${req.file.filename}`;
         // Create booking - auto-approved with valid ID
         const booking = await server_1.prisma.booking.create({
             data: {
