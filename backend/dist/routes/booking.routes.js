@@ -10,6 +10,7 @@ const error_middleware_2 = require("../middlewares/error.middleware");
 const server_1 = require("../server");
 const logger_middleware_1 = require("../middlewares/logger.middleware");
 const emailservice_1 = require("../services/emailservice");
+const fileservice_1 = require("../services/fileservice");
 const zod_1 = require("zod");
 const bookingservice_1 = require("../services/bookingservice");
 const router = (0, express_1.Router)();
@@ -18,9 +19,9 @@ const createBookingSchema = zod_1.z.object({
     propertyId: zod_1.z.string(),
     checkIn: zod_1.z.string().transform((str) => new Date(str)),
     checkOut: zod_1.z.string().transform((str) => new Date(str)),
-    adults: zod_1.z.number().int().min(1),
-    children: zod_1.z.number().int().min(0).optional().default(0),
-    infants: zod_1.z.number().int().min(0).optional().default(0),
+    adults: zod_1.z.coerce.number().int().min(1), // Coerce string to number for multipart/form-data
+    children: zod_1.z.coerce.number().int().min(0).optional().default(0),
+    infants: zod_1.z.coerce.number().int().min(0).optional().default(0),
     guestName: zod_1.z.string().min(2),
     guestEmail: zod_1.z.string().email(),
     guestPhone: zod_1.z.string().min(10),
@@ -475,14 +476,15 @@ router.get("/:bookingCode", (0, authservice_1.requireAuth)(), (0, error_middlewa
 }));
 /**
  * @route   POST /api/v1/create-bookings
- * @desc    Create new booking
+ * @desc    Create new booking with optional ID upload
  * @access  Protected
  */
 /**
  * @swagger
  * /bookings:
  *   post:
- *     summary: Create a new booking
+ *     summary: Create a new booking with optional ID upload
+ *     description: Create a booking and optionally upload ID document in one request. If ID is provided, booking is auto-approved.
  *     tags:
  *       - Bookings
  *     security:
@@ -490,7 +492,7 @@ router.get("/:bookingCode", (0, authservice_1.requireAuth)(), (0, error_middlewa
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -536,6 +538,19 @@ router.get("/:bookingCode", (0, authservice_1.requireAuth)(), (0, error_middlewa
  *               specialRequests:
  *                 type: string
  *                 example: "Please provide a baby cot."
+ *               guestIdType:
+ *                 type: string
+ *                 enum: [passport, drivers_license, national_id, voters_card]
+ *                 description: Required - Type of ID document
+ *                 example: "passport"
+ *               guestIdNumber:
+ *                 type: string
+ *                 description: Required - ID document number (5-50 characters)
+ *                 example: "A12345678"
+ *               idDocument:
+ *                 type: string
+ *                 format: binary
+ *                 description: Required - ID document file (JPEG, PNG, or PDF, max 5MB)
  *     responses:
  *       201:
  *         description: Booking created successfully
@@ -549,7 +564,7 @@ router.get("/:bookingCode", (0, authservice_1.requireAuth)(), (0, error_middlewa
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Booking created successfully. Awaiting host approval.
+ *                   example: Booking created and approved successfully! Check your email for confirmation.
  *                 data:
  *                   type: object
  *                   description: Booking details
@@ -575,9 +590,38 @@ router.get("/:bookingCode", (0, authservice_1.requireAuth)(), (0, error_middlewa
  *       500:
  *         description: Server error
  */
-router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncHandler)(async (req, res) => {
+router.post("/", (0, authservice_1.requireAuth)(), fileservice_1.fileService.idDocumentUploader().single("idDocument"), // Required file upload
+(0, error_middleware_1.asyncHandler)(async (req, res) => {
     try {
         const data = createBookingSchema.parse(req.body);
+        // Validate required ID fields
+        const { guestIdType, guestIdNumber } = req.body;
+        // Check if ID document is uploaded
+        if (!req.file) {
+            throw new error_middleware_2.AppError("ID document is required", 400);
+        }
+        // Check if ID type is provided
+        if (!guestIdType) {
+            throw new error_middleware_2.AppError("ID type is required", 400);
+        }
+        // Check if ID number is provided
+        if (!guestIdNumber) {
+            throw new error_middleware_2.AppError("ID number is required", 400);
+        }
+        // Validate ID type
+        const validIdTypes = [
+            "passport",
+            "drivers_license",
+            "national_id",
+            "voters_card",
+        ];
+        if (!validIdTypes.includes(guestIdType)) {
+            throw new error_middleware_2.AppError("ID type must be one of: passport, drivers_license, national_id, voters_card", 400);
+        }
+        // Validate ID number
+        if (guestIdNumber.trim().length < 5 || guestIdNumber.trim().length > 50) {
+            throw new error_middleware_2.AppError("ID number must be between 5 and 50 characters", 400);
+        }
         // Check property availability
         const property = await server_1.prisma.property.findUnique({
             where: { id: data.propertyId },
@@ -620,7 +664,10 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
             (1000 * 60 * 60 * 24));
         // Generate booking number
         const bookingCode = `MAR-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-        // Create booking with status APPROVED
+        // Prepare ID document URL (store relative path so server can serve and admin can download)
+        // Files are saved under uploads/id-documents by the FileService, so use that subpath.
+        const guestIdDocumentUrl = `/uploads/id-documents/${req.file.filename}`;
+        // Create booking - auto-approved with valid ID
         const booking = await server_1.prisma.booking.create({
             data: {
                 bookingCode,
@@ -642,8 +689,12 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
                 taxes: pricing.taxes,
                 discount: pricing.discounts,
                 total: pricing.totalAmount,
-                status: client_1.BookingStatus.APPROVED, // <-- Auto-approve
+                status: client_1.BookingStatus.APPROVED, // Auto-approve with valid ID
                 paymentStatus: client_1.PaymentStatus.PENDING,
+                // Required ID document fields
+                guestIdType: guestIdType,
+                guestIdNumber: guestIdNumber,
+                guestIdDocumentUrl: guestIdDocumentUrl,
                 approvedBy: req.user.id,
                 approvedAt: new Date(),
             },
@@ -661,16 +712,18 @@ router.post("/", (0, authservice_1.requireAuth)(), (0, error_middleware_1.asyncH
                 },
             },
         });
-        // Send single confirmation email (includes approval since booking is auto-approved)
-        await emailservice_1.emailService.sendBookingConfirmation(data.guestEmail, booking);
-        (0, logger_middleware_1.auditLog)("BOOKING_CREATED", req.user.id, {
+        (0, logger_middleware_1.auditLog)("BOOKING_CREATED_WITH_ID", req.user.id, {
             bookingId: booking.id,
             bookingCode: booking.bookingCode,
             propertyId: data.propertyId,
-        }, req.ip);
+            guestIdType: guestIdType,
+            hasIdDocument: true,
+        });
+        // Send booking confirmation email (auto-approved with ID)
+        await emailservice_1.emailService.sendBookingConfirmation(booking.guestEmail, booking);
         res.status(201).json({
             success: true,
-            message: "Booking created and Approved. Please check your email for confirmation.",
+            message: "Booking created and approved successfully! Check your email for confirmation.",
             data: booking,
         });
     }
