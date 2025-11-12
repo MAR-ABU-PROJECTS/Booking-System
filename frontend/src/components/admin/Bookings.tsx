@@ -37,6 +37,16 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@components/ui/alert-dialog";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@components/ui/dialog";
 import { DateRange } from "react-day-picker";
 import {
 	Popover,
@@ -105,8 +115,11 @@ const Bookings = () => {
 		}
 	}, [getBookings.error]);
 
+	const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 	const [confirm, setConfirm] = useState(false);
 	const [selectedId, setSelectedId] = useState("");
+	const [IdUrl, setIdUrl] = useState("");
+	const [openUrl, setOpenUrl] = useState(false);
 	const [reason, setReason] = useState("");
 
 	const handleCopy = async (text: string) => {
@@ -158,15 +171,27 @@ const Bookings = () => {
 						<div className="flex gap-4">
 							<h4>ID type: </h4>{" "}
 							<p className="text-gray-500">
-								{booking.guestIdType ?? 'N/A'}
+								{booking.guestIdType?.replace("_", " ") ??
+									"N/A"}
 							</p>
 						</div>
 						<div className="flex gap-4">
 							<h4>ID Number: </h4>{" "}
 							<p className="text-gray-500">
-								{booking.guestIdNumber ?? 'N/A'}
+								{booking.guestIdNumber ?? "N/A"}
 							</p>
 						</div>
+						{booking.guestIdDocumentUrl && (
+							<Button
+								className="mt-1"
+								onClick={() => {
+									setIdUrl(booking.guestIdDocumentUrl);
+									setOpenUrl(true);
+								}}
+							>
+								View ID
+							</Button>
+						)}
 					</div>
 				);
 			},
@@ -327,7 +352,14 @@ const Bookings = () => {
 			setReason("");
 		}
 	}, [confirm, selectedId]);
+	useEffect(() => {
+		if (!openUrl) {
+			setIdUrl("");
+		}
+	}, [openUrl, setIdUrl]);
 	const queryClient = useQueryClient();
+
+	console.log(IdUrl);
 
 	const mutation = useMutation({
 		mutationFn: async () => {
@@ -715,6 +747,31 @@ const Bookings = () => {
 					</AlertDialogHeader>
 				</AlertDialogContent>
 			</AlertDialog>
+
+			<Dialog open={openUrl} onOpenChange={setOpenUrl}>
+				<DialogContent className="sm:max-w-[600px]">
+					<DialogHeader>
+						<DialogTitle>Identity document</DialogTitle>
+					</DialogHeader>
+					<div className="w-full max-w-[800px]">
+						
+						{IdUrl && (
+							<div className="w-full h-[500px]">
+								<img
+									src={`${BASE_URL}${IdUrl}`}
+									alt="guest id image"
+									style={{
+										maxWidth: "100%",
+										borderRadius: "8px",
+									}}
+									className="w-full h-full object-contain"
+									crossOrigin="anonymous"
+								/>
+							</div>
+						)}
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 };
