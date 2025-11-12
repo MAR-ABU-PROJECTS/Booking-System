@@ -39,13 +39,9 @@ import {
 } from "@components/ui/alert-dialog";
 import {
 	Dialog,
-	DialogClose,
 	DialogContent,
-	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@components/ui/dialog";
 import { DateRange } from "react-day-picker";
 import {
@@ -358,8 +354,6 @@ const Bookings = () => {
 		}
 	}, [openUrl, setIdUrl]);
 	const queryClient = useQueryClient();
-
-	console.log(IdUrl);
 
 	const mutation = useMutation({
 		mutationFn: async () => {
@@ -754,7 +748,6 @@ const Bookings = () => {
 						<DialogTitle>Identity document</DialogTitle>
 					</DialogHeader>
 					<div className="w-full max-w-[800px]">
-						
 						{IdUrl && (
 							<div className="w-full h-[500px]">
 								<img
