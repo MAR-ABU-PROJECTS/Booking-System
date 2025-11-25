@@ -17,7 +17,7 @@ import useCountdownTimer from "@hooks/use-countdown-timer";
 const SignUp = () => {
 	const dispatch = useDispatch();
 	const router = useRouter();
-	const [step, setStep] = useState<"email" | "otp">("email");
+	const [step, setStep] = useState<"email" | "otp">("otp");
 	const [email, setEmail] = useState("");
 	const { resetTimer, timeLeft, isRunning } = useCountdownTimer();
 

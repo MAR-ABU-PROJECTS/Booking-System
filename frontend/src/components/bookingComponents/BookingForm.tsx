@@ -6,6 +6,8 @@ import {
 	MessageSquareMore,
 	UserRound,
 	Loader2,
+	CircleCheckBig,
+	FileText,
 } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
@@ -26,6 +28,16 @@ import { useQuery } from "@tanstack/react-query";
 import { apiService } from "@lib/apiService";
 import { isAxiosError } from "axios";
 import { toast } from "react-toastify";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@components/ui/select";
+import { idTypes } from "@lib/utils";
 
 type Props = {
 	isSubmitting: boolean;
@@ -459,6 +471,167 @@ const BookingForm = ({ isSubmitting, id }: Props) => {
 												field.onChange(cleaned);
 											}}
 										/>
+										{fieldState.error && (
+											<p className="text-sm text-red-600">
+												{fieldState.error.message}
+											</p>
+										)}
+									</div>
+								)}
+							/>
+						</div>
+
+						<div className="flex items-center gap-[20px] flex-1">
+							<Controller
+								control={control}
+								name="guestIdType"
+								render={({ field, fieldState }) => (
+									<div className="grid w-full items-center gap-1">
+										<Label>
+											Identification Document
+											<span className="text-red-600">
+												*
+											</span>
+										</Label>
+										<Select
+											value={field.value}
+											onValueChange={field.onChange}
+										>
+											<SelectTrigger className="w-full border-2 border-[#f7d5b0]">
+												<SelectValue
+													placeholder={
+														"Select ID Type"
+													}
+												/>
+											</SelectTrigger>
+
+											<SelectContent>
+												<SelectGroup>
+													<SelectLabel>
+														Select ID Type
+													</SelectLabel>
+													{idTypes.map((option) => (
+														<SelectItem
+															key={option.value}
+															value={option.value}
+														>
+															{option.label}
+														</SelectItem>
+													))}
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+
+										{fieldState.error && (
+											<p className="text-sm text-red-600">
+												{fieldState.error.message}
+											</p>
+										)}
+									</div>
+								)}
+							/>
+						</div>
+
+						<div className="flex items-center gap-[20px] flex-1">
+							<Controller
+								control={control}
+								name="guestIdNumber"
+								render={({ field, fieldState }) => (
+									<div className="grid w-full items-center gap-1">
+										<Label>
+											ID Number
+											<span className="text-red-600">
+												*
+											</span>
+										</Label>
+										<Input
+											type="tel"
+											placeholder="Enter id number"
+											className="border-2 border-[#f7d5b0]"
+											{...field}
+										/>
+
+										{fieldState.error && (
+											<p className="text-sm text-red-600">
+												{fieldState.error.message}
+											</p>
+										)}
+									</div>
+								)}
+							/>
+						</div>
+
+						<div className="flex items-center gap-[20px] flex-1">
+							<Controller
+								control={control}
+								name="idDocument"
+								render={({ field, fieldState }) => (
+									<div className="grid w-full items-center gap-1">
+										<div className="w-full grid items-center gap-1">
+											<Label
+												htmlFor="file-upload"
+												className="text-[15px]"
+											>
+												Upload identification Document
+											</Label>
+											<label
+												htmlFor="file-upload"
+												className={`h-[150px] w-full flex flex-col justify-center items-center mx-auto border-2 border-dashed cursor-pointer rounded-xl
+                  ${
+										field.value instanceof File
+							? "bg-green-100 border-green-500 text-green-700"
+							: "bg-[#fef9f3] border-[#f7d5b0] text-[#667085] hover:border-[#F4A857]"
+					}`}
+											>
+												<div>
+													{field.value instanceof File ? (
+														<CircleCheckBig className="text-green-600" />
+													) : (
+														<FileText className="text-[#F4A857]" />
+													)}
+												</div>
+												<p
+													className={`font-medium text-center ${
+														field.value instanceof File
+															? "text-green-700"
+															: ""
+													}`}
+												>
+													{field.value instanceof File
+														? "File uploaded successfully!"
+														: "Click or drag file to upload"}
+												</p>
+												<p className="text-[12px] text-[#667085]">
+													{field.value instanceof File
+														? "Click to change file"
+														: "Supported formats: JPG, PNG, PDF (Max 5MB)"}
+												</p>
+												<input
+													id="file-upload"
+													type="file"
+													accept=".jpg,.jpeg,.png,.pdf"
+													className="hidden"
+													onChange={(e) => {
+														const file = e.target.files?.[0] ?? null;
+														field.onChange(file); 
+													}}
+												
+												/>
+												<p
+													className={`text-[12px] mt-1 ${
+														field.value instanceof File
+															? "text-green-700 font-semibold"
+															: "text-[#667085]"
+													}`}
+												>
+													{field.value instanceof File
+														? field.value.name
+														: "No file chosen"}
+												</p>
+											</label>
+											
+										</div>
+
 										{fieldState.error && (
 											<p className="text-sm text-red-600">
 												{fieldState.error.message}
