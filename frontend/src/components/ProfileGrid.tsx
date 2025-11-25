@@ -36,11 +36,14 @@ const ProfileGrid = () => {
 		retry: true,
 	});
 
+
+
 	return (
 		<div className="mt-[150px] lg:mt-[130px] px-4 mx-auto max-w-7xl mb-10">
-
 			<div className="mb-8">
-				<h1 className="text-2xl sm:text-3xl font-bold text-foreground">Profile</h1>
+				<h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+					Profile
+				</h1>
 				<p className="mt-2 text-muted-foreground">
 					View and update your personal information
 				</p>

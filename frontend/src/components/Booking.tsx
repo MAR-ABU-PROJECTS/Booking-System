@@ -91,6 +91,9 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 			infants: 0,
 			guestPhone: "",
 			guestName: "",
+			guestIdNumber: "",
+			guestIdType: "",
+			idDocument: undefined,
 		},
 		mode: "onChange",
 	});
@@ -110,19 +113,24 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 		mutationFn: async (formData: z.infer<typeof createBookingSchema>) => {
 			const checkIn = dayjs(formData.checkIn).format("YYYY-MM-DD");
 			const checkOut = dayjs(formData.checkOut).format("YYYY-MM-DD");
+			const form_data = new FormData();
 
-			const response = await apiService.post("/bookings", {
-				propertyId: formData.propertyId,
-				checkIn: checkIn,
-				checkOut: checkOut,
-				adults: formData.adults,
-				children: formData.children,
-				infants: formData.infants,
-				guestName: formData.guestName,
-				guestEmail: formData.guestEmail,
-				guestPhone: formData.guestPhone,
-				specialRequests: formData?.specialRequests,
-			});
+			form_data.append("propertyId", formData.propertyId);
+			form_data.append("checkIn", checkIn);
+			form_data.append("checkOut", checkOut);
+			form_data.append("adults", String(formData.adults));
+			form_data.append("children", String(formData.children));
+			form_data.append("infants", String(formData.infants));
+			form_data.append("guestName", formData.guestName);
+			form_data.append("guestEmail", formData.guestEmail);
+			form_data.append("guestPhone", formData.guestPhone);
+			form_data.append("agree", String(formData.agree));
+			form_data.append("specialRequests", formData.specialRequests ?? "");
+			form_data.append("idDocument", formData.idDocument);
+			form_data.append("guestIdType", formData.guestIdType);
+			form_data.append("guestIdNumber", String(formData.guestIdNumber));
+
+			const response = await apiService.post("/bookings", form_data);
 			return response;
 		},
 
@@ -252,7 +260,10 @@ const Booking = ({ propertyId }: { propertyId: string }) => {
 						</div>
 
 						{step === 1 && (
-							<BookingForm isSubmitting={mutation.isPending} id={propertyId} />
+							<BookingForm
+								isSubmitting={mutation.isPending}
+								id={propertyId}
+							/>
 						)}
 
 						{step === 2 && (

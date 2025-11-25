@@ -51,7 +51,7 @@ export const homePageBookingSchema = z
 			});
 		}
 	});
-
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 export const createBookingSchema = z
 	.object({
 		propertyId: z.string(),
@@ -117,21 +117,30 @@ export const createBookingSchema = z
 			})
 			.min(10, "Phone number must be 11 digits"),
 
-		// address: z.string().min(1, "Billing address is required"),
-		// idType: z.string().optional(),
-		// emergencyContact: z.string().optional(),
-		// paymentMethod: z.string().optional(),
-		// arrivalTime: z
-		//   .string()
-		//   .regex(
-		//     /^([01]\d|2[0-3]):([0-5]\d)$/,
-		//     "Time must be in HH:mm format (24hr)"
-		//   )
-		//   .optional(),
-
 		agree: z.boolean(),
 
 		specialRequests: z.string().optional(),
+		guestIdType: z.string().min(1, "select id type"),
+		guestIdNumber: z.string().min(5, "minimum of 5 characters"),
+		idDocument: z
+			.instanceof(File, {
+				error: (issue) =>
+					issue.input === undefined
+						? "Please upload an ID document"
+						: "Invalid file input",
+			})
+			.refine((file) => file.size > 0, "Please upload an ID document")
+			.refine(
+				(file) =>
+					["image/jpeg", "image/png", "application/pdf"].includes(
+						file.type
+					),
+				"Only JPEG, PNG, or PDF files are allowed"
+			)
+			.refine(
+				(file) => file.size <= MAX_FILE_SIZE,
+				"File size must be less than 5MB"
+			),
 	})
 	.superRefine((data, ctx) => {
 		if (!data.agree) {

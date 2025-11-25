@@ -75,6 +75,8 @@ const OtpStep = ({
 					)}
 				/>
 
+
+
 				<Button
 					className="!cursor-pointer w-full mt-1.5 hover:bg-[#F4A857] h-[47px] text-[16px] items-center transition-transform duration-300 transform"
 					disabled={isLoading}
@@ -88,6 +90,8 @@ const OtpStep = ({
 					) : null}
 					Continue
 				</Button>
+
+				<p className="text-left mt-2 text-gray-500">Please check your inbox for the OTP. If you don&apos;t see it, check your Spam/Junk/Promotions folder.</p>
 
 				<button
 					type="button"
