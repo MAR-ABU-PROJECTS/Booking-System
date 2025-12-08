@@ -66,7 +66,7 @@ export const properties: Property[] = [
 			"Swimming pool",
 			"Balcony with city view",
 		],
-		price: 350000,
+		price: 450000,
 		rating: 4.9,
 		reviews: 127,
 		images: [
@@ -121,7 +121,7 @@ export const properties: Property[] = [
 			"Balcony with a view",
 			"Swimming pool access for two",
 		],
-		price: 380000,
+		price: 470000,
 		rating: 4.8,
 		reviews: 156,
 		images: [
@@ -225,7 +225,7 @@ export const properties: Property[] = [
 			"Balcony with a view",
 			"Swimming pool access for two",
 		],
-		price: 380000,
+		price: 470000,
 		rating: 4.8,
 		reviews: 156,
 		images: [
