@@ -11,13 +11,13 @@ First, run the development server:
 
 A comprehensive booking platform for MAR ABU PROJECTS SERVICES LLC.
 
-## 🏗️ Architecture
+## Architecture
 - **Frontend:** NextJS 14 + TailwindCSS + Material UI
 - **Backend:** Express + TypeScript + Prisma
 - **Database:** PostgreSQL
 - **Authentication:** NextAuth.js + JWT
 
-## 🚀 Quick Start
+## Quick Start
 ```bash
 # Install dependencies for frontend and backend
 npm run install:all
@@ -39,7 +39,7 @@ Project Structure
 - /shared - Shared TypeScript types
 - /docs - Project documentation
 
-## 🔄 Development Workflow Commands
+## Development Workflow Commands
 
 ### Install all dependencies
 ```bash
@@ -84,7 +84,7 @@ npm run db:studio
 npm run db:seed
 ```
 
-## 📝 Next.js Notes
+## Next.js Notes
 This is a [Next.js](https://nextjs.org) project bootstrapped with [create-next-app](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ### Getting Started
